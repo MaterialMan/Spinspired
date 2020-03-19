@@ -1,0 +1,53 @@
+17-12-2019 [14:28:03] Logfile opened
+17-12-2019 [14:28:03] Executable : vampire-serial
+17-12-2019 [14:28:03] Host name  : pc005:
+17-12-2019 [14:28:03] Directory  : /shared/storage/cs/staffstore/md596/Spinspired/Git/branches/working-branch/Support files/Simulators/vampire
+17-12-2019 [14:28:03] Process ID : 15632
+17-12-2019 [14:28:03] Version    : 5.0.0
+17-12-2019 [14:28:03] Githash    : ea470d9aa92d885e2f543f9e774cb6e51e899529
+17-12-2019 [14:28:03] Opening main input file "input".
+17-12-2019 [14:28:03] Parsing system parameters from main input file.
+17-12-2019 [14:28:03] Opening material file "Co.mat".
+17-12-2019 [14:28:03] Parsing material file for parameters.
+17-12-2019 [14:28:03] Generating neighbour interactions for a lattice of 5 x 5 x 5 unit cells for neighbour calculation
+17-12-2019 [14:28:03] Calculating alloy properties of system
+17-12-2019 [14:28:03] Determining atomic composition:
+17-12-2019 [14:28:03] Material 1 A makes up 100 % of all atoms ( 20164 atoms )
+17-12-2019 [14:28:03] Memory required for neighbourlist calculation:0.161312 MB
+17-12-2019 [14:28:03] Allocating memory for supercell array in neighbourlist calculation
+17-12-2019 [14:28:03] 	Allocating memory done
+17-12-2019 [14:28:03] Populating supercell array for neighbourlist calculation...
+17-12-2019 [14:28:03] 	Populating supercell array completed
+17-12-2019 [14:28:03] Memory required for neighbour list:0.967872 MB
+17-12-2019 [14:28:03] Generating neighbour list...
+17-12-2019 [14:28:03] 	Neighbour list calculation complete
+17-12-2019 [14:28:03] Deallocating supercell array for neighbour list calculation
+17-12-2019 [14:28:03] 	Supercell array deallocated
+17-12-2019 [14:28:03] Copying system data to optimised data structures.
+17-12-2019 [14:28:03] Number of atoms generated on rank 0: 20164
+17-12-2019 [14:28:03] Memory required for copying to performance array on rank 0: 3.06493 MB RAM
+17-12-2019 [14:28:03] Identifying surface atoms using global threshold value of 6
+17-12-2019 [14:28:03] 20164 surface atoms found.
+17-12-2019 [14:28:03] Memory required for creation of 1D neighbour list on rank 0: 0.322624 MB RAM
+17-12-2019 [14:28:03] Initialising data structures for exchange calculation.
+17-12-2019 [14:28:03] Unrolled exchange template requires 0.640704MB RAM
+17-12-2019 [14:28:03] Macrocell size = 50 Angstroms
+17-12-2019 [14:28:03] Macrocells in x,y,z: 10	10	1
+17-12-2019 [14:28:03] Total number of macrocells: 100
+17-12-2019 [14:28:03] Memory required for macrocell arrays: 0.008 MB
+17-12-2019 [14:28:03] Number of local macrocells on rank 0: 100
+17-12-2019 [14:28:03] Number of atoms generated: 20164
+17-12-2019 [14:28:03] Initialising data structures for anisotropy calculation.
+17-12-2019 [14:28:03] Initialising statistics module
+17-12-2019 [14:28:03] Initialising dipole field calculation
+17-12-2019 [14:28:03] Fast dipole field calculation has been enabled and requires 0.48 MB of RAM
+17-12-2019 [14:28:03] Total memory for dipole calculation (all CPUs): 0.48 MB of RAM
+17-12-2019 [14:28:03] Number of local cells for dipole calculation = 100
+17-12-2019 [14:28:03] Number of total cells for dipole calculation = 100
+17-12-2019 [14:28:03] Precalculating rij matrix for dipole calculation using tensor solver... 
+17-12-2019 [14:28:03] Precalculation of rij matrix for dipole calculation complete. Time taken: 0.371568 s
+17-12-2019 [14:28:03] Time required for dipole update: 0.000214662 s.
+17-12-2019 [14:28:03] Outputting dipole matrix 
+17-12-2019 [14:28:03] Demagnetisation tensor in format Nxx   Nxy   Nxz   Nyx   Nyy   Nyz   Nzx   Nzy   Nzz :
+17-12-2019 [14:28:03] -0.0125675	-5.61469e-17	-0	-5.61469e-17	-0.0125675	-0	-0	-0	1.0248
+17-12-2019 [14:28:03] Starting Simulation with Program Time-Series...

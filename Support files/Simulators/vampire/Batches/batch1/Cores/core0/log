@@ -1,0 +1,55 @@
+08-02-2020 [20:19:34] Logfile opened
+08-02-2020 [20:19:34] Executable : vampire-serial
+08-02-2020 [20:19:34] Host name  : node081.pri.viking.alces.network:
+08-02-2020 [20:19:34] Directory  : /mnt/lustre/users/md596/Magnets/working-branch/Support files/Simulators/vampire/Cores/core1
+08-02-2020 [20:19:34] Process ID : 13657
+08-02-2020 [20:19:34] Version    : 5.0.0
+08-02-2020 [20:19:34] Githash    : 
+08-02-2020 [20:19:34] Opening main input file "input".
+08-02-2020 [20:19:34] Parsing system parameters from main input file.
+08-02-2020 [20:19:34] Opening material file "Co.mat".
+08-02-2020 [20:19:34] Parsing material file for parameters.
+08-02-2020 [20:19:35] Generating neighbour interactions for a lattice of 5 x 5 x 5 unit cells for neighbour calculation
+08-02-2020 [20:19:35] Calculating alloy properties of system
+08-02-2020 [20:19:35] Determining atomic composition:
+08-02-2020 [20:19:35] Material 1 A makes up 100 % of all atoms ( 20164 atoms )
+08-02-2020 [20:19:35] Memory required for neighbourlist calculation:0.161312 MB
+08-02-2020 [20:19:35] Allocating memory for supercell array in neighbourlist calculation
+08-02-2020 [20:19:35] 	Allocating memory done
+08-02-2020 [20:19:35] Populating supercell array for neighbourlist calculation...
+08-02-2020 [20:19:35] 	Populating supercell array completed
+08-02-2020 [20:19:35] Memory required for neighbour list:0.967872 MB
+08-02-2020 [20:19:35] Generating neighbour list...
+08-02-2020 [20:19:35] 	Neighbour list calculation complete
+08-02-2020 [20:19:35] Deallocating supercell array for neighbour list calculation
+08-02-2020 [20:19:35] 	Supercell array deallocated
+08-02-2020 [20:19:35] Copying system data to optimised data structures.
+08-02-2020 [20:19:35] Number of atoms generated on rank 0: 20164
+08-02-2020 [20:19:35] Memory required for copying to performance array on rank 0: 3.06493 MB RAM
+08-02-2020 [20:19:35] Identifying surface atoms using global threshold value of 6
+08-02-2020 [20:19:35] 20164 surface atoms found.
+08-02-2020 [20:19:35] Memory required for creation of 1D neighbour list on rank 0: 0.322624 MB RAM
+08-02-2020 [20:19:35] Initialising data structures for exchange calculation.
+08-02-2020 [20:19:35] Unrolled exchange template requires 0.640704MB RAM
+08-02-2020 [20:19:35] Macrocell size = 50 Angstroms
+08-02-2020 [20:19:36] Macrocells in x,y,z: 10	10	1
+08-02-2020 [20:19:36] Total number of macrocells: 100
+08-02-2020 [20:19:36] Memory required for macrocell arrays: 0.008 MB
+08-02-2020 [20:19:36] Number of local macrocells on rank 0: 100
+08-02-2020 [20:19:36] Number of atoms generated: 20164
+08-02-2020 [20:19:36] Initialising data structures for anisotropy calculation.
+08-02-2020 [20:19:36] Initialising statistics module
+08-02-2020 [20:19:36] Initialising dipole field calculation
+08-02-2020 [20:19:36] Fast dipole field calculation has been enabled and requires 0.48 MB of RAM
+08-02-2020 [20:19:36] Total memory for dipole calculation (all CPUs): 0.48 MB of RAM
+08-02-2020 [20:19:36] Number of local cells for dipole calculation = 100
+08-02-2020 [20:19:36] Number of total cells for dipole calculation = 100
+08-02-2020 [20:19:36] Precalculating rij matrix for dipole calculation using tensor solver... 
+08-02-2020 [20:19:40] Precalculation of rij matrix for dipole calculation complete. Time taken: 3.98873 s
+08-02-2020 [20:19:40] Time required for dipole update: 0.0566509 s.
+08-02-2020 [20:19:40] Outputting dipole matrix 
+08-02-2020 [20:19:40] Demagnetisation tensor in format Nxx   Nxy   Nxz   Nyx   Nyy   Nyz   Nzx   Nzy   Nzz :
+08-02-2020 [20:19:40] -0.0125675	-3.74557e-17	-0	-3.74557e-17	-0.0125675	-0	-0	-0	1.0248
+08-02-2020 [20:19:40] Starting Simulation with Program Time-Series...
+08-02-2020 [20:21:30] Simulation run time [s]: 110.332
+08-02-2020 [20:21:31] Simulation ended gracefully.

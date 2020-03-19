@@ -1,0 +1,24 @@
+#================================================
+# Generated material file for input into vampire
+#================================================
+#
+#------------------------------------------------
+# Number of Materials
+#------------------------------------------------
+material:num-materials=1
+#------------------------------------------------
+# Material 1 (Fe)
+#------------------------------------------------
+
+material[1]:material-name=Fe
+material[1]:damping-constant=0.1
+material[1]:atomic-spin-moment=1.92 !muB
+material[1]:uniaxial-anisotropy-constant=-8.07246e-24
+material[1]:material-element=Fe
+material[1]:initial-spin-direction=0,0,1
+#------------------------------------------------
+
+#material can be specified to be micromagnetic here else it is automatically 
+#atomistic. 
+material[1]:micromagnetic-discretisation-enabled 
+#------------------------------------------------
