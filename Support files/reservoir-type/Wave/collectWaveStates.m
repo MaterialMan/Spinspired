@@ -141,10 +141,10 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
-%set(0,'currentFigure',config.figure_array(1))
-% subplot(1,2,2)
-% plot(input_sequence)
-% subplot(1,2,1)
-% plot(final_states)
-% drawnow
+set(0,'currentFigure',config.figure_array(1))
+subplot(1,2,2)
+plot(input_sequence)
+subplot(1,2,1)
+plot(final_states)
+drawnow
 % set(0,'currentFigure',config.figure_array(2))

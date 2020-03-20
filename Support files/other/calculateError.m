@@ -256,7 +256,7 @@ switch(config.err_type)
     case 'softmax'
         
         a = [];
-        for i = 1:length(system_output)
+        for i = 1:size(system_output,1)
             a(i,:) = exp(system_output(i,:))/sum(exp(system_output(i,:)));
         end
         [~,predict] = max(a,[],2);

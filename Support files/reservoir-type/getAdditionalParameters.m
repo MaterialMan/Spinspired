@@ -37,12 +37,15 @@ config.discrete = 0;
 config.noise_ratio = 0;
 
 % preprocessing performed on input data
-if strcmp(config.dataset,'test_pulse')
-    config.preprocess = 0;
-    config.prepocess_shift = 'zero to one';
-else
-    config.preprocess = 'scaling';
-    config.prepocess_shift = 'minus 1 plus 1';
+switch(config.dataset)
+    case{'test_pulse'}
+        
+        config.preprocess = 0;
+        config.prepocess_shift = 'zero to one';
+        
+    otherwise
+        config.preprocess = 'scaling';
+        config.prepocess_shift = 'minus 1 plus 1';
 end
 
 % simulation details
@@ -51,7 +54,7 @@ config.film = 0;                            %record simulation
 
 % iir filter params (not currently in use)
 config.iir_filter_on = 0;                       % add iir filters to states **not in use yet
-config.iir_filter_order = 2 + 1; 
+config.iir_filter_order = 2 + 1;
 
 %% Change/add parameters depending on reservoir type
 % This section is for additional parameters needed for different reservoir
@@ -73,7 +76,7 @@ switch(res_type)
         %config.plot_BZ =0;
         config.fft = 0;
         config.sparse_input_weights = 1;
- 
+        
         config.evolve_output_weights = 0;             % evolve rather than train
         
     case 'Graph'
@@ -141,7 +144,7 @@ switch(res_type)
         config.num_output_electrodes = 32;
         config.discrete = 0;
         
-    case 'Wave'      
+    case 'Wave'
         
         config.leak_on = 1;                           % add leak states
         config.add_input_states = 1;                  %add input to states
@@ -186,26 +189,27 @@ switch(res_type)
         config.SW_type = 'topology_plus_weights';                    %options: 'topology_plus_weights', 'watts_strogartz'
         
     case 'Pipeline'
-        config.add_input_states = 0; 
+        config.add_input_states = 0;
         
     case 'Oregonator'
         
+        config.add_input_states = 0;
         config.figure_array = [config.figure_array figure];
-        config.sparse_input_weights = 1;
+        config.sparse_input_weights = 0;
         config.sparsity(1) = 0.1;
-        config.input_weight_initialisation = 'uniform';  
+        config.input_weight_initialisation = 'uniform';
         config.leak_on = 0;
         config.bias_node = 0;
         
         config.stride      = 100;
         config.displayLive = true;
-        config.displayZoom = 7.0;
+        config.displayZoom = 4.0;
         
-        config.epsilon     = 0.0243;
+        config.epsilon     = 0.0243; %0.0243
         config.grid_2      = 0.0625; % 0.25^2
         config.diff_coeff  = 0.45;
         config.f           = 1.4;
-        config.q           = 0.002;
+        config.q           = 0.002; %0.002
         config.speed       = 0.0005;
         config.phi_active  = 0.054;    % normal, excitable
         config.phi_passive = 0.0975;   % passive, excitable
@@ -217,23 +221,57 @@ switch(res_type)
         
         config.crossover_dist = 1;
         
-        config.vesicle_radius = 5;
+        config.vesicle_radius = 25;
         %config.min_time_period = 100;
         config.max_time_period = 100;
         %config.input_length = 10;
-        config.plot_states = 0;
+        config.plot_states = 1;
         
         % must be non-negative
         config.preprocess = 'scaling';
         config.prepocess_shift = 'zero to one';
         
-          case 'Heterotic'
+    case 'Heterotic'
         % reservoir params
         
         % multi-reservoir type
         config.architecture = 'pipeline'; % can be 'ensemble','pipeline', or 'RoR'
         config.plot_states = 0;
         config.preprocess = 'scaling';
+        
+   case 'MM'
+        
+        % reservoir params
+        config.sparse_input_weights = 1;
+        %config.sparsity = 0.25;        % 0 to 1 sparsity of input weights
+        
+        config.leak_on = 1;                           % add leak states
+        config.add_input_states = 1;                  %add input to states
+        config.bias = 0;
+        % material params
+        config.macro_cell_size = 5;
+        config.element_list = {'Co'}; % e.g. Gd, Co, Ni, Fe
+        config.size_units = '!nm';
+        % material configs
+        config.temperature_parameter = 0; % positive integer OR 'dynamic'
+        config.damping_parameter = 'dynamic'; % 0.01 to 1 OR 'dynamic' | typical value 0.1
+        config.anisotropy_parameter = 'dynamic'; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
+        config.exchange_parameter = 'dynamic'; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.magmoment_parameter = 'dynamic'; % 0.5 to 7 OR 'dynamic' | typical value 1.4
+        config.unitcell_size = 3.47; % typical value 3.47 Armstrongs
+        config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.applied_field_strength = 0; % how many tesla (T)
+        %sim params
+        config.time_step = 100; % integer in femtoseconds % need to
+        config.time_units = '!fs';
+        config.time_steps_increment = 100; % time step to apply input; 100 or 1000
+        config.read_mag_direction = {'x','y','z'};
+        % plot output
+        config.plt_system = 0; % to create plot files
+        config.plot_rate =1;
+        config.plot_states = 0;
+        % multi-reservoir type
+        config.architecture = 'ensemble';
 
     otherwise
         

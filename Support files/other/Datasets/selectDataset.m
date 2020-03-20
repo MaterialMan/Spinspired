@@ -11,22 +11,25 @@ rng(1,'twister');
 
 switch config.dataset
     
-    %% test data
+    %% test data        
     case 'test_pulse'
         err_type = 'NMSE';
         wash_out =0;
         sequence_length = 300;
-        train_fraction=0.3333;    val_fraction=0.3333;    test_fraction=0.3333;
+        train_fraction= 1/3;    val_fraction= 1/3;    test_fraction= 1/3;
         
         input_sequence = zeros(sequence_length,1);
         
         for i=1:sequence_length
-            if mod(i,25) == 0
+            if mod(i,30) == 0
                 input_sequence(i) = 1;
             end
         end
         
-        output_sequence = input_sequence;
+        ahead  = 1;
+        output_sequence = input_sequence(1:end-ahead);
+        input_sequence = input_sequence(ahead+1:end);
+        
         
         %% system modelling and chaotic systems
     case 'secondorder_task' %best 3.61e-3

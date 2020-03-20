@@ -38,6 +38,8 @@ end
 
 
 % time multiplex -
+% extra_time = 20;
+% input_sequence = [zeros(extra_time,config.task_num_inputs); input_sequence];
 input{i} = [[zeros(1,config.task_num_inputs); input_sequence] repmat(individual.bias_node,size(input_sequence,1)+1,1)]*(individual.input_weights{i}*individual.input_scaling(i))';
 input_mul{i} = zeros((size(input_sequence,1)+1)*individual.time_period(i),size(input{i},2));
 if individual.time_period(i) > 1
@@ -70,34 +72,55 @@ for n = 2:max_input_length
     
     for i= 1:config.num_reservoirs % cycle through sub-reservoirs
                    
-        %pin point
+        % supply source inputs
+        %if mod(n,individual.time_period(i)) == 0
+        %sourcematrix = reactor_state{i}(id(i,:),id(i,:),config.u_idx);
+        %sourcematrix(individual.sourcematrix{i} == 1) = 1;
+        %reactor_state{i}(id(i,:),id(i,:),config.u_idx) = sourcematrix;%reactor_state{i}(id(i,:),id(i,:),config.u_idx)
+        %reactor_state{i}(:,:,config.u_idx) = adjustInputShape(reactor_state{i}(:,:,config.u_idx),individual.input_widths(i));
+        % end
+        
+        % change light intensity
         reactor_state{i}(:,:,config.u_idx) = reactor_state{i}(:,:,config.u_idx) + input_grid(:,:,n);
 
         % run sim step
         reactor_state{i} = oreg_step(reactor_state{i},size(reactor_state{i},1),size(reactor_state{i},2), config);
                
         % convolve states
-        conv_state = sum(reactor_state{i},3);
+        conv_state = reactor_state{i}(:,:,1);%sum(reactor_state{i},3);
         if individual.kernel_stride(i) ~= 1
             conv_state = conv2(padarray(conv_state, [individual.pad_size(i) individual.pad_size]), individual.kernel{i}, 'valid');
         end
         conv_state = conv_state(1:individual.kernel_stride(i):end, 1:individual.kernel_stride(i):end);
         
         %conv_state(isnan(conv_state)) = 0; 
-        has_nan_states = sum(sum(isnan(conv_state))) > 2;
+        has_nan_states = nnz(isnan(conv_state)) > 2;
         conv_state(conv_state > 1) = 1;
-        conv_state(conv_state < -1) = -1;
+        conv_state(conv_state < 0) = 0;
         
         if mod(n, config.stride) == 0 && config.plot_states       
             updateDisplay(reactor_state{i},size(reactor_state{i},1),size(reactor_state{i},2), config);
             title(strcat('Time:',' ',num2str(n/config.stride)));%individual.time_period(i))))
             set(0,'currentFigure',config.figure_array(3))
+            %subplot(1,2,1)
             imagesc(conv_state)
             colorbar
             caxis([0 1])
+            
+%             subplot(1,2,2)
+%             imagesc(individual.sourcematrix{i})
+%             colorbar
+%             caxis([0 1])
+%             
+%             subplot(2,2,3)
+%             imagesc(reactor_state{i}(:,:,1))
+%             colorbar
+%             caxis([0 1])
+            
             drawnow
         end
         
+        % check to if simulation fails
         if has_nan_states% if failed
             states{i} = zeros(max_input_length,individual.nodes(i));
             flag =1;
@@ -117,7 +140,6 @@ end
 %need to check! deplex to get states
 for i= 1:config.num_reservoirs
     if individual.time_period(i) > 1
-
         states{i} = states{i}(mod(1:size(states{i},1),individual.time_period(i)) == 0,:);
     end
 end
@@ -136,12 +158,7 @@ for i= 1:config.num_reservoirs
     individual.last_state{i} = states{i}(end,:);
 end
 
-% can remove: used as quick method to view internal reservoir activity
-if config.plot_states 
-set(0,'currentFigure',config.figure_array(2))
-plot(final_states)
-drawnow
-end
+
 
 % Concat input states
 if config.add_input_states == 1
@@ -155,7 +172,12 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
-
+% can remove: used as quick method to view internal reservoir activity
+%if config.plot_states 
+set(0,'currentFigure',config.figure_array(2))
+plot(final_states)
+drawnow
+%end
 
 end
 
@@ -454,7 +476,7 @@ function img = updateDisplay(state,height, width, config)
     % display image in window?
   
     set(0,'currentFigure',config.figure_array(1))
-    subplot(1,2,1)
+   % subplot(1,2,1)
     R = state(:,:,config.u_idx);
     G = state(:,:,config.p_idx);
     B = state(:,:,config.v_idx);

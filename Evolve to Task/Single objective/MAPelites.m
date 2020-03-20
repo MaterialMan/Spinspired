@@ -1,5 +1,5 @@
 %% MAP-elites
-% Notes: Implementation of MAP-elites using reservoir metrics to create behaviour space 
+% Notes: Implementation of MAP-elites using reservoir metrics to create behaviour space
 
 % Author: M. Dale
 % Date: 30/04/19
@@ -15,17 +15,17 @@ if isempty(gcp) && config.parallel
 end
 
 %% type of network to evolve
-config.res_type = 'MM';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
-config.num_nodes = [49];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
+config.res_type = 'RoR';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
+config.num_nodes = [50];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
 
 %% Network details
-config.metrics = {'KR','GR','linearMC'}; % metrics to use (and order of metrics)
+config.metrics = {'KR','linearMC'}; % metrics to use (and order of metrics)
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
 config.initial_population = 50;             % large pop better
-config.total_iter = 2000;                    % num of gens
+config.total_iter = 25;                    % num of gens
 config.mut_rate = 0.02;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 
@@ -33,7 +33,7 @@ config.rec_rate = 0.5;                       % recombination rate
 config.dataset = 'narma_10';                                                  % Task to evolve for
 
 % get any additional params. This might include:
-% details on reservoir structure, extra task variables, etc. 
+% details on reservoir structure, extra task variables, etc.
 config = getAdditionalParameters(config);
 
 % get dataset information
@@ -44,7 +44,7 @@ config.error_to_check = 'train&val&test';
 %% MAP of elites parameters
 config.batch_size = 5;                                                     % how many offspring to create in one iteration
 config.local_breeding = 1;                                                  % if interbreeding is local or global
-config.k_neighbours = 10;    
+config.k_neighbours = 10;
 if strcmp(config.res_type,'MM')% select second parent from neighbouring behaviours
     config.total_MAP_size = round((config.num_nodes)*config.num_reservoirs + (config.add_input_states*config.task_num_inputs) + 1) * 3;  %size depends system used
 else
@@ -70,7 +70,8 @@ for tests = 1:config.num_tests
     fprintf('Processing genotype......... %s \n',datestr(now, 'HH:MM:SS'))
     tic
     
-    rng((tests-1)*config.total_iter*config.batch_size,'twister');
+    
+    rng(tests,'twister');
     config.test = tests;
     
     %reset global best
@@ -83,12 +84,11 @@ for tests = 1:config.num_tests
     
     %% first batch
     config.pop_size = config.initial_population;
-    population = config.createFcn(config);    
+    population = config.createFcn(config);
     
-    % Evaluate offspring  
+    % Evaluate offspring
     if config.parallel % use parallel toolbox - faster
         parfor pop_indx = 1:config.pop_size
-            warning('off','all')
             population(pop_indx).behaviours = round(getMetrics(population(pop_indx),config))+1;
             population(pop_indx) = config.testFcn(population(pop_indx),config);
             fprintf('\n pop: %d, error: %.4f',pop_indx, getError(config.error_to_check,population(pop_indx)));
@@ -108,7 +108,7 @@ for tests = 1:config.num_tests
             global_best = getError(config.error_to_check,population(i));%population(i).val_error;
             best_indv = i;
         end
-            
+        
         discretised_behaviour = floor(population(i).behaviours/config.MAP_resolution(config.res_iter))*config.MAP_resolution(config.res_iter);
         [~, idx] = ismember(discretised_behaviour, config.combs, 'rows');
         % assign elites
@@ -129,11 +129,16 @@ for tests = 1:config.num_tests
             config.res_iter = config.res_iter+1;
             [config, MAP]= changeMAPresolution(config,MAP);
         end
+               
+        %preallocate offspring
+        offspring = population(1);
         
-        %% evaluate offspirng in batches
         for b = 1:config.batch_size
             warning('off','all')
             rng((tests-1)+(iter-1)*config.batch_size+b,'twister');
+            
+            scurr = rng;
+            fprintf('seed: %d \n',scurr.Seed)
             
             % find all behaviours and pick one randomly
             occupied_cells = ~cellfun('isempty',MAP);
@@ -165,27 +170,39 @@ for tests = 1:config.num_tests
             offspring(b) = config.recFcn(MAP{winner},MAP{loser},config);
             
             % mutate offspring/loser
-            offspring(b) = config.mutFcn(offspring(b),config);  
+            offspring(b) = config.mutFcn(offspring(b),config);   
         end
         
-        parfor b = 1:config.batch_size
-            
-            if strcmp(config.res_type,'MM')
-                offspring(b).core_indx = b;
+        
+        if config.parallel
+            parfor b = 1:config.batch_size
+                % assign core to use for MM reservoir
+                if strcmp(config.res_type,'MM')
+                    offspring(b).core_indx = b;
+                end
+                % parallel calc of behaviours and errors
+                temp(b) = config.testFcn(offspring(b),config);
+                temp(b).behaviours = round(getMetrics(temp(b),config))+1;
+                
+                offspring(b) = temp(b);
             end
-            % Evaluate offspring            
-            offspring(b).behaviours = round(getMetrics(offspring(b),config))+1;
             
-            offspring(b) = config.testFcn(offspring(b),config);
+        else
+            for b = 1:config.batch_size
+                offspring(b) = config.testFcn(offspring(b),config);
+                offspring(b).behaviours = round(getMetrics(offspring(b),config))+1;
+                rnd
+            end
         end
-       % end
+        
         
         %% place batch offspring in MAP of elites
         for i = 1:config.batch_size
+            
             %record offspring errors
             if getError(config.error_to_check,offspring(i)) < global_best% before offspring(i).val_error < global_best
                 prev_gloabl_best = global_best;
-                global_best = getError(config.error_to_check,offspring(i)); %offspring(i).val_error;  
+                global_best = getError(config.error_to_check,offspring(i)); %offspring(i).val_error;
                 global_best_indv = offspring(i);
             end
             
@@ -229,17 +246,17 @@ for tests = 1:config.num_tests
         
         if (mod(iter,config.gen_print) == 0)
             if  prev_gloabl_best ~= global_best %getError(config.error_to_check,MAP{best_indv}) ~= getError(config.error_to_check,MAP{prev_best})
-                    % plot reservoir structure, task simulations etc.
-                    %plotReservoirDetails(MAP,best_indv,1,best_indv,config);
+                % plot reservoir structure, task simulations etc.
+                %plotReservoirDetails(MAP,best_indv,1,best_indv,config);
             end
-            %plotReservoirDetails(MAP,store_global_best,tests,best_indv,1,prev_best,config)       
-
+            %plotReservoirDetails(MAP,store_global_best,tests,best_indv,1,prev_best,config)
+            
         end
-
- 	if (mod(iter,config.save_gen) == 0)
-		saveData(MAP,tests,config)        
-	end
-
+        
+        if (mod(iter,config.save_gen) == 0)
+            saveData(MAP,tests,config)
+        end
+        
         fprintf('\n iteration: %d, best error: %.4f  ',iter,global_best);
     end
     
@@ -258,7 +275,7 @@ end
 function [config,newMAP] = changeMAPresolution(config,MAP)
 % currently 2-D space/MAP
 switch(length(config.metrics))
-
+    
     case 2
         [ca, cb] = ndgrid(0:config.MAP_resolution(config.res_iter):config.total_MAP_size,...
             0:config.MAP_resolution(config.res_iter):config.total_MAP_size);

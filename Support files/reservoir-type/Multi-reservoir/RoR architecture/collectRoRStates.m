@@ -87,6 +87,7 @@ for i= 1:config.num_reservoirs
     individual.last_state{i} = states{i}(end,:);
 end
 
+
 % concat input states
 if config.add_input_states == 1
     final_states = [final_states input_sequence];
@@ -97,3 +98,6 @@ if size(input_sequence,1) == 2
 else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
+
+plot(final_states)
+drawnow

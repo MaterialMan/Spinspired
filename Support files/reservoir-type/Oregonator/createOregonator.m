@@ -46,7 +46,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).input_widths(i) = randi([1 config.vesicle_radius-1]);
         
         % Scaling and leak rate
-        population(pop_indx).input_scaling(i) = 2*rand; %increases nonlinearity
+        population(pop_indx).input_scaling(i) = 0.05*rand; %increases nonlinearity
         population(pop_indx).leak_rate(i) = rand;
         
         % input weights
@@ -78,7 +78,6 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).kernel_size(i) = config.vesicle_radius*2;%randi([1 5]);
         population(pop_indx).kernel{i} = ones(population(pop_indx).kernel_size(i))/population(pop_indx).kernel_size(i)^2; % summation filter
         
-       
         % individual should keep track of final state for certain tasks
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
     end
@@ -92,14 +91,22 @@ for pop_indx = 1:config.pop_size
         
         for j= 1:config.num_reservoirs % only ensemble at the moment - no inter-reservoir connectivity
             
-            % assign random bit and phi matrices
+            % assign places for vesicles
             population(pop_indx).bitmatrix{i,j} = round(rand(population(pop_indx).vesicle_grid_size));
             
+            % assign initial intensities
             phimatrix =zeros(size(population(pop_indx).bitmatrix{i,j}));
-            phimatrix(population(pop_indx).bitmatrix{i,j} == 1) = rand(sum(sum(population(pop_indx).bitmatrix{i,j} == 1)),1)*0.06;
-            
+            phimatrix(population(pop_indx).bitmatrix{i,j} == 1) = rand(nnz(population(pop_indx).bitmatrix{i,j}),1)*0.06;
             population(pop_indx).phimatrix{i,j} = phimatrix;
-                        
+            
+            % source vesicles
+            sourcematrix = population(pop_indx).bitmatrix{i,j};
+            population(pop_indx).num_sources = randi([1 3]);%nnz(sourcematrix)]);
+            % assign source locations
+            possible_source_locations = zeros(nnz(sourcematrix),1);
+            possible_source_locations(randperm(nnz(sourcematrix),population(pop_indx).num_sources)) = 1;
+            sourcematrix(sourcematrix==1) = possible_source_locations;
+            population(pop_indx).sourcematrix{i,j} = sourcematrix;     
         end
         % count total nodes including sub-reservoir nodes
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
