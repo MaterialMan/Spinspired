@@ -5,7 +5,7 @@ function [config] = getAdditionalParameters(config)
 %% Set Default parameters
 config.mutate_type = 'gaussian';            %options: 'gaussian', 'uniform'. Type of distribution new weight is chosen from.
 config.num_reservoirs = length(config.num_nodes);% num of subreservoirs. Default ESN should be 1.
-config.leak_on = 0;                           % add leak states
+config.leak_on = 1;                           % add leak states
 
 % define connectivities
 config.add_input_states = 1;                  %add input to states
@@ -235,15 +235,15 @@ switch(res_type)
         % reservoir params
         
         % multi-reservoir type
-        config.architecture = 'pipeline'; % can be 'ensemble','pipeline', or 'RoR'
+        config.architecture = 'ensemble'; % can be 'ensemble','pipeline', or 'RoR'
         config.plot_states = 0;
-        config.preprocess = 'scaling';
         
    case 'MM'
         
         % reservoir params
         config.sparse_input_weights = 1;
         %config.sparsity = 0.25;        % 0 to 1 sparsity of input weights
+        config.input_widths = 0;
         
         config.leak_on = 1;                           % add leak states
         config.add_input_states = 1;                  %add input to states
@@ -254,10 +254,10 @@ switch(res_type)
         config.size_units = '!nm';
         % material configs
         config.temperature_parameter = 0; % positive integer OR 'dynamic'
-        config.damping_parameter = 'dynamic'; % 0.01 to 1 OR 'dynamic' | typical value 0.1
-        config.anisotropy_parameter = 'dynamic'; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
-        config.exchange_parameter = 'dynamic'; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
-        config.magmoment_parameter = 'dynamic'; % 0.5 to 7 OR 'dynamic' | typical value 1.4
+        config.damping_parameter = [0.01, 1]; % 0.01 to 1 OR 'dynamic' | typical value 0.1
+        config.anisotropy_parameter = [1e-25, 1e-22]; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
+        config.exchange_parameter = [1e-21, 10e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.magmoment_parameter = [0.5, 7]; % 0.5 to 7 OR 'dynamic' | typical value 1.4
         config.unitcell_size = 3.47; % typical value 3.47 Armstrongs
         config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
         config.applied_field_strength = 0; % how many tesla (T)

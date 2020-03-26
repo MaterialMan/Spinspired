@@ -7,7 +7,7 @@ clear
 close all
 
 %% Setup
-config.parallel = 1;                        % use parallel toolbox
+config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -16,16 +16,16 @@ end
 
 %% type of network to evolve
 config.res_type = 'RoR';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
-config.num_nodes = [50];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
+config.num_nodes = [300];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
 
 %% Network details
-config.metrics = {'KR','linearMC'}; % metrics to use (and order of metrics)
+config.metrics = {'KR','GR','linearMC'}; % metrics to use (and order of metrics)
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
-config.initial_population = 50;             % large pop better
-config.total_iter = 25;                    % num of gens
+config.initial_population = 100;             % large pop better
+config.total_iter = 200;                    % num of gens
 config.mut_rate = 0.02;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 

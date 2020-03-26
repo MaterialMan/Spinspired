@@ -99,5 +99,3 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
-plot(final_states)
-drawnow

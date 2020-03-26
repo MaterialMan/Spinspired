@@ -63,61 +63,28 @@ for pop_indx = 1:config.pop_size
         end
         
         % input widths
-        widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
-        widths(widths > round(sqrt(population(pop_indx).nodes(i))/4)) = round(sqrt(population(pop_indx).nodes(i))/4);% cap at 1/6 size of space
+        if config.input_widths
+            widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
+            widths(widths > round(sqrt(population(pop_indx).nodes(i))/4)) = round(sqrt(population(pop_indx).nodes(i))/4);% cap at 1/6 size of space
+        else
+            widths = ones(length(input_weights),1);
+        end
         population(pop_indx).input_widths{i} = widths; %size of the inputs; pin-point or broad
         
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
         
         %% magnet params
-        if config.damping_parameter == 'dynamic' % random damping s.t. chance of small range 0.01-0.1 = chance of large range 0.1-1
-            %             if rand < 0.5
-            %                 population(pop_indx).damping(i) = 0.01 + (0.1-0.01)*rand;
-            %             else
-            %                 population(pop_indx).damping(i) = 0.1 + (1-0.1)*rand;
-            %             end
-            population(pop_indx).damping(i) = rand;
-        else
-            population(pop_indx).damping(i) = config.damping_parameter + 0.1*rand-0.05;
-        end
+        population(pop_indx).damping(i) = config.damping_parameter(1) + (config.damping_parameter(2)-config.damping_parameter(1))*rand;
         
-        if config.anisotropy_parameter == 'dynamic' % random anisotropy s.t. chance of small range 1e-25-1e-24 = chance of large range 1e-24-1e-23
-            %             if rand < 0.5
-            %                 population(pop_indx).anisotropy(i) = 1e-25 + (1e-24-1e-25)*rand;
-            %             else
-            %                 population(pop_indx).anisotropy(i) = 1e-24 + (1e-23-1e-24)*rand;
-            %             end
-            population(pop_indx).anisotropy(i) = (1e-22-1e-25)*rand;
-        else
-            population(pop_indx).anisotropy(i) = config.anisotropy_parameter;
-        end
+        population(pop_indx).anisotropy(i) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
+       
+        population(pop_indx).temperature(i) = config.temperature_parameter(1) + (config.temperature_parameter(2)-config.temperature_parameter(1))*rand;
         
-        if config.temperature_parameter == 'dynamic'
-            population(pop_indx).temperature(i) = normrnd(300,100); % Gaussian distribution with mean at room T
-            if population(pop_indx).temperature(i) < 0
-                population(pop_indx).temperature(i) = 0;
-            end
-        else
-            population(pop_indx).temperature(i) = config.temperature_parameter;
-        end
+        population(pop_indx).exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)+config.exchange_parameter(1))*rand;
         
-        if config.exchange_parameter == 'dynamic' % flat distribution in sensible physical range
-            population(pop_indx).exchange(i) = 1e-21 + (10e-21-1e-21)*rand;
-        else
-            population(pop_indx).exchange(i) = config.exchange_parameter + (1e-21)*rand-0.5e-21;
-        end
-        
-        if config.magmoment_parameter == 'dynamic' % flat distribution in sensible physical range
-            population(pop_indx).magmoment(i) = 0.5 + (7-0.5)*rand;
-        else
-            population(pop_indx).magmoment(i) = config.magmoment_parameter;
-        end
-        
-        if config.applied_field_strength == 'dynamic' % flat distribution in sensible physical range
-            population(pop_indx).applied_field_strength(i) = rand;
-        else
-            population(pop_indx).applied_field_strength(i) = config.applied_field_strength;
-        end
+        population(pop_indx).magmoment(i) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)+config.magmoment_parameter(1))*rand;
+       
+        population(pop_indx).applied_field_strength(i) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
         
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
     end
