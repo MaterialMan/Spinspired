@@ -4,12 +4,12 @@ function offspring = mutateMM(offspring,config)
 
 input_scaling = offspring.input_scaling(:);
 pos = randperm(length(input_scaling),sum(rand(length(input_scaling),1) < config.mut_rate));
-input_scaling(pos) = input_scaling(pos) + randn*0.15;%2*rand(length(pos),1)-1;
+input_scaling(pos) = mutateWeight(input_scaling(pos),[-1, 1],config);
 offspring.input_scaling = reshape(input_scaling,size(offspring.input_scaling));
 
 leak_rate = offspring.leak_rate(:);
 pos = randperm(length(leak_rate),sum(rand(length(leak_rate),1) < config.mut_rate));
-leak_rate(pos) = leak_rate(pos) + randn*0.15; %rand(length(pos),1);
+leak_rate(pos) = mutateWeight(leak_rate(pos),[0, 1],config); 
 offspring.leak_rate = reshape(leak_rate,size(offspring.leak_rate));
 
 % vampire params
@@ -18,25 +18,25 @@ pos = randperm(length(damping),sum(rand(length(damping),1) < config.mut_rate));
 damping(pos) = mutateWeight(damping(pos),config.damping_parameter,config);
 offspring.damping = reshape(damping,size(offspring.damping));
 
-anisotropy_parameter = offspring.anisotropy_parameter(:);
-pos = randperm(length(anisotropy_parameter),sum(rand(length(anisotropy_parameter),1) < config.mut_rate));
-anisotropy_parameter(pos) = mutateWeight(anisotropy_parameter(pos),config.anisotropy_parameter,config);
-offspring.anisotropy_parameter = reshape(anisotropy_parameter,size(offspring.anisotropy_parameter));
+anisotropy = offspring.anisotropy(:);
+pos = randperm(length(anisotropy),sum(rand(length(anisotropy),1) < config.mut_rate));
+anisotropy(pos) = mutateWeight(anisotropy(pos),config.anisotropy_parameter,config);
+offspring.anisotropy = reshape(anisotropy,size(offspring.anisotropy));
 
-temperature_parameter = offspring.temperature_parameter(:);
-pos = randperm(length(temperature_parameter),sum(rand(length(temperature_parameter),1) < config.mut_rate));
-temperature_parameter(pos) = mutateWeight(temperature_parameter(pos),config.temperature_parameter,config);
-offspring.temperature_parameter = reshape(temperature_parameter,size(offspring.temperature_parameter));
+temperature = offspring.temperature(:);
+pos = randperm(length(temperature),sum(rand(length(temperature),1) < config.mut_rate));
+temperature(pos) = mutateWeight(temperature(pos),config.temperature_parameter,config);
+offspring.temperature = reshape(temperature,size(offspring.temperature));
 
-exchange_parameter = offspring.exchange_parameter(:);
-pos = randperm(length(exchange_parameter),sum(rand(length(exchange_parameter),1) < config.mut_rate));
-exchange_parameter(pos) = mutateWeight(exchange_parameter(pos),config.exchange_parameter,config);
-offspring.exchange_parameter = reshape(exchange_parameter,size(offspring.exchange_parameter));
+exchange = offspring.exchange(:);
+pos = randperm(length(exchange),sum(rand(length(exchange),1) < config.mut_rate));
+exchange(pos) = mutateWeight(exchange(pos),config.exchange_parameter,config);
+offspring.exchange = reshape(exchange,size(offspring.exchange));
 
-magmoment_parameter = offspring.magmoment_parameter(:);
-pos = randperm(length(magmoment_parameter),sum(rand(length(magmoment_parameter),1) < config.mut_rate));
-magmoment_parameter(pos) = mutateWeight(magmoment_parameter(pos),config.magmoment_parameter,config);
-offspring.magmoment_parameter = reshape(magmoment_parameter,size(offspring.magmoment_parameter));
+magmoment = offspring.magmoment(:);
+pos = randperm(length(magmoment),sum(rand(length(magmoment),1) < config.mut_rate));
+magmoment(pos) = mutateWeight(magmoment(pos),config.magmoment_parameter,config);
+offspring.magmoment = reshape(magmoment,size(offspring.magmoment));
 
 applied_field_strength = offspring.applied_field_strength(:);
 pos = randperm(length(applied_field_strength),sum(rand(length(applied_field_strength),1) < config.mut_rate));
@@ -50,9 +50,7 @@ for i = 1:config.num_reservoirs
     % input weights
     input_weights = offspring.input_weights{i}(:);
     pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    for n = 1:length(pos)
-        input_weights(pos(n)) = input_weights(pos(n)) - randn*0.15;
-    end
+    input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
     
     % width of inputs
@@ -72,25 +70,20 @@ for i = 1:config.num_reservoirs
                     W = offspring.W{i,j}(:);
                     % select weights to change
                     pos =  randperm(length(W),ceil(config.mut_rate*length(W)));
-                    for n = 1:length(pos)
-                        W(pos(n)) = mutateWeight(W(pos(n)),[-1, 1],config);
-                    end
+                    W(pos) = mutateWeight(W(pos),[-1, 1],config);
                     offspring.W{i,j} = reshape(W,size(offspring.W{i,j}));
                 end
         end
         
-         offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;
-    end      
+        offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;
+    end
 end
 
 % mutate output weights
 if config.evolve_output_weights
     output_weights = offspring.output_weights(:);
     pos =  randperm(length(output_weights),ceil(config.mut_rate*length(output_weights)));
-    
-    for n = 1:length(pos)
-      output_weights(pos(n)) =  mutateWeight(output_weights(pos(n)),[-1,1],config);
-    end
+    output_weights(pos) =  mutateWeight(output_weights(pos),[-1,1],config);
     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
 end
 
@@ -100,17 +93,18 @@ function value = mutateWeight(value,range,config)
 
 switch(config.mutate_type)
     case 'gaussian'
-        flag = 1;
-        while(flag)
-            t_value = value + (range(1) + (range(2)-range(1))*randn);
-            
-            % check within range
-            if t_value <= range(2) && t_value >= range(1)
-                flag = 0;
+        for i = 1:length(value)
+            flag = 1;
+            while(flag)
+                t_value = value(i) + (range(1) + (range(2)-range(1))*randn);
+                
+                % check within range
+                if (t_value <= range(2)) && (t_value >= range(1))
+                    flag = 0;
+                end
             end
-        end
-        value = t_value;
-        
+            value(i) = t_value;
+        end       
     case 'uniform'
         value = range(1) + (range(2)-range(1))*rand;
 end

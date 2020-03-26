@@ -32,8 +32,8 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).leak_rate(i) = rand;
         
         %addtional paramters
-        population(pop_indx).time_period = repmat(randi([1 config.max_time_period]),1,config.num_reservoirs);
-        population(pop_indx).wave_speed(i) = randi([1 12]);
+        population(pop_indx).time_period(i) = randi([1 config.max_time_period]);
+        population(pop_indx).wave_speed(i) = randi([1 config.max_wave_speed]);
         population(pop_indx).damping_constant(i) = rand;
         population(pop_indx).time_step(i) = config.time_step;
         
@@ -54,8 +54,12 @@ for pop_indx = 1:config.pop_size
         end
         population(pop_indx).input_weights{i} = input_weights;
         
-        widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
-        widths(widths > round(sqrt(population(pop_indx).nodes(i))/4)) = round(sqrt(population(pop_indx).nodes(i))/4);% cap at 1/6 size of space
+        if config.input_widths
+            widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
+            widths(widths > round(sqrt(population(pop_indx).nodes(i))/4)) = round(sqrt(population(pop_indx).nodes(i))/4);% cap at 1/6 size of space
+        else
+            widths = ones(length(input_weights),1);
+        end
         population(pop_indx).input_widths{i} = widths; %size of the inputs; pin-point or broad
         
         population(pop_indx).last_state{i} = zeros(2,population(pop_indx).nodes(i));

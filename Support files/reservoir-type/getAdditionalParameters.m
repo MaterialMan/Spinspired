@@ -26,7 +26,7 @@ config.teacher_forcing = 0;                 % train output using target signal t
 
 % node functionality
 config.multi_activ = 0;                      % use different activation funcs
-config.activ_list = {@tanh};                 % what activations are in use -- MUST match number of reservoirs!!
+config.activ_list = {@tanh,@linearNode};     % what activations are in use 
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
 config.undirected_ensemble = 0;              % by default all inter-network weights are directed
@@ -152,6 +152,7 @@ switch(res_type)
         config.time_step = 0.05;
         config.bias_node = 0;
         config.max_time_period = 10;
+        config.max_wave_speed = 12;
         % [1 0 0] = fix: All boundary points have a constant value of 1
         % [0 1 0] = cont; Eliminate the wave and bring elements to their steady state.
         % [0 0 1] = connect; Water flows across the edges and comes back from the opposite side
@@ -253,14 +254,14 @@ switch(res_type)
         config.element_list = {'Co'}; % e.g. Gd, Co, Ni, Fe
         config.size_units = '!nm';
         % material configs
-        config.temperature_parameter = 0; % positive integer OR 'dynamic'
+        config.temperature_parameter = [0,0]; % positive integer OR 'dynamic'
         config.damping_parameter = [0.01, 1]; % 0.01 to 1 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [1e-25, 1e-22]; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
-        config.exchange_parameter = [1e-21, 10e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.exchange_parameter = [1e-21, 5e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
         config.magmoment_parameter = [0.5, 7]; % 0.5 to 7 OR 'dynamic' | typical value 1.4
         config.unitcell_size = 3.47; % typical value 3.47 Armstrongs
         config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
-        config.applied_field_strength = 0; % how many tesla (T)
+        config.applied_field_strength = [0,0]; % how many tesla (T)
         %sim params
         config.time_step = 100; % integer in femtoseconds % need to
         config.time_units = '!fs';

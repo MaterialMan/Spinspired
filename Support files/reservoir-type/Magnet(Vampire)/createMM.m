@@ -80,9 +80,9 @@ for pop_indx = 1:config.pop_size
        
         population(pop_indx).temperature(i) = config.temperature_parameter(1) + (config.temperature_parameter(2)-config.temperature_parameter(1))*rand;
         
-        population(pop_indx).exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)+config.exchange_parameter(1))*rand;
+        population(pop_indx).exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
         
-        population(pop_indx).magmoment(i) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)+config.magmoment_parameter(1))*rand;
+        population(pop_indx).magmoment(i) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;
        
         population(pop_indx).applied_field_strength(i) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
         
