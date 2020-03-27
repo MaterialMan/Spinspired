@@ -19,7 +19,7 @@ for pop_indx = 1:config.pop_size
     population(pop_indx).test_error = 1;
     
     % add single bias node
-    population(pop_indx).bias_node = 1;
+    population(pop_indx).bias_node = config.bias_node;
     
     % assign input/output count
     if isempty(config.train_input_sequence)
@@ -50,10 +50,17 @@ for pop_indx = 1:config.pop_size
             else
                 population(pop_indx).input_weights{i,r} = 2*rand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1)-1;
             end
-            widths = ceil(abs(randn(length(input_weights),1))*2); %less likely to get big inputs
-            widths(widths > round(sqrt(population(pop_indx).nodes(i))/8)) = round(sqrt(population(pop_indx).nodes(i))/8);% cap at 1/6 size of space 
+            
+            
+            % input widths
+            if config.input_widths
+                widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
+                widths(widths > round(sqrt(population(pop_indx).nodes(i))/4)) = round(sqrt(population(pop_indx).nodes(i))/4);% cap at 1/6 size of space
+            else
+                widths = ones(length(input_weights),1);
+            end
             population(pop_indx).input_widths{i,r} = widths; %size of the inputs; pin-point or broad
-       end
+        end
         
         % add other necessary parameters
         % e.g., population(pop_indx).param1(i) = rand
@@ -61,8 +68,9 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).b = rand(config.num_nodes(i),config.num_nodes(i),2);
         population(pop_indx).c = rand(config.num_nodes(i),config.num_nodes(i),2);
         
-        population(pop_indx).time_period(i) = randi([1 3]);
-        
+        population(pop_indx).time_period(i) = randi([1 config.max_time_period]);
+        population(pop_indx).input_length(i) = randi([1 population(pop_indx).time_period(i)]);
+
         % individual should keep track of final state for certain tasks
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
     end

@@ -75,9 +75,17 @@ switch(res_type)
     case 'BZ'
         %config.plot_BZ =0;
         config.fft = 0;
-        config.sparse_input_weights = 1;
-        
         config.evolve_output_weights = 0;             % evolve rather than train
+        config.plot_states = 0;
+       
+        %input params
+        config.sparse_input_weights = 1;
+        config.input_widths = 1;
+        config.bias_node = 0;
+        config.max_time_period = 10;
+        config.input_weight_initialisation = 'uniform';
+        config.preprocess = 'scaling';
+        config.prepocess_shift = 'zero to one';
         
     case 'Graph'
         
@@ -148,10 +156,11 @@ switch(res_type)
         
         config.leak_on = 1;                           % add leak states
         config.add_input_states = 1;                  %add input to states
+        config.input_widths = 0;
         config.sim_speed = 1; % xfactor
         config.time_step = 0.05;
         config.bias_node = 0;
-        config.max_time_period = 10;
+        config.max_time_period = 20;
         config.max_wave_speed = 12;
         % [1 0 0] = fix: All boundary points have a constant value of 1
         % [0 1 0] = cont; Eliminate the wave and bring elements to their steady state.
@@ -257,7 +266,7 @@ switch(res_type)
         config.temperature_parameter = [0,0]; % positive integer OR 'dynamic'
         config.damping_parameter = [0.01, 1]; % 0.01 to 1 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [1e-25, 1e-22]; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
-        config.exchange_parameter = [1e-21, 5e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.exchange_parameter = [1e-21, 10e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
         config.magmoment_parameter = [0.5, 7]; % 0.5 to 7 OR 'dynamic' | typical value 1.4
         config.unitcell_size = 3.47; % typical value 3.47 Armstrongs
         config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster

@@ -234,26 +234,28 @@ switch(config.res_type)
         
     case 'BZ'
         
-        plotBZ(config.figure_array(2),population,best_indv(gen),loser,config)
+        config.plot_states = 1;
         
-        if config.run_sim
-            set(0,'currentFigure',config.figure_array(1))
-            states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
+        states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
             
-            for i = 1:size(states,1)
-                p = reshape(states(i,1:end-population(best_indv(gen)).n_input_units),sqrt(population(best_indv(gen)).nodes),sqrt(population(best_indv(gen)).nodes),3);
-                image(uint8(255*hsv2rgb(p)));
-                drawnow;
-                if CmdKeyCallback()
-                    i = size(states,1);
-                end
-                if config.film
-                    F(i) = getframe;
-                else
-                    F =[];
-                end
-            end
-        end
+%         if config.run_sim
+%             set(0,'currentFigure',config.figure_array(1))
+%             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
+%             
+%             for i = 1:size(states,1)
+%                 p = reshape(states(i,1:end-population(best_indv(gen)).n_input_units),sqrt(population(best_indv(gen)).nodes),sqrt(population(best_indv(gen)).nodes),3);
+%                 image(uint8(255*hsv2rgb(p)));
+%                 drawnow;
+%                 if CmdKeyCallback()
+%                     i = size(states,1);
+%                 end
+%                 if config.film
+%                     F(i) = getframe;
+%                 else
+%                     F =[];
+%                 end
+%             end
+%         end
         
     case {'RoR','Pipeline','Ensemble'}
         set(0,'currentFigure',config.figure_array(2))

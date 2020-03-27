@@ -1,5 +1,5 @@
 %% assessBZReservoir.m
-% BZ function to collect reservoir states. 
+% BZ function to collect reservoir states.
 %
 % This is called by the @config.assessFcn pointer.
 
@@ -21,22 +21,26 @@ for i= 1:config.num_reservoirs
     xres(i,:) = config.num_nodes(i);
     yres(i,:) = xres(i,:);
     
-    
     %% preassign allocate input sequence and time multiplexing
     for r = 1:3
-        input{i,r} = [input_sequence repmat(individual.bias_node(i),size(input_sequence,1),1)]*(individual.input_weights{i,r}*individual.input_scaling(i,r))';
-        
-        % time multiplex -
-        input_mul{i,r} = zeros(size(input_sequence,1)*individual.time_period(i),size(input{i,r},2),size(input{i,r},3));
-        if individual.time_period > 1
-            input_mul{i,r}(mod(1:size(input_mul{i,r},1),individual.time_period(i)) == 1,:,:) = input{i,r};
+        input{i,r} = [input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]*(individual.input_weights{i,r}*individual.input_scaling(i,r))'; %[zeros(1,config.task_num_inputs);
+        input_mul{i,r} = zeros((size(input_sequence,1))*individual.time_period(i),size(input{i,r},2));
+        if individual.time_period(i) > 1
+            for p = 0:individual.input_length(i)-1
+                input_mul{i}(mod(1:size(input_mul{i,r},1),individual.time_period(i)) == p,:) = input{i,r};
+            end
         else
             input_mul{i,r} = input{i,r};
-        end  
+        end
+    end
+    
+    max_input_length = 0;
+    if size(input_mul{i,r},1) > max_input_length
+        max_input_length = size(input_mul{i,r},1)-individual.time_period(i);
     end
     
     % change input widths
-    for n = 1:size(input_mul{i,r},1)
+    for n = 2:max_input_length
         for r = 1:3
             m = reshape(input_mul{i,r}(n,:),config.num_nodes(i),config.num_nodes(i));
             f_pos = find(m);
@@ -50,9 +54,11 @@ for i= 1:config.num_reservoirs
             input_mul{i,r}(n,:) = input_matrix_2d(:);
         end
     end
-        
+    
     states{i} = zeros(size(input_mul{i},1),individual.nodes(i)*3);
 end
+
+
 
 % pre-assign anything that can be calculated before running the reservoir
 img=zeros(xres,yres,3);
@@ -66,14 +72,17 @@ idx=reshape(idx,[yres xres]+2); % returns an yres by xres matrix whose
 p = 1;
 q = 2;
 
-a = individual.a;
-b = individual.b;
-c = individual.c;
+%a = individual.a;
+%b = individual.b;
+%c = individual.c;
+a = zeros(xres,yres);
+b = zeros(xres,yres);
+c = zeros(xres,yres);
 
 step = 1; % update step
 
 %% Calculate reservoir states - general state equation for multi-reservoir system: x(n) = f(Win*u(n) + S)
-for n = 2:size(input_mul{1},1)
+for n = 2:max_input_length
     
     for i= 1:config.num_reservoirs % cycle through sub-reservoirs
         
@@ -116,8 +125,8 @@ for n = 2:size(input_mul{1},1)
         
         % apply inputs
         c_a = c_a + reshape(input_mul{i,1}(n,:),size(c_a,1),size(c_a,2));
-        c_b = c_b + reshape(input_mul{i,2}(n,:),size(c_b,1),size(c_b,2));
-        c_c = c_c + reshape(input_mul{i,3}(n,:),size(c_c,1),size(c_c,2));
+        %c_b = c_b + reshape(input_mul{i,2}(n,:),size(c_b,1),size(c_b,2));
+        %c_c = c_c + reshape(input_mul{i,3}(n,:),size(c_c,1),size(c_c,2));
         
         a(:,:,q) = double(uint8(255*(c_a + c_a .* (c_b - c_c))))/255;
         b(:,:,q) = double(uint8(255*(c_b + c_b .* (c_c - c_a))))/255;
@@ -155,7 +164,7 @@ end
 %need to check! deplex to get states
 for i= 1:config.num_reservoirs
     if individual.time_period(i) > 1
-        states{i} = states{i}(mod(1:size(states{i},1),individual.time_period(i)) == 1,:);
+        states{i} = states{i}(mod(1:size(states{i},1),individual.time_period(i)) == 0,:);
     end
 end
 
@@ -171,6 +180,19 @@ for i= 1:config.num_reservoirs
     
     %assign last state variable
     individual.last_state{i} = states{i}(end,:);
+end
+
+if config.plot_states
+    for i = 1:size(final_states,1)
+        set(0,'currentFigure',config.figure_array(1))
+        p = reshape(final_states(i,:),sqrt(individual.nodes),sqrt(individual.nodes),3);
+        image(uint8(255*hsv2rgb(p)));
+        drawnow;
+    end
+    
+    set(0,'currentFigure',config.figure_array(2))
+    plot(final_states(config.wash_out+1:end,:))
+    drawnow
 end
 
 % Concat input states
