@@ -41,7 +41,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).height(i) = 2*config.vesicle_radius*population(pop_indx).vesicle_grid_size(i);
         population(pop_indx).width(i) = 2*config.vesicle_radius*population(pop_indx).vesicle_grid_size(i);               
         
-        population(pop_indx).time_period(i) = randi([1 config.max_time_period]);
+        population(pop_indx).time_period(i) = randi([config.max_time_period config.max_time_period]);
         population(pop_indx).input_length(i) = randi([1 population(pop_indx).time_period(i)]);
         population(pop_indx).input_widths(i) = randi([1 config.vesicle_radius-1]);
         

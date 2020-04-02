@@ -9,7 +9,7 @@ offspring.input_scaling = reshape(input_scaling,size(offspring.input_scaling));
 
 leak_rate = offspring.leak_rate(:);
 pos = randperm(length(leak_rate),sum(rand(length(leak_rate),1) < config.mut_rate));
-leak_rate(pos) = mutateWeight(leak_rate(pos),[0, 1],config); 
+leak_rate(pos) = mutateWeight(leak_rate(pos),[0, 1],config);
 offspring.leak_rate = reshape(leak_rate,size(offspring.leak_rate));
 
 % vampire params
@@ -91,21 +91,23 @@ end
 
 function value = mutateWeight(value,range,config)
 
-switch(config.mutate_type)
-    case 'gaussian'
-        for i = 1:length(value)
-            flag = 1;
-            while(flag)
-                t_value = value(i) + (range(1) + (range(2)-range(1))*randn);
-                
-                % check within range
-                if (t_value <= range(2)) && (t_value >= range(1))
-                    flag = 0;
+if range(1)~=range(2)
+    switch(config.mutate_type)
+        case 'gaussian'
+            for i = 1:length(value)
+                flag = 1;
+                while(flag)
+                    t_value = value(i) + (range(1) + (range(2)-range(1))*randn);
+                    
+                    % check within range
+                    if (t_value <= range(2)) && (t_value >= range(1))
+                        flag = 0;
+                    end
                 end
+                value(i) = t_value;
             end
-            value(i) = t_value;
-        end       
-    case 'uniform'
-        value = range(1) + (range(2)-range(1))*rand;
+        case 'uniform'
+            value = range(1) + (range(2)-range(1))*rand;
+    end
 end
 end

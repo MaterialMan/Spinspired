@@ -203,15 +203,15 @@ switch(res_type)
         
     case 'Oregonator'
         
-        config.add_input_states = 0;
+        config.add_input_states = 1;
         config.figure_array = [config.figure_array figure];
-        config.sparse_input_weights = 0;
-        config.sparsity(1) = 0.1;
+        config.sparse_input_weights = 1;
+        config.sparsity(1) = 0.2;
         config.input_weight_initialisation = 'uniform';
-        config.leak_on = 0;
+        config.leak_on = 1;
         config.bias_node = 0;
         
-        config.stride      = 100;
+        config.stride      = 2000;
         config.displayLive = true;
         config.displayZoom = 4.0;
         
@@ -231,11 +231,11 @@ switch(res_type)
         
         config.crossover_dist = 1;
         
-        config.vesicle_radius = 25;
+        config.vesicle_radius = 5;
         %config.min_time_period = 100;
-        config.max_time_period = 100;
+        config.max_time_period = config.stride;
         %config.input_length = 10;
-        config.plot_states = 1;
+        config.plot_states = 0;
         
         % must be non-negative
         config.preprocess = 'scaling';
