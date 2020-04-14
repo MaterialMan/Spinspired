@@ -27,7 +27,9 @@ for pop_indx = 1:config.pop_size
     %track total nodes in use
     population(pop_indx).total_units = 0;
     
-    % assign architecture
+    % assign architecture and material details
+    population(pop_indx).material_type = config.material_type;
+    population(pop_indx).num_materials = config.num_materials;
     population(pop_indx).architecture = config.architecture;
     
     % iterate through subreservoirs
@@ -36,14 +38,16 @@ for pop_indx = 1:config.pop_size
         %define num of units
         population(pop_indx).nodes(i) = config.num_nodes(i);
         
-        population(pop_indx).system_size(i) = floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,1) = floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,2) = floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,3) = config.system_size_z(i);
         
         %% global params
         population(pop_indx).input_scaling(i)= 2*rand-1; % not sure about range?
         population(pop_indx).leak_rate(i) = rand;
         
         % Apply material
-        population(pop_indx).material_element{i} = config.element_list{randi([1 length(config.element_list)])};
+        %population(pop_indx).material_element{i} = config.element_list{randi([1 length(config.element_list)])};
         
         %% Input params
         % set positions of magnetic sources. Need maxpos > minpos
@@ -74,16 +78,18 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
         
         %% magnet params
-        population(pop_indx).damping(i) = config.damping_parameter(1) + (config.damping_parameter(2)-config.damping_parameter(1))*rand;
+        for m = 1: population(pop_indx).num_materials
+            population(pop_indx).damping(i,m) = config.damping_parameter(1) + (config.damping_parameter(2)-config.damping_parameter(1))*rand;
+            
+            population(pop_indx).anisotropy(i,m) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
+            
+            population(pop_indx).temperature(i,m) = config.temperature_parameter(1) + (config.temperature_parameter(2)-config.temperature_parameter(1))*rand;
+            
+            population(pop_indx).exchange(i,m) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
+            
+            population(pop_indx).magmoment(i,m) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;    
+        end
         
-        population(pop_indx).anisotropy(i) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
-       
-        population(pop_indx).temperature(i) = config.temperature_parameter(1) + (config.temperature_parameter(2)-config.temperature_parameter(1))*rand;
-        
-        population(pop_indx).exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
-        
-        population(pop_indx).magmoment(i) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;
-       
         population(pop_indx).applied_field_strength(i) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
         
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);

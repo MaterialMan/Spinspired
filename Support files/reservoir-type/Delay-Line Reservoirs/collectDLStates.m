@@ -33,7 +33,7 @@ for i= 1:config.num_reservoirs
         for t = 1:individual.nodes(i)
             
             %J(theta_str:theta_end,:) = I(theta_str:theta_end,:) + I(theta_str:theta_end,:)*genotype.M(t,:)';
-            J(theta_str:theta_end,:) = I(theta_str:theta_end,:)*individual.input_scaling(i)*individual.input_weights{i}(t,:);
+            J(theta_str:theta_end,:) = I(theta_str:theta_end,:)*individual.input_scaling(i)*individual.input_weights{i}(t,:)';
             
             theta_str = theta_end+1;
             theta_end = theta_end+floor(individual.theta(i)/individual.time_step(i));

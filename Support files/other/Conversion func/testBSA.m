@@ -8,11 +8,11 @@ StopTime = 0.1;             % seconds
 t = (0:dt:StopTime-dt)';     % seconds
 %%Sine wave:
 Fc = 30;                     % hertz
-data = (sin(2*pi*Fc*t)+1)/2;
+data = [(sin(2*pi*Fc*t)+1)/2 (cos(2*pi*Fc*t)+1)/2] ;
 
 %data = rand(1000,1);
 
-config.dataset = 'laser';          % Task to evolve for
+config.dataset = 'iris';          % Task to evolve for
 config.num_nodes = 1;
 config.res_type = '';
 
@@ -33,4 +33,4 @@ config.max_order=48;
 config.max_period = 2;
 config.mutate_type = 'gaussian';
 
-[filter] = filterGA(data(:,1),config);
+[filter] = filterGA(data,config);

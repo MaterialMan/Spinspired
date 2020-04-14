@@ -1,0 +1,57 @@
+#===================================================
+# Vampire material file 
+#===================================================
+
+#---------------------------------------------------
+# Number of Materials - up to 100 
+#---------------------------------------------------
+material:num-materials=1
+
+#---------------------------------------------------
+# Material Properties
+#---------------------------------------------------
+material[1]:damping-constant=1.0
+material[1]:exchange-matrix[1]=5e-21
+#material[1]:exchange-matrix[2] = -1.09e-21 #for multi-material, must be same as: material[2]:exchange-matrix[1]
+material[1]:atomic-spin-moment=1.4 !muB
+material[1]:second-order-uniaxial-anisotropy-constant=1.0e-24
+material[1]:initial-spin-direction=1,0,0
+
+#material[2]:damping-constant = 0.1
+#material[2]:exchange-matrix[1] = -1.09e-21
+#material[2]:exchange-matrix[2] = 1.26e-21
+#material[2]:atomic-spin-moment = 7.63 !muB
+#material[2]:second-order-uniaxial-anisotropy-constant= 8.07246e-24
+#material[2]:initial-spin-direction=1,0,0
+
+#---------------------------------------------------
+# Micromagnetic - material can be specified to be micromagnetic here else it is automatically atomistic.
+#---------------------------------------------------
+material[1]:micromagnetic-discretisation-enabled
+
+#---------------------------------------------------
+# Material heights for multi-layers -- can overlap but generally undiserable
+#---------------------------------------------------
+#material[1]:minimum-height=0.0
+#material[1]:maximum-height=0.5
+#material[2]:minimum-height = 0.5
+#material[2]:maximum-height = 1.0
+
+#---------------------------------------------------
+# Random alloys - must be more than two materials. e.g. FeCo, NiFe and disordered ferrimagnets (such as GdFeCo)
+#---------------------------------------------------
+#material[1]:alloy-host
+#material[2]:minimum-height = 0.0
+#material[2]:maximum-height = 0.0
+#material[1]:alloy-fraction[2] = 0.25
+
+#---------------------------------------------------
+# Core shell parameters: 0 to 1. Defines the radial extent of a material as a fraction of the particle radius
+#---------------------------------------------------
+#material[1]:core-shell-size = 1.0 #shell
+#material[2]:core-shell-size = 0.4 #core
+
+#---------------------------------------------------
+# Density of material - removes random atoms to form density
+#---------------------------------------------------
+#material[1]:density = 0.1

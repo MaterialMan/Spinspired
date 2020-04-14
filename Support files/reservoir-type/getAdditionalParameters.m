@@ -26,7 +26,7 @@ config.teacher_forcing = 0;                 % train output using target signal t
 
 % node functionality
 config.multi_activ = 0;                      % use different activation funcs
-config.activ_list = {@tanh,@linearNode};     % what activations are in use 
+config.activ_list = {@tanh};     % what activations are in use 
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
 config.undirected_ensemble = 0;              % by default all inter-network weights are directed
@@ -35,6 +35,9 @@ config.undirected_ensemble = 0;              % by default all inter-network weig
 config.scaler = 1;                          % this may need to change for different reservoir systems that don't fit to the typical neuron range, e.g. [-1 1]
 config.discrete = 0;
 config.noise_ratio = 0;
+
+% input mechanism to use
+config.input_mechanism = '';%'spiking';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
 
 % preprocessing performed on input data
 switch(config.dataset)
@@ -89,14 +92,21 @@ switch(res_type)
         
     case 'Graph'
         
-        config.graph_type= {'fullLattice'};            % Define substrate. Add graph type to cell array for multi-reservoirs
+        
+        config.graph_type= {'basicLattice'};            % Define substrate. Add graph type to cell array for multi-reservoirs
         % Examples: 'Hypercube','Cube'
         % 'Torus','L-shape','Bucky','Barbell','Ring',
         % 'basicLattice','partialLattice','fullLattice','basicCube','partialCube','fullCube',ensembleLattice,ensembleCube,ensembleShape
         config.self_loop = [1];               % give node a loop to self. Must be defined as array.
         
+        % error checks
         if length(config.graph_type) ~= length(config.num_nodes) && length(config.self_loop) ~= length(config.num_nodes)
             error('Number of graph types does not match number of reservoirs. Add more.')
+        end
+        if (sqrt(config.num_nodes) ~= round(sqrt(config.num_nodes))) && contains(config.graph_type,'Lattice')
+            error('\n Number of nodes needs to be a square number. \n')
+        else
+            config.num_nodes = sqrt(config.num_nodes);
         end
         
         % node details and connectivity
@@ -251,35 +261,43 @@ switch(res_type)
    case 'MM'
         
         % reservoir params
+        config.leak_on = 1;                           % add leak states
+        config.add_input_states = 1;                  %add input to states
+        config.bias = 0;
         config.sparse_input_weights = 1;
         %config.sparsity = 0.25;        % 0 to 1 sparsity of input weights
         config.input_widths = 0;
         
-        config.leak_on = 1;                           % add leak states
-        config.add_input_states = 1;                  %add input to states
-        config.bias = 0;
         % material params
+        config.material_type = 'single_material'; % options: 'single_material', 'bi_layer', 'multi_layer','core_shell', 'random_alloy'
+        config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster 
+        config.unit_cell_size = 3.47; % typical value 3.47 Armstrongs
+        config.unit_cell_units = '!A'; % 0.1 Å to 10 µ m
         config.macro_cell_size = 5;
-        config.element_list = {'Co'}; % e.g. Gd, Co, Ni, Fe
-        config.size_units = '!nm';
+        config.macro_cell_units = '!nm';
+        %config.element_list = {'Co'}; % e.g. Gd, Co, Ni, Fe
+        config.system_size_z = 0.1;
+        config.size_units = {'!nm','!nm','!A'};
+        
         % material configs
         config.temperature_parameter = [0,0]; % positive integer OR 'dynamic'
         config.damping_parameter = [0.01, 1]; % 0.01 to 1 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [1e-25, 1e-22]; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
         config.exchange_parameter = [1e-21, 10e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
         config.magmoment_parameter = [0.5, 7]; % 0.5 to 7 OR 'dynamic' | typical value 1.4
-        config.unitcell_size = 3.47; % typical value 3.47 Armstrongs
-        config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
         config.applied_field_strength = [0,0]; % how many tesla (T)
+          
         %sim params
         config.time_step = 100; % integer in femtoseconds % need to
         config.time_units = '!fs';
         config.time_steps_increment = 100; % time step to apply input; 100 or 1000
         config.read_mag_direction = {'x','y','z'};
+        
         % plot output
         config.plt_system = 0; % to create plot files
         config.plot_rate =1;
         config.plot_states = 0;
+        
         % multi-reservoir type
         config.architecture = 'ensemble';
 

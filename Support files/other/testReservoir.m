@@ -1,7 +1,31 @@
 function [individual,test_states,test_sequence] = testReservoir(individual,config)
 
-train_states = config.assessFcn(individual,config.train_input_sequence,config,config.train_output_sequence);
-val_states = config.assessFcn(individual,config.val_input_sequence,config,config.val_output_sequence);
+switch(config.input_mechanism)
+    
+    case 'spiking'
+        %encode
+        [encoded_data,~,filter,train_output_sequence]= encodeBSAspike(config.train_input_sequence, config.filter,config.train_output_sequence);
+        %run
+        train_states = config.assessFcn(individual,encoded_data,config,config.train_output_sequence);
+        %decode
+        train_states = decodeBSAspike(filter,train_states);
+
+        %encode
+        [encoded_data,~,filter,val_output_sequence]= encodeBSAspike(config.val_input_sequence, config.filter,config.val_output_sequence);
+        %run
+        val_states = config.assessFcn(individual,encoded_data,config,config.val_output_sequence);
+        %decode
+        val_states = decodeBSAspike(filter,val_states);
+
+        train_output_sequence =config.train_output_sequence;
+        val_output_sequence = config.val_output_sequence;
+        
+    otherwise
+        train_output_sequence =config.train_output_sequence;
+        val_output_sequence = config.val_output_sequence;
+        train_states = config.assessFcn(individual,config.train_input_sequence,config,config.train_output_sequence);
+        val_states = config.assessFcn(individual,config.val_input_sequence,config,config.val_output_sequence);
+end
 
 %if W_out are evolved instead of trained
 if config.evolve_output_weights
@@ -18,15 +42,15 @@ else
     
     for i = 1:length(reg_param)
         %Train: tanspose is inversed compared to equation
-        output_weights = config.train_output_sequence(config.wash_out+1:end,:)'*train_states*inv(train_states'*train_states + reg_param(i)*eye(size(train_states'*train_states)));
+        output_weights = train_output_sequence(config.wash_out+1:end,:)'*train_states*inv(train_states'*train_states + reg_param(i)*eye(size(train_states'*train_states)));
         
         % Calculate trained output Y
         output_train_sequence = train_states*output_weights';
-        reg_train_error(i,:)  = calculateError(output_train_sequence,config.train_output_sequence,config);
+        reg_train_error(i,:)  = calculateError(output_train_sequence,train_output_sequence,config);
         
         % Calculate trained output Y
         output_val_sequence = val_states*output_weights';
-        reg_val_error(i,:)  = calculateError(output_val_sequence,config.val_output_sequence,config);
+        reg_val_error(i,:)  = calculateError(output_val_sequence,val_output_sequence,config);
         reg_weights(i,:,:) =output_weights';
     end
     
@@ -40,8 +64,22 @@ else
 end
 
 %% Evaluate on test data
-test_states = config.assessFcn(individual,config.test_input_sequence,config,config.test_output_sequence);
+switch(config.input_mechanism)
+    
+    case 'spiking'
+        %encode
+        [encoded_data,~,filter,test_output_sequence]= encodeBSAspike(config.test_input_sequence, config.filter,config.test_output_sequence);
+        %run
+        test_states = config.assessFcn(individual,encoded_data,config,config.test_output_sequence);
+        %decode
+        test_states = decodeBSAspike(filter,test_states);
+        test_output_sequence =config.test_output_sequence;
+    otherwise
+        test_output_sequence =config.test_output_sequence;
+        test_states = config.assessFcn(individual,config.test_input_sequence,config,test_output_sequence);
+end
+
 test_sequence = test_states*individual.output_weights;
-individual.test_error = sum(calculateError(test_sequence,config.test_output_sequence,config));
+individual.test_error = sum(calculateError(test_sequence,test_output_sequence,config));
 
 end

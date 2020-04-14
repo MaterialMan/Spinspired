@@ -66,8 +66,8 @@ if ~isempty(batch_path)
         changeInputFile(file_path, individual, input_sequence, config, i);
         
         % rewrite files and run
-        c1 = strcat('mv "',file_path,'Co_temp" "',file_path,'Co.mat"');
-        c2 = strcat('mv "',file_path,'inputtemp" "',file_path,'input"');
+        c1 = strcat('mv "',file_path,'material_file" "',file_path,'default_material.mat"');
+        c2 = strcat('mv "',file_path,'input_file" "',file_path,'input"');
         system(c1); system(c2);
         
         % run vampire!
@@ -272,25 +272,26 @@ end
 function changeInputFile(file_path, individual, input_sequence, config, indx)
 
 % change parameters in input file
-base_input=fopen(strcat(file_path,'base_input'),'r');
-inputtemp=fopen(strcat(file_path,'inputtemp'),'w');
+base_input=fopen(strcat(file_path,'default_input'),'r');
+inputtemp=fopen(strcat(file_path,'input_file'),'w');
 
 while ~feof(base_input)
     l=fgetl(base_input); % get line from base file, check if needs to be rewritten
     
     % system parameters
     if contains(l,'dimensions:unit-cell-size')
-        l = sprintf('dimensions:unit-cell-size = %.2f !A', config.unitcell_size);
+        l = sprintf('dimensions:unit-cell-size = %.2f %s', config.unit_cell_size,config.unit_cell_units);
     end
     if contains(l,'dimensions:system-size-x')
-        l = sprintf('dimensions:system-size-x = %d %s', individual.system_size(indx), config.size_units);
+        l = sprintf('dimensions:system-size-x = %d %s', individual.system_size(indx,1), config.size_units{1});
     end
     if contains(l,'dimensions:system-size-y')
-        l = sprintf('dimensions:system-size-y = %d %s', individual.system_size(indx), config.size_units);
+        l = sprintf('dimensions:system-size-y = %d %s', individual.system_size(indx,2), config.size_units{2});
     end
-    %     if contains(l,'dimensions:system-size-z')
-    %         l = sprintf('dimensions:system-size-z = %d %s', individual.system_size(indx), config.size_units);
-    %     end
+    if contains(l,'dimensions:system-size-z')
+        l = sprintf('dimensions:system-size-z = %d %s', individual.system_size(indx,3), config.size_units{3});
+    end
+    
     if contains(l,'cells:macro-cell-size')
         if ~contains(l,'#cells:macro-cell-size')
             l = sprintf('cells:macro-cell-size = %d %s', config.macro_cell_size, config.size_units);
@@ -355,29 +356,57 @@ end
 function changeCoFile(file_path, individual, indx)
 
 % change parameters in Co.mat
-comat=fopen(strcat(file_path,'Co.txt'),'r');
-cotemp=fopen(strcat(file_path,'Co_temp'),'w');
+comat=fopen(strcat(file_path,'default_material.txt'),'r');
+cotemp=fopen(strcat(file_path,'material_file'),'w');
 
-while ~feof(comat)
-    l=fgetl(comat); % get line from base file, check if needs to be rewritten
-    if contains(l,'material[1]:damping-constant=')
-        l = sprintf('material[1]:damping-constant=%d', individual.damping(indx));
-    end
-    if contains(l,'material[1]:second-order-uniaxial-anisotropy-constant=')
-        l = sprintf('material[1]:second-order-uniaxial-anisotropy-constant=%s', individual.anisotropy(indx));
-    end
-    if contains(l,'material[1]:exchange-matrix[1]')
-        l = sprintf('material[1]:exchange-matrix[1]=%s', individual.exchange(indx));
-    end
+switch(individual.material_type)
     
-    if contains(l,'material[1]:atomic-spin-moment')
-        l = sprintf('material[1]:atomic-spin-moment=%d !muB', individual.magmoment(indx));
-    end
-    if contains(l,'material[1]:material-element') % MD added
-        l = sprintf('material[1]:material-element=%s', individual.material_element{indx});
-    end
-    
-    fprintf(cotemp,'%s \n',l);  % print line to file
+    case 'single_material'
+        while ~feof(comat)
+            l=fgetl(comat); % get line from base file, check if needs to be rewritten
+            if contains(l,'material[1]:damping-constant=')
+                l = sprintf('material[1]:damping-constant=%d', individual.damping(indx));
+            end
+            if contains(l,'material[1]:exchange-matrix[1]')
+                l = sprintf('material[1]:exchange-matrix[1]=%s', individual.exchange(indx));
+            end
+            if contains(l,'material[1]:atomic-spin-moment')
+                l = sprintf('material[1]:atomic-spin-moment=%d !muB', individual.magmoment(indx));
+            end
+            if contains(l,'material[1]:second-order-uniaxial-anisotropy-constant=')
+                l = sprintf('material[1]:second-order-uniaxial-anisotropy-constant=%s', individual.anisotropy(indx));
+            end
+            
+            fprintf(cotemp,'%s \n',l);  % print line to file
+        end
+        
+     % TO DO!
+     case 'multi_layer'
+         for m = 1:individual.num_materials
+             while ~feof(comat)
+                 l=fgetl(comat); % get line from base file, check if needs to be rewritten
+                 if contains(l,strcat('material[',num2str(m),']:damping-constant='))
+                     l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
+                 end
+                 if contains(l,strcat('material[',num2str(m),']:exchange-matrix[1]')) % need to apdapt this
+                     l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[1]=%s'), individual.exchange(indx,m));
+                 end
+                 if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
+                     l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
+                 end
+                 if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
+                     l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
+                 end
+                 
+                 fprintf(cotemp,'%s \n',l);  % print line to file
+             end
+              
+         end
+         
+         
+    case 'bi_layer'  
+    case 'core_shell'
+    case 'random_alloy'
 end
 
 fclose(comat);

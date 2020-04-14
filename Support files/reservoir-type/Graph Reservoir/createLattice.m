@@ -22,7 +22,7 @@ function G = createLattice(N,type,self_loop,num_ensemble)
                 end
             end
             G = graph(grid);
-            %plot(G,'Layout','force')
+            plot(G,'Layout','force')
             
         case 'partialLattice'
             % version 2
@@ -45,7 +45,7 @@ function G = createLattice(N,type,self_loop,num_ensemble)
                 end
             end
             G = graph(grid);
-            %plot(G)
+            plot(G)
             
         case 'fullLattice'
             %version 3
@@ -71,7 +71,7 @@ function G = createLattice(N,type,self_loop,num_ensemble)
                 end
             end
             G = graph(grid);
-            %plot(G,'Layout','force3')
+            plot(G,'Layout','force3')
             
         case 'ensembleLattice'
             grid = [];

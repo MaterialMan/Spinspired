@@ -633,8 +633,23 @@ if config.evolve_feedback_weights
     %  output_sequence(output_sequence ~= 0) = (1--1)*(output_sequence(output_sequence ~= 0)-min(output_sequence(output_sequence ~= 0)))/(max(output_sequence(output_sequence ~= 0))- min(output_sequence(output_sequence ~= 0)))-1;
 end
 
-% rescale training data
-[input_sequence] = featureNormailse(input_sequence,config);
+switch(config.input_mechanism)
+    case'spiking'
+        config.preprocess = 'scaling'; % must be between [0 1]
+        config.prepocess_shift = '';
+        % rescale training data
+        [input_sequence] = featureNormailse(input_sequence,config);
+        % find appropriate filter for data
+        config.num_gens =1000;
+        config.max_order=48;
+        config.max_period = 2;
+        
+        [config.filter] = filterGA(input_sequence,config);
+        wash_out =0;
+    otherwise
+        % rescale training data
+        [input_sequence] = featureNormailse(input_sequence,config);
+end
 
 % split datasets
 [train_input_sequence,val_input_sequence,test_input_sequence] = ...
