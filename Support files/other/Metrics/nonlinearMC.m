@@ -2,7 +2,7 @@ function [quad_MC,cross_MC] = nonlinearMC(individual,config,seed)
 
 rng(seed,'twister');
 
-n_internal_units = individual.total_units;%sum([genotype.nInternalUnits]);
+n_internal_units = individual.total_units;
 
 n_output_units = n_internal_units*2;
 n_input_units = individual.n_input_units;

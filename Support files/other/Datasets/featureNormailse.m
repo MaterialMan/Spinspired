@@ -41,7 +41,7 @@ switch config.preprocess
         Y = X;
 end
 
-switch(config.prepocess_shift)
+switch(config.preprocess_shift)
     
         
     case 'minus 1 plus 1'

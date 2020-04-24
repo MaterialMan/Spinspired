@@ -28,26 +28,36 @@ for pop_indx = 1:config.pop_size
     population(pop_indx).total_units = 0;
     
     % assign architecture and material details
-    population(pop_indx).material_type = config.material_type;
-    population(pop_indx).num_materials = config.num_materials;
     population(pop_indx).architecture = config.architecture;
     
     % iterate through subreservoirs
     for i = 1:config.num_reservoirs
         
+        % material details
+        population(pop_indx).material_type{i} = config.material_type{randi([1 length(config.material_type)])};
+        population(pop_indx).material_shape{i} = config.material_shape{randi([1 length(config.material_shape)])};
+        switch(population(pop_indx).material_type{i})
+            case 'single'
+                population(pop_indx).num_materials(i) = 1;
+            otherwise
+                population(pop_indx).num_materials(i) = 2;
+        end
+        
         %define num of units
         population(pop_indx).nodes(i) = config.num_nodes(i);
         
-        population(pop_indx).system_size(i,1) = floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
-        population(pop_indx).system_size(i,2) = floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,1) = (sqrt(population(pop_indx).nodes(i)) * config.macro_cell_size)-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,2) = (sqrt(population(pop_indx).nodes(i)) * config.macro_cell_size)-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
         population(pop_indx).system_size(i,3) = config.system_size_z(i);
+        
+        % layer thickness
+        population(pop_indx).thickness(i) = round(rand*10)/10;
+        population(pop_indx).minimum_height(i,:) = [0 population(pop_indx).thickness(i)];
+        population(pop_indx).maximum_height(i,:) = [population(pop_indx).thickness(i) 1];
         
         %% global params
         population(pop_indx).input_scaling(i)= 2*rand-1; % not sure about range?
         population(pop_indx).leak_rate(i) = rand;
-        
-        % Apply material
-        %population(pop_indx).material_element{i} = config.element_list{randi([1 length(config.element_list)])};
         
         %% Input params
         % set positions of magnetic sources. Need maxpos > minpos
@@ -78,7 +88,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
         
         %% magnet params
-        for m = 1: population(pop_indx).num_materials
+        for m = 1: population(pop_indx).num_materials(i)
             population(pop_indx).damping(i,m) = config.damping_parameter(1) + (config.damping_parameter(2)-config.damping_parameter(1))*rand;
             
             population(pop_indx).anisotropy(i,m) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
@@ -89,11 +99,32 @@ for pop_indx = 1:config.pop_size
             
             population(pop_indx).magmoment(i,m) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;    
         end
-        
         population(pop_indx).applied_field_strength(i) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
         
+                
+        % random alloy params
+        if config.random_alloy(i)
+            population(pop_indx).interfacial_exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
+            population(pop_indx).alloy_fraction(i) = rand;
+        end
+        % core shell params
+        if config.core_shell(i)
+             population(pop_indx).interfacial_exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
+             population(pop_indx).shell_size(i,:) = [1 rand];  
+             population(pop_indx).particle_size(i) = population(pop_indx).system_size(i,1);
+        end
+
+        % apply material densities
+        if config.evolve_material_density(i)
+            population(pop_indx).material_density(i) = rand.*config.material_density;
+        else
+            population(pop_indx).material_density = config.material_density;
+        end
+            
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
     end
+    
+    
     %% define connecting matices
     for i = 1:config.num_reservoirs
         for j= 1:config.num_reservoirs

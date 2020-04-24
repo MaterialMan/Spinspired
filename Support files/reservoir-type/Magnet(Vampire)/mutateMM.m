@@ -43,6 +43,17 @@ pos = randperm(length(applied_field_strength),sum(rand(length(applied_field_stre
 applied_field_strength(pos) = mutateWeight(applied_field_strength(pos),config.applied_field_strength,config);
 offspring.applied_field_strength = reshape(applied_field_strength,size(offspring.applied_field_strength));
 
+if config.evolve_material_density
+    material_density = offspring.material_density(:);
+    pos = randperm(length(material_density),sum(rand(length(material_density),1) < config.mut_rate));
+    material_density(pos) = mutateWeight(material_density(pos),[0 1],config);
+    offspring.material_density = reshape(material_density,size(offspring.material_density));
+end
+
+thickness = offspring.thickness(:);
+pos = randperm(length(thickness),sum(rand(length(thickness),1) < config.mut_rate));
+thickness(pos) = round(mutateWeight(thickness(pos),[0 1],config)*10)/10;
+offspring.thickness = reshape(thickness,size(offspring.thickness));
 
 %% cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
@@ -77,6 +88,29 @@ for i = 1:config.num_reservoirs
         
         offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;
     end
+    
+    
+    if config.random_alloy(i) || config.core_shell(i)
+        interfacial_exchange = offspring.interfacial_exchange(i);
+        pos = randperm(length(interfacial_exchange),sum(rand(length(interfacial_exchange),1) < config.mut_rate));
+        interfacial_exchange(pos) = mutateWeight(interfacial_exchange(pos),config.exchange_parameter,config);
+        offspring.interfacial_exchange(i) = reshape(interfacial_exchange,size(offspring.interfacial_exchange(i)));
+    end
+    
+    if config.random_alloy(i)
+        alloy_fraction = offspring.alloy_fraction(i);
+        pos = randperm(length(alloy_fraction),sum(rand(length(alloy_fraction),1) < config.mut_rate));
+        alloy_fraction(pos) = mutateWeight(alloy_fraction(pos),[0 1],config);
+        offspring.alloy_fraction = reshape(alloy_fraction,size(offspring.alloy_fraction));
+    end
+    
+    if config.core_shell(i)
+        shell_size = offspring.shell_size(i,2);
+        pos = randperm(length(shell_size),sum(rand(length(shell_size),1) < config.mut_rate));
+        shell_size(pos) = mutateWeight(shell_size(pos),[0 1],config);
+        offspring.shell_size(i,2) = reshape(shell_size,size(offspring.shell_size(i,2)));
+    end
+    
 end
 
 % mutate output weights

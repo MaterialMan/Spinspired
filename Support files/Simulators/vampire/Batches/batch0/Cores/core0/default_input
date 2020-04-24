@@ -26,7 +26,7 @@ create:crystal-structure = sc
 #create:sphere
 
 #------------------------------------------
-# System Dimensions: range is 0.1 Å to 10 µ m
+# System Dimensions: range is 0.1 ï¿½ to 10 ï¿½ m
 #------------------------------------------
 dimensions:unit-cell-size = 3.47 !A
 dimensions:system-size-x = 49 !nm
@@ -44,10 +44,10 @@ dimensions:system-size-z = 0.1 !A
 cells:macro-cell-size = 5 !nm
 
 #------------------------------------------
-# Material Files:
+# Material Files: user-defined structure from file
 #------------------------------------------
-material:file = default_material.mat
-# material:unit-cell-file = unit_cell_structure.ucf  #user-defined structure from file
+material:file = material.mat
+#material:unit-cell-file = unit_cell_structure.ucf  
 
 #------------------------------------------
 # Simulation attributes:

@@ -2,7 +2,7 @@ function quad_MC = quadraticMC(individual,config,seed,num_timesteps)
 
 rng(seed,'twister');
 
-n_internal_units = individual.total_units;%sum([genotype.nInternalUnits]);
+n_internal_units = individual.total_units
 
 n_output_units = n_internal_units*2;
 n_input_units = individual.n_input_units;
@@ -13,7 +13,7 @@ sequence_length = data_length/2;%200;
 data_sequence = 2*rand(n_input_units,data_length+1+n_output_units)-1;
 
 % rescale for each reservoir
-[data_sequence] = featureNormailse(data_sequence,config.preprocess);
+%[data_sequence] = featureNormailse(data_sequence,config);
             
 
 if config.discrete %strcmp(config.res_type,'elementary_CA') || strcmp(config.res_type,'2d_CA') || strcmp(config.res_type,'RBN')

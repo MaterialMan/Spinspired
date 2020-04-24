@@ -26,7 +26,7 @@ config.teacher_forcing = 0;                 % train output using target signal t
 
 % node functionality
 config.multi_activ = 0;                      % use different activation funcs
-config.activ_list = {@tanh};     % what activations are in use 
+config.activ_list = {@tanh};     % what activations are in use
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
 config.undirected_ensemble = 0;              % by default all inter-network weights are directed
@@ -44,11 +44,11 @@ switch(config.dataset)
     case{'test_pulse'}
         
         config.preprocess = 0;
-        config.prepocess_shift = 'zero to one';
+        config.preprocess_shift = 'zero to one';
         
     otherwise
         config.preprocess = 'scaling';
-        config.prepocess_shift = 'minus 1 plus 1';
+        config.preprocess_shift = 'minus 1 plus 1';
 end
 
 % simulation details
@@ -80,7 +80,7 @@ switch(res_type)
         config.fft = 0;
         config.evolve_output_weights = 0;             % evolve rather than train
         config.plot_states = 0;
-       
+        
         %input params
         config.sparse_input_weights = 1;
         config.input_widths = 1;
@@ -88,7 +88,7 @@ switch(res_type)
         config.max_time_period = 10;
         config.input_weight_initialisation = 'uniform';
         config.preprocess = 'scaling';
-        config.prepocess_shift = 'zero to one';
+        config.preprocess_shift = 'zero to one';
         
     case 'Graph'
         
@@ -249,7 +249,7 @@ switch(res_type)
         
         % must be non-negative
         config.preprocess = 'scaling';
-        config.prepocess_shift = 'zero to one';
+        config.preprocess_shift = 'zero to one';
         
     case 'Heterotic'
         % reservoir params
@@ -258,49 +258,87 @@ switch(res_type)
         config.architecture = 'ensemble'; % can be 'ensemble','pipeline', or 'RoR'
         config.plot_states = 0;
         
-   case 'MM'
+    case 'MM'
         
         % reservoir params
-        config.leak_on = 1;                           % add leak states
-        config.add_input_states = 1;                  %add input to states
-        config.bias = 0;
-        config.sparse_input_weights = 1;
-        %config.sparsity = 0.25;        % 0 to 1 sparsity of input weights
-        config.input_widths = 0;
+        config.leak_on = 1;                         % add a leak rate filter
+        config.add_input_states = 1;                % add input to states
+        config.bias = 0;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
+        config.sparse_input_weights = 1;            % use a sparse input encoding
+        config.input_widths = 0;                    % inputs can apply to a single cell (when '0') or multiple cells with a disspating radius of 'r' (r>0)
         
-        % material params
-        config.material_type = 'single_material'; % options: 'single_material', 'bi_layer', 'multi_layer','core_shell', 'random_alloy'
-        config.crystal_structure = 'sc'; % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster 
-        config.unit_cell_size = 3.47; % typical value 3.47 Armstrongs
-        config.unit_cell_units = '!A'; % 0.1 Å to 10 µ m
-        config.macro_cell_size = 5;
-        config.macro_cell_units = '!nm';
-        %config.element_list = {'Co'}; % e.g. Gd, Co, Ni, Fe
-        config.system_size_z = 0.1;
-        config.size_units = {'!nm','!nm','!A'};
+        % system settings
+        config.material_type = {'single'};   % options: 'single', 'multilayer','core_shell', 'random_alloy'
+        config.crystal_structure = {'sc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
+        config.unit_cell_units = {'!A'};              % range = 0.1 ï¿½ to 10 ï¿½ m
+        config.macro_cell_size = [5];                 % size of macro cell; an averaging cell over all spins inside
+        config.macro_cell_units = {'!nm'};            % units for macro cell size
+
+        config.system_size_z = [0.1];               % thickness of film/system; currently x and y are determined by node size and is always a square.
+        config.size_units = {'!nm','!nm','!nm'};     % units for x,y,z size
         
-        % material configs
-        config.temperature_parameter = [0,0]; % positive integer OR 'dynamic'
-        config.damping_parameter = [0.01, 1]; % 0.01 to 1 OR 'dynamic' | typical value 0.1
-        config.anisotropy_parameter = [1e-25, 1e-22]; % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
-        config.exchange_parameter = [1e-21, 10e-21]; % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
-        config.magmoment_parameter = [0.5, 7]; % 0.5 to 7 OR 'dynamic' | typical value 1.4
-        config.applied_field_strength = [0,0]; % how many tesla (T)
-          
-        %sim params
-        config.time_step = 100; % integer in femtoseconds % need to
-        config.time_units = '!fs';
-        config.time_steps_increment = 100; % time step to apply input; 100 or 1000
-        config.read_mag_direction = {'x','y','z'};
+        % additional properties: random alloys, core shells, periodic
+        % boundaries, user-specific strucutres etc.
+        config.particle_size = [];                  % only in use when used with: shapes, core shell ; must be less than system size!
+        config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
+        config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible
+        
+
+        %defaults
+        for i = 1:length(config.material_type)
+            config.random_alloy(i) = false;
+            config.core_shell(i) = false;
+            config.user_structure_file{i} = '';            % if wanting to load a specific strucutre, write file name
+            config.evolve_material_density(i) = false;     % whether density can be changed: 'static' or 'dynamic'
+            
+            switch(config.material_type{i})
+                case 'single'
+                    config.unit_cell_size(i) = 3.47;
+                    config.unit_cell_units = {'!A'};
+                case 'random_alloy'
+                    % specific to fcc structure
+                    config.unit_cell_size(i) = 3.524;
+                    config.unit_cell_units = {'!A'};
+                    config.random_alloy(i) = true;                % set to random alloy
+                case 'core_shell'
+                    config.core_shell(i) = true;                  % apply a core shell configuration
+                case 'multilayer'
+                    
+                case 'user_defined'
+                    config.user_structure_file = {''};
+            end
+        end
+        
+        config.shell_sizes = [];                    % defines the radial extent of a material as a fraction of the particle radius, e.g., [shell, core], range = 0 to 1
+        %config.material_heights = [];               % type end heights of each material; if more than one, will start from zero to height(1), then height(1) to height(2) and so on.
+        config.evolve_material_density = [false];     % whether density can be changed: 'static' or 'dynamic'
+        config.material_density = [1];              % removes random atoms to equal density; 0 to 1 for each material, e.g., [0.5, 1]
+        
+        % material properties
+        config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
+        config.damping_parameter = [0, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
+        config.anisotropy_parameter = [1e-26, 1e-22];   % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
+        config.exchange_parameter = [1e-21, 25e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.magmoment_parameter = [1, 10];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
+        config.applied_field_strength = [0,0];          % how many tesla (T)
+        config.initial_spin_direction = {'1,0,0'};      % assign initial spin direction of material as a string. Add more cells for more materials.
+        
+        %simulation params
+        config.time_step = 100;                     % simulation/itegrator time-step
+        config.time_units = '!fs';                  % must have '!' before unit
+        config.time_steps_increment = 100;           % time step to apply input; e.g. 100 or 1000
+        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
+        config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
-        config.plt_system = 0; % to create plot files
-        config.plot_rate =1;
-        config.plot_states = 0;
+        config.plt_system = 0;                      % to create plot files from vampire simulation
+        config.plot_rate =1;                        % rate to build plot files
+        config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';
-
+        config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        
     otherwise
         
 end

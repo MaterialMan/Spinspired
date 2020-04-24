@@ -53,7 +53,7 @@ config.dataset = 'blank';
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
 config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 10000;                    % number of generations to evolve
+config.total_gens = 100;                    % number of generations to evolve
 config.mut_rate = 0.02;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);

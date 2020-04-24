@@ -62,7 +62,7 @@ for metric_item = 1:length(config.metrics)
             input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;
             
             % rescale for each reservoir
-            %[input_sequence] = featureNormailse(input_sequence,config.preprocess);
+            %[input_sequence] = featureNormailse(input_sequence,config);
             
             %collect states
             G = config.assessFcn(individual,input_sequence,config);
@@ -100,7 +100,7 @@ for metric_item = 1:length(config.metrics)
             
             data_length = num_timesteps;%individual.total_units*2 + config.wash_out;%400;
             input_sequence = ones(data_length,n_input_units);
-            [input_sequence] = featureNormailse(input_sequence,config.preprocess);
+            [input_sequence] = featureNormailse(input_sequence,config);
             
             X = config.assessFcn(individual,input_sequence,config);
             C = X'*X;
@@ -148,8 +148,8 @@ for metric_item = 1:length(config.metrics)
             
             u1 = (rand(data_length,n_input_units)-1);
             u2 = (rand(data_length,n_input_units));
-            [u1] = featureNormailse(u1,config.preprocess);
-            [u2] = featureNormailse(u2,config.preprocess);
+            [u1] = featureNormailse(u1,config);
+            [u2] = featureNormailse(u2,config);
             
             D= norm(u1-u2);
             
@@ -182,7 +182,7 @@ for metric_item = 1:length(config.metrics)
             
             input_sequence = (rand(data_length,n_input_units)-1).*config.scaler;
             
-            [input_sequence] = featureNormailse(input_sequence,config.preprocess);
+            [input_sequence] = featureNormailse(input_sequence,config);
             
             X = config.assessFcn(individual,input_sequence,config);
             
