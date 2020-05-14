@@ -111,6 +111,11 @@ for i = 1:config.num_reservoirs
         offspring.shell_size(i,2) = reshape(shell_size,size(offspring.shell_size(i,2)));
     end
     
+    periodic_boundary = offspring.periodic_boundary(i,logical(config.periodic_boundary));
+    pos = randperm(length(periodic_boundary),sum(rand(length(periodic_boundary),1) < config.mut_rate));
+    periodic_boundary(pos) = round(mutateWeight(periodic_boundary(pos),[0 1],config));
+    offspring.periodic_boundary(i,logical(config.periodic_boundary)) = reshape(periodic_boundary,size(offspring.periodic_boundary(i,logical(config.periodic_boundary))));
+
 end
 
 % mutate output weights

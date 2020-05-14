@@ -15,7 +15,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 0;                        % use parallel toolbox
+config.parallel = 1;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -23,14 +23,14 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'Graph';%repmat({'RoR'},1,10);             % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [49];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'RoR';%repmat({'RoR'},1,10);             % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = [100];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
-config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 20;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 200;                    % number of generations to evolve
+config.num_tests = 10;                        % num of tests/runs
+config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 2000;                    % number of generations to evolve
 config.mut_rate = 0.02;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
@@ -64,7 +64,7 @@ config.metrics = {'KR','GR','linearMC','crossMC','quadMC'};          % list metr
 config.record_metrics = 0;                  % save metrics
 
 % additional pruning, if required
-config.prune = 0;                           % after best individual is found prune the network to make more efficient
+config.prune = 1;                           % after best individual is found prune the network to make more efficient
 config.tolerance = [0 0 0];
 config.prune_iterations = 500;
 
@@ -267,9 +267,9 @@ for test = 1:config.num_tests
         [~,indx] = sort(pop_error);
         
         parfor p = 1:4
-            [Pruned_best_individual{p},old_W_fitness(p),old_Win_fitness(p),full_W{p}] = maxPruning(@testReservoir,{'train_error','val_error','test_error'},population(indx(p))...
+            [Pruned_best_individual{p}] = maxPruning(@testReservoir,{'train_error','val_error','test_error'},population(indx(p))...
                 ,[population(indx(p)).train_error population(indx(p)).val_error population(indx(p)).test_error]...
-                ,config.tolerance,config);
+                ,config.tolerance,config); %,old_W_fitness(p),old_Win_fitness(p),full_W{p}
         end
         % plotReservoirDetails(population,best_indv,gen,loser,config)
     end

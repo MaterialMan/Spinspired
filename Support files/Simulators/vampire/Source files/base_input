@@ -34,8 +34,8 @@ dipole:solver=tensor
 sim:program = time-series
 
 #sim:cells-source-output = true 
-config:macro-cells
-config:macro-cells-output-rate=1 
+#config:macro-cells 
+#config:macro-cells-output-rate=1 
 
 #outputs - same as atomistic vampire
 output:time-steps

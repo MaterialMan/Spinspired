@@ -39,5 +39,5 @@ material[2]:maximum-height = 0
 #---------------------------------------------------
 # Random alloys - must be more than two materials. e.g. FeCo, NiFe and disordered ferrimagnets (such as GdFeCo)
 #---------------------------------------------------
-material[1]:alloy-host
+material[1]:host-alloy
 material[1]:alloy-fraction[2] = 0.25

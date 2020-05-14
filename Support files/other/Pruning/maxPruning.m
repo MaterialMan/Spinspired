@@ -151,30 +151,30 @@ end
 
 %% plot final matrix
 final_W = []; initial_W =[];
-for res_i = 1:size(individual.W,1)
-    col_i =[]; col_f =[];
-    for res_j = 1:size(individual.W,1)
-        col_i = [col_i; saved_individual.W{res_i,res_j}];
-        col_f = [col_f; individual.W{res_i,res_j}];
-    end
-    initial_W = [initial_W col_i];
-    final_W = [final_W col_f];
-end
-
-figure
-subplot(1,2,1)
-imagesc(initial_W)
-colormap(gca,bluewhitered)
-title(strcat('Old: ',num2str(base_behaviour)))
-
-subplot(1,2,2)
-imagesc(final_W)
-colormap(gca,bluewhitered)
-title(strcat('New: ',num2str(current_behaviour)))
-%figure
-%histogram(search_list,length(search_list))
-
-schemaball(full(final_W),[],[0,0,1;1 1 1],[],figure);
+% for res_i = 1:size(individual.W,1)
+%     col_i =[]; col_f =[];
+%     for res_j = 1:size(individual.W,1)
+%         col_i = [col_i; saved_individual.W{res_i,res_j}];
+%         col_f = [col_f; individual.W{res_i,res_j}];
+%     end
+%     initial_W = [initial_W col_i];
+%     final_W = [final_W col_f];
+% end
+% 
+% figure
+% subplot(1,2,1)
+% imagesc(initial_W)
+% colormap(gca,bluewhitered)
+% title(strcat('Old: ',num2str(base_behaviour)))
+% 
+% subplot(1,2,2)
+% imagesc(final_W)
+% colormap(gca,bluewhitered)
+% title(strcat('New: ',num2str(current_behaviour)))
+% %figure
+% %histogram(search_list,length(search_list))
+% 
+% schemaball(full(final_W),[],[0,0,1;1 1 1],[],figure);
 
 
 

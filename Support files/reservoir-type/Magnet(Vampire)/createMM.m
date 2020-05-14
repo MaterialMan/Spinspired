@@ -37,10 +37,10 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).material_type{i} = config.material_type{randi([1 length(config.material_type)])};
         population(pop_indx).material_shape{i} = config.material_shape{randi([1 length(config.material_shape)])};
         switch(population(pop_indx).material_type{i})
-            case 'single'
-                population(pop_indx).num_materials(i) = 1;
-            otherwise
+            case {'multilayer','core_shell', 'random_alloy'}
                 population(pop_indx).num_materials(i) = 2;
+            otherwise
+                population(pop_indx).num_materials(i) = 1;
         end
         
         %define num of units
@@ -104,16 +104,21 @@ for pop_indx = 1:config.pop_size
                 
         % random alloy params
         if config.random_alloy(i)
-            population(pop_indx).interfacial_exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
+            population(pop_indx).interfacial_exchange(i) = config.interfacial_exchange(1) + (config.interfacial_exchange(2)-config.interfacial_exchange(1))*rand;
             population(pop_indx).alloy_fraction(i) = rand;
         end
         % core shell params
         if config.core_shell(i)
-             population(pop_indx).interfacial_exchange(i) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
-             population(pop_indx).shell_size(i,:) = [1 rand];  
-             population(pop_indx).particle_size(i) = population(pop_indx).system_size(i,1);
+            population(pop_indx).interfacial_exchange(i) = config.interfacial_exchange(1) + (config.interfacial_exchange(2)-config.interfacial_exchange(1))*rand;
+            population(pop_indx).shell_size(i,:) = [1 rand];  
+            population(pop_indx).particle_size(i) = population(pop_indx).system_size(i,1);
         end
+        
+         % boundary params
+        population(pop_indx).periodic_boundary(i,:) = zeros(1,3);
+        population(pop_indx).periodic_boundary(i,logical(config.periodic_boundary)) = round(rand(1,sum(config.periodic_boundary)));
 
+        
         % apply material densities
         if config.evolve_material_density(i)
             population(pop_indx).material_density(i) = rand.*config.material_density;

@@ -297,13 +297,13 @@ while ~feof(input_source)
         end
     end
     % periodic boundaries
-    if contains(l,'#create:periodic-boundaries-x') && config.periodic_boundary(indx,1)
+    if contains(l,'#create:periodic-boundaries-x') && individual.periodic_boundary(indx,1)
         l = sprintf('create:periodic-boundaries-x');
     end
-    if contains(l,'#create:periodic-boundaries-y') && config.periodic_boundary(indx,2)
+    if contains(l,'#create:periodic-boundaries-y') && individual.periodic_boundary(indx,2)
         l = sprintf('create:periodic-boundaries-y');
     end
-    if contains(l,'#create:periodic-boundaries-z') && config.periodic_boundary(indx,3)
+    if contains(l,'#create:periodic-boundaries-z') && individual.periodic_boundary(indx,3)
         l = sprintf('create:periodic-boundaries-z');
     end
     
@@ -399,34 +399,6 @@ mat_file=fopen(strcat(file_path,'material_file'),'w');
 
 switch(individual.material_type{indx})
     
-    case 'single'
-        mat_source=fopen(strcat(file_path,'default_material.txt'),'r');
-        while ~feof(mat_source)
-            l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
-            
-            if contains(l,'material[1]:damping-constant=')
-                l = sprintf('material[1]:damping-constant=%.3f', individual.damping(indx));
-            end
-            if contains(l,'material[1]:exchange-matrix[1]')
-                l = sprintf('material[1]:exchange-matrix[1]=%s', individual.exchange(indx));
-            end
-            if contains(l,'material[1]:atomic-spin-moment')
-                l = sprintf('material[1]:atomic-spin-moment=%.3f !muB', individual.magmoment(indx));
-            end
-            if contains(l,'material[1]:second-order-uniaxial-anisotropy-constant=')
-                l = sprintf('material[1]:second-order-uniaxial-anisotropy-constant=%s', individual.anisotropy(indx));
-            end
-            % finish...
-            if contains(l,'material[1]:density')
-                l = sprintf('material[1]:density=%.3f', individual.material_density(indx,1));
-            end
-            
-            if contains(l,'material[1]:initial-spin-direction=')
-                l = sprintf('material[1]:initial-spin-direction=%s', config.initial_spin_direction{indx});
-            end
-            fprintf(mat_file,'%s \n',l);  % print line to file
-        end
-        
      % TO DO!
      case 'multilayer'
          mat_source=fopen(strcat(file_path,'default_multi_material.txt'),'r');
@@ -538,6 +510,35 @@ switch(individual.material_type{indx})
                  fprintf(mat_file,'%s \n',l);  % print line to file
              end     
         end
+        
+    otherwise
+        mat_source=fopen(strcat(file_path,'default_material.txt'),'r');
+        while ~feof(mat_source)
+            l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
+            
+            if contains(l,'material[1]:damping-constant=')
+                l = sprintf('material[1]:damping-constant=%.3f', individual.damping(indx));
+            end
+            if contains(l,'material[1]:exchange-matrix[1]')
+                l = sprintf('material[1]:exchange-matrix[1]=%s', individual.exchange(indx));
+            end
+            if contains(l,'material[1]:atomic-spin-moment')
+                l = sprintf('material[1]:atomic-spin-moment=%.3f !muB', individual.magmoment(indx));
+            end
+            if contains(l,'material[1]:second-order-uniaxial-anisotropy-constant=')
+                l = sprintf('material[1]:second-order-uniaxial-anisotropy-constant=%s', individual.anisotropy(indx));
+            end
+            % finish...
+            if contains(l,'material[1]:density')
+                l = sprintf('material[1]:density=%.3f', individual.material_density(indx,1));
+            end
+            
+            if contains(l,'material[1]:initial-spin-direction=')
+                l = sprintf('material[1]:initial-spin-direction=%s', config.initial_spin_direction{indx});
+            end
+            fprintf(mat_file,'%s \n',l);  % print line to file
+        end
+        
 end
 
 fclose(mat_source);

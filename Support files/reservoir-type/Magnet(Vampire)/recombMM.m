@@ -126,6 +126,14 @@ for i = 1:config.num_reservoirs
         loser.shell_size(i,2) = reshape(L,size(loser.shell_size(i,2)));
     end
     
+    % boundary params
+    W= winner.periodic_boundary(i,logical(config.periodic_boundary));
+    L = loser.periodic_boundary(i,logical(config.periodic_boundary));
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+    L(pos) = W(pos);
+    loser.periodic_boundary(i,logical(config.periodic_boundary)) = reshape(L,size(loser.periodic_boundary(i,logical(config.periodic_boundary))));
+
+    
     % layers
     loser.minimum_height(i,:) = [0 loser.thickness(i)];
     loser.maximum_height(i,:) = [loser.thickness(i) 1];
