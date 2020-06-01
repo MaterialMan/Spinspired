@@ -110,8 +110,7 @@ for pop_indx = 1:config.pop_size
                 case 'orth'
                     internal_weights = orth(rand(population(pop_indx).nodes(i), population(pop_indx).nodes(j)));
                 case 'sparse_orth'
-                    internal_weights = orth(full(sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j))));
-                   
+                    internal_weights = orth(full(sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j))));   
             end
                 
             
@@ -130,10 +129,26 @@ for pop_indx = 1:config.pop_size
 
     % add rand output weights
     if config.add_input_states
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units + population(pop_indx).n_input_units, population(pop_indx).n_output_units)-1;      
+        output_units = population(pop_indx).total_units + population(pop_indx).n_input_units;
     else
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units, population(pop_indx).n_output_units)-1;
+        output_units =population(pop_indx).total_units;
     end
+    
+    switch(config.internal_weight_initialisation)
+        case 'norm' % normal distribution
+            output_weights = config.output_weight_scaler.*sprandn(output_units, population(pop_indx).n_output_units, config.output_connectivity);
+            
+        case 'uniform' % uniform dist between -1 and 1
+            output_weights = sprand(output_units, population(pop_indx).n_output_units, config.output_connectivity);
+            output_weights(output_weights ~= 0) = ...
+                2*output_weights(output_weights ~= 0)  - 0.5;
+            output_weights = config.output_weight_scaler.*output_weights;
+        case 'orth'
+            output_weights = orth(rand(output_units, population(pop_indx).n_output_units));
+        case 'sparse_orth'
+            output_weights = orth(full(sprand(output_units, population(pop_indx).n_output_units, config.output_connectivity)));
+    end
+    population(pop_indx).output_weights = output_weights;
     
     % add rand feedback weights
     if config.evolve_feedback_weights

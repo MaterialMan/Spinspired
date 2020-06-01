@@ -387,6 +387,58 @@ switch config.dataset
         input_sequence = combInput;
         output_sequence = combOutput;
         
+    case 'spiral'
+        err_type = 'softmax';
+        wash_out = 0;
+        train_fraction=0.3333;    val_fraction=0.3333;    test_fraction=0.3333;
+        
+        data = load('spiral_data.txt');
+        
+        n = 6;
+        input_sequence = data(:,1:2)+randn(length(data(:,1:2)),2).*0.025;
+        output = data(:,3);
+        for i = 1:n
+            input_sequence = [input_sequence; data(:,1:2)+randn(length(data(:,1:2)),2).*0.001];
+            output = [output; data(:,3)];
+        end
+        
+        output_sequence = zeros(length(input_sequence),2);
+        output_sequence(output==-1,1) = 1;
+        output_sequence(output==1,2) = 1;
+        
+        t =  randperm(length(input_sequence),length(input_sequence));
+        
+       input_sequence = input_sequence(t,:);
+       output_sequence = output_sequence(t,:);
+        
+       scatter(input_sequence(:,1), input_sequence(:,2), 15, output_sequence(:,1), 'filled')
+    case 'spiral_multi_class'
+
+        err_type = 'softmax';
+        wash_out = 0;
+        train_fraction=0.3333;    val_fraction=0.3333;    test_fraction=0.3333;
+        
+        N = 400; % number of points per class
+        D = 2; % dimensionality
+        K = 5; % number of classes
+        X = zeros(N*K,D); % data matrix (each row = single example)
+        y = zeros(N*K,K); % class labels
+        for j = 0:K-1
+            ix = N*j+1:N*(j+1);
+            r = linspace(0,1,N); % radius
+            t = linspace(j*(5),(j+1)*(5),N) + randn(1,N)*0.2; % theta
+            X(ix,:) = [r.*sin(t); r.*cos(t)]';
+            y(ix,j+1) = 1;
+        end
+        % lets visualize the data:
+       scatter(X(:,1), X(:,2), 40)
+        
+        t =  randperm(length(X),length(X));
+        
+        input_sequence = X(t,:);
+        output_sequence = y(t,:);
+        
+        
     case 'iris' %iris_dataset; (4:in, 3:out) %input alone 76% - medium task
         err_type = 'softmax';%'IJCNNpaper';%'confusion';
         

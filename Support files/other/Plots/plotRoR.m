@@ -7,6 +7,7 @@ ax1 = subplot(3,config.num_reservoirs*2,res_indx);
 imagesc(best.input_weights{res_indx})
 colormap(ax1,bluewhitered)
 title('Input weights (best)')
+colorbar
 
 ax2 = subplot(3,config.num_reservoirs*2,config.num_reservoirs*2 + res_indx);
 imagesc(best.W{res_indx,res_indx})
@@ -17,12 +18,14 @@ ax3 = subplot(3,config.num_reservoirs*2,config.num_reservoirs*4 + res_indx);
 imagesc(best.output_weights)
 colormap(ax3,bluewhitered)
 title('Output weights (best)')
+colorbar
 
 % plot loser
 ax1 = subplot(3,config.num_reservoirs*2,res_indx + config.num_reservoirs);
 imagesc(loser.input_weights{res_indx})
 colormap(ax1,bluewhitered)
 title('Input weights (loser)')
+colorbar
 
 ax2 = subplot(3,config.num_reservoirs*2,config.num_reservoirs*2+ config.num_reservoirs + res_indx);
 imagesc(loser.W{res_indx,res_indx})
@@ -33,6 +36,7 @@ ax3 = subplot(3,config.num_reservoirs*2,config.num_reservoirs*4 + config.num_res
 imagesc(loser.output_weights)
 colormap(ax3,bluewhitered)
 title('Output weights (loser)')
+colorbar
 
 drawnow
 end

@@ -228,7 +228,7 @@ for T1=0:EXP.Sampling_time:EXP.Stop_time
     % check if robot reaches close to a target point. Add visited points to
     % fitness
     indx = [];
-    prox = abs(EXP.History.Pose(T1+1,1:2) - EXP.Target_points) < 0.1;
+    prox = abs(EXP.History.Pose(T1+1,1:2) - EXP.Target_points) < 0.25;
     indx = find(sum(prox,2) == 2);
     %prox(indx,:) = [];
     if length(indx) >= 1
@@ -261,7 +261,8 @@ OUTPUT_DATA=orderfields(EXP); % sort and return output data
 base = EXP.total_points/EXP.Stop_time;
 f1 = (EXP.total_points-fitness)/EXP.total_points;
 f2 = (base - fitness/T1)/base;
-error = 1*f1;% + 0*(1-f2);
+%error = 0.8*f1 + 0.2*(1-f2);
+error = f1;
 %error = (config.num_target_points-fitness)/config.num_target_points;%-sum(dist);%1 - sum(dist)/T1;
 
 individual.train_error = error;

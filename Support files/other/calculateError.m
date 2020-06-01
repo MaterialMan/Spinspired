@@ -1,4 +1,4 @@
-function [err] = calculateError(system_output,desired_output,config)
+function [err,system_output,desired_output] = calculateError(system_output,desired_output,config)
 
 if size(system_output,1) == size(desired_output,1)
     config.wash_out = 0;
@@ -259,11 +259,11 @@ switch(config.err_type)
         for i = 1:size(system_output,1)
             a(i,:) = exp(system_output(i,:))/sum(exp(system_output(i,:)));
         end
-        [~,predict] = max(a,[],2);
+        [~,system_output] = max(a,[],2);
         
-        [~,targ] = max(desired_output,[],2);
+        [~,desired_output] = max(desired_output,[],2);
         
-        err = 1- F1Score(targ,predict);
+        err = 1- F1Score(desired_output,system_output);
         
     case 'IJCNNpaper'
         

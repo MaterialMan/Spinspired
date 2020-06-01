@@ -143,7 +143,23 @@ end
 if config.evolve_output_weights
     W= winner.output_weights(:);
     L = loser.output_weights(:);
-    pos = randperm(length(L),ceil(config.rec_rate*length(L)));
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
     L(pos) = W(pos);
     loser.output_weights = reshape(L,size(loser.output_weights));
 end
+
+% % for feedback weights
+% if config.evolve_feedback_weights
+%     % params - W_scaling
+%     W= winner.feedback_scaling(:);
+%     L = loser.feedback_scaling(:);
+%     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate)); 
+%     L(pos) = W(pos);
+%     loser.feedback_scaling = reshape(L,size(loser.feedback_scaling));
+% 
+%     W= winner.feedback_weights(:);
+%     L = loser.feedback_weights(:);
+%     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));         
+%     L(pos) = W(pos);
+%     loser.feedback_weights = reshape(L,size(loser.feedback_weights));
+% end

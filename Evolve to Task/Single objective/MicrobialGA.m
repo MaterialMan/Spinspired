@@ -24,14 +24,14 @@ end
 
 % type of network to evolve
 config.res_type = 'RoR';%repmat({'RoR'},1,10);             % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [100];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.num_nodes = [15];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
-config.num_tests = 10;                        % num of tests/runs
+config.num_tests = 1;                        % num of tests/runs
 config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 config.total_gens = 2000;                    % number of generations to evolve
-config.mut_rate = 0.02;                       % mutation rate
+config.mut_rate = 0.1;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
@@ -40,7 +40,7 @@ config.error_to_check = 'train&val&test';
 %% Task parameters
 config.discrete = 0;               % select '1' for binary input for discrete systems
 config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
-config.dataset = 'narma_10';          % Task to evolve for
+config.dataset = 'spiral';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -51,7 +51,7 @@ config = getAdditionalParameters(config);
 config = selectDataset(config);
 
 %% general params
-config.gen_print = 10;                       % after 'gen_print' generations print task performance and show any plots
+config.gen_print = 25;                       % after 'gen_print' generations print task performance and show any plots
 config.start_time = datestr(now, 'HH:MM:SS');
 config.save_gen = inf;                       % save data at generation = save_gen
 
@@ -60,11 +60,11 @@ config.multi_offspring = 0;                 % multiple tournament selection and 
 config.num_sync_offspring = 4;%config.deme;    % length of cycle/synchronisation step
 
 % type of metrics to apply; if necessary
-config.metrics = {'KR','GR','linearMC','crossMC','quadMC'};          % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
-config.record_metrics = 0;                  % save metrics
+config.metrics = {'KR','GR','linearMC'};          % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
+config.record_metrics = 1;                  % save metrics
 
 % additional pruning, if required
-config.prune = 1;                           % after best individual is found prune the network to make more efficient
+config.prune = 0;                           % after best individual is found prune the network to make more efficient
 config.tolerance = [0 0 0];
 config.prune_iterations = 500;
 
@@ -242,7 +242,7 @@ for test = 1:config.num_tests
         
         %save data
         if mod(gen,config.save_gen) == 0
-            saveData(population,store_error,config)
+            saveData(population,store_error,best,best_indv,config)
         end
         
         % if found best, stop
@@ -275,15 +275,16 @@ for test = 1:config.num_tests
     end
 end
 
-function saveData(population,store_error,config)
+function saveData(population,store_error,best,best_indv,config)
 config.figure_array =[];
 if iscell(config.res_type)
     res_type ='Heterotic';
 else
     res_type = config.res_type;
 end
-save(strcat('EvolveToTask_substrate_',res_type,'_run',num2str(config.num_tests),'_gens',num2str(config.total_gens),'_',num2str(sum(config.num_reservoirs)),'Nres.mat'),...
-    'population','store_error','config','-v7.3');
+
+save(strcat(res_type,'_',config.dataset,'_run',num2str(config.num_tests),'_gens',num2str(config.total_gens),'_',num2str(sum(config.num_reservoirs)),'Nres.mat'),...
+    'population','store_error','best','best_indv','config','-v7.3');
 end
 
 

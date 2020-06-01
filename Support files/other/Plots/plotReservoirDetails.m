@@ -21,6 +21,52 @@ fprintf('Press any key to skip simulation \n')
 % plot task specific details
 switch(config.dataset)
     
+    case {'spiral','spiral_multi_class'}
+        set(0,'currentFigure',config.figure_array(1))
+        subplot(1,3,1)
+        train_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+        train_sequence = train_states*best_individual.output_weights;
+        [err,system_output,desired_output] = calculateError(train_sequence,config.train_output_sequence,config);
+        scatter(config.train_input_sequence(config.wash_out+1:end,1),config.train_input_sequence(config.wash_out+1:end,2),20,system_output,'filled')
+        
+        subplot(1,3,2)
+        val_states = config.assessFcn(best_individual,config.val_input_sequence,config,config.val_output_sequence);
+        val_sequence = val_states*best_individual.output_weights;
+        [err,system_output,desired_output] = calculateError(val_sequence,config.val_output_sequence,config);
+        scatter(config.val_input_sequence(config.wash_out+1:end,1),config.val_input_sequence(config.wash_out+1:end,2),20,system_output,'filled')
+        
+        subplot(1,3,3)
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+        
+%         [x,y] = meshgrid(-1:.01:1,-1:.01:1);
+%         x = x(:);
+%         y = y(:);
+%         classifier = fitcnb(config.test_input_sequence,config.test_output_sequence);
+%         predictedspecies = predict(classifier,[x y]);
+%         gscatter(x, y, predictedspecies,'rgb');
+   
+%         j = classify([x y],config.test_input_sequence,test_sequence>0);
+%         gscatter(x,y,j,'rgb')
+               
+        
+        %scatter(config.test_input_sequence(:,1),config.test_input_sequence(:,2),20,config.test_output_sequence,'filled')
+        [err,system_output,desired_output] = calculateError(test_sequence,config.test_output_sequence,config);
+        scatter(config.test_input_sequence(config.wash_out+1:end,1),config.test_input_sequence(config.wash_out+1:end,2),20,system_output,'filled')
+        drawnow
+        
+%      case 'spiral_multi_class'
+%         set(0,'currentFigure',config.figure_array(1))
+%         test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+%         test_sequence = test_states*best_individual.output_weights;
+%                      
+%         hold on
+%         %scatter(config.test_input_sequence(:,1),config.test_input_sequence(:,2),20,config.test_output_sequence,'filled')
+%         [err,system_output,desired_output] = calculateError(test_sequence,config.test_output_sequence,config);
+%         scatter(config.test_input_sequence(config.wash_out+1:end,1),config.test_input_sequence(config.wash_out+1:end,2),20,system_output,'filled')
+%         hold off
+%         drawnow
+        
     case 'autoencoder'
         
         plotAEWeights(best_individual,config)
@@ -261,8 +307,9 @@ switch(config.res_type)
         set(0,'currentFigure',config.figure_array(2))
         plotRoR(config.figure_array(2),best_individual,loser_individual,config);
         
+        
         % plot state space
-        states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+        %states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
         %         set(0,'currentFigure',config.figure_array(1))
         %         C = nchoosek(1:size(states,2)-1,2);
         %         for i = 1:length(C)
@@ -271,14 +318,14 @@ switch(config.res_type)
         %         end
         %         hold off
         
-        set(0,'currentFigure',config.figure_array(2))
-        subplot(1,2,1)
-        imagesc(states(:,1:end-config.task_num_inputs)')
-        colorbar
-        subplot(1,2,2)
-        imagesc(real(fft(states(:,1:end-config.task_num_inputs)))')
-        colorbar
-        colormap(bluewhitered)
+%         set(0,'currentFigure',config.figure_array(2))
+%         subplot(1,2,1)
+%         imagesc(states(:,1:end-config.task_num_inputs)')
+%         colorbar
+%         subplot(1,2,2)
+%         imagesc(real(fft(states(:,1:end-config.task_num_inputs)))')
+%         colorbar
+%         colormap(bluewhitered)
            
     case {'RBN','elementary_CA'}
         plotRBN(best_individual,config)
