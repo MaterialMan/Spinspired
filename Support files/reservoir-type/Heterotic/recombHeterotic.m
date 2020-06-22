@@ -26,12 +26,12 @@ loser.leak_rate = reshape(L,size(loser.leak_rate));
 
 % swap entire subres
 %if rand > 0.5
-W= winner.res;
-L = loser.res;
-pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
-L(pos) = W(pos);
-loser.res = reshape(L,size(loser.res));
-swapped_sub_res = 1;
+% W= winner.res;
+% L = loser.res;
+% pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+% L(pos) = W(pos);
+% loser.res = reshape(L,size(loser.res));
+% swapped_sub_res = 1;
 %end
     
 % cycle through sub-reservoirs
@@ -44,11 +44,22 @@ for i = 1:config.num_reservoirs
     
     % inner weights
     for j = 1:config.num_reservoirs
-        W= winner.W{i,j}(:);
-        L = loser.W{i,j}(:);
-        pos = randperm(length(L),ceil(config.rec_rate*length(L)));
-        L(pos) = W(pos);
-        loser.W{i,j} = reshape(L,size(loser.W{i,j}));
+        switch(config.architecture)
+            case 'pipeline'
+                if j == i+1
+                    W= winner.W{i,j}(:);
+                    L = loser.W{i,j}(:);
+                    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+                    L(pos) = W(pos);
+                    loser.W{i,j} = reshape(L,size(loser.W{i,j}));
+                end
+            case 'RoR'
+                W= winner.W{i,j}(:);
+                L = loser.W{i,j}(:);
+                pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+                L(pos) = W(pos);
+                loser.W{i,j} = reshape(L,size(loser.W{i,j}));
+        end
     end
     
 end
@@ -57,7 +68,7 @@ end
 if config.evolve_output_weights
     W= winner.output_weights(:);
     L = loser.output_weights(:);
-    pos = randperm(length(L),ceil(config.rec_rate*length(L)));         
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));        
     L(pos) = W(pos);
     loser.output_weights = reshape(L,size(loser.output_weights));
 end

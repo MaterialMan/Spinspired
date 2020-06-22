@@ -8,6 +8,7 @@
 
 % This is called by the @config.createFcn pointer.
 
+% 
 function population = createHeterotic(config)
 
 %% Reservoir Parameters
@@ -50,8 +51,12 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).subres_config{i} = selectReservoirType(population(pop_indx).subres_config{i});
         % get all res parameters
         population(pop_indx).subres_config{i} = getAdditionalParameters(population(pop_indx).subres_config{i});
-        population(pop_indx).subres_config{i}.add_input_states = 0; % do not add inputs
-        
+        % add inputsto each sub-reservoir
+        if contains(config.architecture,'_IA') && i > 1
+            population(pop_indx).subres_config{i}.add_input_states = 1; 
+        else
+            population(pop_indx).subres_config{i}.add_input_states = 0; 
+        end
         
         % create initial population
         population(pop_indx).res{i} = population(pop_indx).subres_config{i}.createFcn(population(pop_indx).subres_config{i});
@@ -92,18 +97,18 @@ for pop_indx = 1:config.pop_size
                         switch(config.internal_weight_initialisation)
                             case 'norm' % normal distribution
                                 %internal_weights = sprandn(population(pop_indx).res{i}.nodes + population(pop_indx).res{j}.n_input_units, population(pop_indx).res{j}.n_input_units, population(pop_indx).connectivity(i,j));
-                                internal_weights = sprandn(population(pop_indx).nodes(j),population(pop_indx).nodes(i)+ population(pop_indx).res{j}.n_input_units +1, population(pop_indx).connectivity(i,j));
+                                internal_weights = sprandn(population(pop_indx).nodes(j),population(pop_indx).nodes(i)+ (population(pop_indx).subres_config{j}.add_input_states*population(pop_indx).res{j}.n_input_units) +1, population(pop_indx).connectivity(i,j));
 
                             case 'uniform' % uniform dist between -1 and 1
                                 %internal_weights = sprand(population(pop_indx).res{i}.nodes + population(pop_indx).res{j}.n_input_units, population(pop_indx).res{j}.n_input_units, population(pop_indx).connectivity(i,j));
-                                internal_weights = sprand(population(pop_indx).nodes(j),population(pop_indx).nodes(i)+ population(pop_indx).res{j}.n_input_units +1, population(pop_indx).connectivity(i,j));
+                                internal_weights = sprand(population(pop_indx).nodes(j),population(pop_indx).nodes(i)+ (population(pop_indx).subres_config{j}.add_input_states*population(pop_indx).res{j}.n_input_units) +1, population(pop_indx).connectivity(i,j));
 
                                 internal_weights(internal_weights ~= 0) = ...
                                     2*internal_weights(internal_weights ~= 0)  - 1;
                         end
                         
                         % assign scaling for inner weights
-                        population(pop_indx).W_scaling(i,j) = 4*rand-2;
+                        population(pop_indx).W_scaling(i,j) = 2*rand;
                         population(pop_indx).W{i,j} = internal_weights;
                         population(pop_indx).res{j}.input_weights{1} = internal_weights;
                     else
@@ -132,7 +137,7 @@ for pop_indx = 1:config.pop_size
                                     2*internal_weights(internal_weights ~= 0)  - 1;
                         end
                         % assign scaling for inner weights
-                        population(pop_indx).W_scaling(i,j) = 4*rand-2;
+                        population(pop_indx).W_scaling(i,j) = 2*rand;
                         population(pop_indx).W{i,j} = internal_weights;
                         
                     else

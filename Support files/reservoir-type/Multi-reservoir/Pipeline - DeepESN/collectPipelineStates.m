@@ -1,4 +1,4 @@
-function[final_states,individual] = collectPipelineStates(individual,input_sequence,config,target_output)    
+function[final_states,individual] = collectPipelineStates(individual,input_sequence,config,target_output)
 
 %% Collect states for plain ESN
 %if single input entry, add previous state
@@ -16,7 +16,7 @@ for i= 1:config.num_reservoirs
 end
 
 % preassign activation function calls
-if config.multi_activ%size(individual.activ_Fcn,2) > 1 
+if config.multi_activ%size(individual.activ_Fcn,2) > 1
     for i= 1:config.num_reservoirs
         for p = 1:length(config.activ_list)
             index{i,p} = findActiv({individual.activ_Fcn{i,:}},config.activ_list{p});
@@ -24,32 +24,38 @@ if config.multi_activ%size(individual.activ_Fcn,2) > 1
     end
 end
 
-%equation: x(n) = f(Win*u(n) + S)
-for n = 2:size(input_sequence,1)
-    
-    for i= 1:config.num_reservoirs
+for i= 1:config.num_reservoirs
+    for n = 2:size(input_sequence,1)
         
-        x{i}(n,:) = x{i}(n,:) + ((individual.W{i,i}*individual.W_scaling(i,i))'*states{i}(n-1,:)')';
-
+        %x{i}(n,:) = x{i}(n,:) + ((individual.W{i,i}*individual.W_scaling(i,i))'*states{i}(n-1,:)')';
+        
         if i == 1
             input = ([individual.bias_node input_sequence(n,:)])';
         else
-            %input = ([individual.bias_node input_sequence(n,:) states{i-1}(n,:)])';
-            input = ([individual.bias_node states{i-1}(n,:)])';
+            input = ([individual.bias_node input_sequence(n,:) states{i-1}(n-1,:)])'; % current state of previous reservoir
+            %input = ([individual.bias_node states{i-1}(n,:)])';
         end
         
-        if config.multi_activ%size(individual.activ_Fcn,2) > 1
-            for p = 1:length(config.activ_list)             
+        if config.multi_activ 
+            for p = 1:length(config.activ_list)
                 states{i}(n,index{i,p}) = config.activ_list{p}(((individual.input_weights{i}(index{i,p},:)*individual.input_scaling(i))*input)+ x{i}(n,index{i,p})');
             end
         else
-            states{i}(n,:) = individual.activ_Fcn{1}(((individual.input_weights{i}*individual.input_scaling(i))*input) + x{i}(n,:)'); 
+            previous_states = (individual.W{i,i}*individual.W_scaling(i,i))*states{i}(n-1,:)';
+            states{i}(n,:) = individual.activ_Fcn{1}(((individual.input_weights{i}*individual.input_scaling(i))*input) + previous_states);
         end
         
     end
     
 end
 
+% subplot(1,3,1)
+% plot(states{1,1})
+% subplot(1,3,2)
+% plot(states{1,2})
+% subplot(1,3,3)
+% plot(states{1,3})
+% drawnow
 
 if config.leak_on
     states = getLeakStates(states,individual,input_sequence,config);

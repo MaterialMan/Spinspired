@@ -19,6 +19,7 @@ switch config.preprocess
         Y=Y./repmat(std(X,0,1),N,1);
         
     case 'scaling' % scal each column/feature to be within [0 1]
+        
         % determine the maximum value of each colunm of an array
         Max=max(X);
         % determine the minimum value of each colunm of an array
@@ -28,26 +29,35 @@ switch config.preprocess
         %subtract the minimum value for each column
         Y=X-repmat(Min,N,1);
         %Column by the difference between the maximum and minimum value 
-        Y=Y./repmat(Difference,N,1);
-        
-       % Y = 2*Y-1; %shift to [-1 1] 
+        Y=Y./repmat(Difference,N,1);        
         
     case 'rescale' % all scaled together within [0 1]
         Y =(X-min(min(X)))./(max(max(X))-min(min(X)));
-       % Y = 2*Y-1; %shift to [-1 1] 
-        %Y = X*1e21;%2*Y-1; %shift to [-1 1]
+        
+    case 'rescale_diff'
+        
+        % normalise values between -1 and 1
+        if abs(min(min(X))) > max(max(X))
+            max_range_value = abs(min(min(X)));
+            min_range_value = min(min(X));
+        else
+            max_range_value = max(max(X));
+            min_range_value = -max(max(X));
+        end
+        
+        Y = 2 .* X./(max_range_value-min_range_value);       
+        
+    case 'clip'
+        X(X>1) = 1;
+        X(X<0) = 0;
+        Y = X;
         
     otherwise
         Y = X;
 end
 
-switch(config.preprocess_shift)
-    
-        
-    case 'minus 1 plus 1'
-        Y = 2*Y-1;
-    otherwise
-        % do nothing
-end
+% shift data range
+range = config.preprocess_shift;
+Y = (range(1) + (range(2)-range(1))*Y);
 
 end

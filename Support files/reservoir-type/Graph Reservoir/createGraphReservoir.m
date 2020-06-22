@@ -116,5 +116,25 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units, population(pop_indx).n_output_units)-1;
     end
     
+    % add rand feedback weights
+    if config.evolve_feedback_weights
+        population(pop_indx).feedback_scaling = 2*rand;
+        switch(config.feedback_weight_initialisation)
+            case 'norm' % normal distribution
+                feedback_weights = sprandn(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
+                
+            case 'uniform' % uniform dist between -1 and 1
+                feedback_weights = sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
+                feedback_weights(feedback_weights ~= 0) = ...
+                    2*feedback_weights(feedback_weights ~= 0)  - 1;
+            case 'orth'
+                feedback_weights = orth(rand(population(pop_indx).total_units, population(pop_indx).n_input_units));
+            case 'sparse_orth'
+                feedback_weights = orth(full(sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity)));
+                
+        end
+        population(pop_indx).feedback_weights = feedback_weights; 
+    end
+    
     population(pop_indx).behaviours = [];
 end

@@ -51,7 +51,7 @@ for  tests = 1:config.pole_tests
     
     GRAV            = -9.8;        % g
     MASS_C          = 1.0;         % mass cart 1kg
-    SAMPLE_INTERVAL = 0.01;        % delta t (0.01 & 0.02 work well)
+    SAMPLE_INTERVAL = 0.02;        % delta t (0.01 & 0.02 work well)
     MU_C            = 0.0005;      % coeff fric, cart on track  START: 0.0005
     FORCE           = 10;        % magnitude of force applied at every time step (either plus or minus)
     
@@ -85,7 +85,7 @@ for  tests = 1:config.pole_tests
                 input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,1); theta(n-1,2); theta_dot(n-1,1); theta_dot(n-1,2)]; % scale input between -1 and 1
             end
         else
-            if config.simpleTask ~= 3
+            if config.simple_task ~= 3
                 input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1); 0; 0; 0]; % scale input between -1 and 1
             else
                 input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1,1); theta(n-1,2); 0; 0];
@@ -105,7 +105,7 @@ for  tests = 1:config.pole_tests
         force = test_states(n,:)*individual.output_weights;
         
         %% STEP on system
-        if mod(n,1) == 0 % output every 0.02 secs
+        if mod(n,2) == 0 % output every 0.02 secs
             if config.velocity
                 f = FORCE*sign(force);
             else
@@ -119,7 +119,7 @@ for  tests = 1:config.pole_tests
         
         %original equations
         switch(config.simple_task)
-            case 1
+            case 1 %
                 th = theta(n-1);
                 th_dot = theta_dot(n-1);
                 % motion of pole
@@ -236,7 +236,7 @@ for  tests = 1:config.pole_tests
                 %pause(1/config.time_steps)
             else
                
-               set(0,'currentFigure',figHandle)
+               set(0,'currentFigure',config.figure_array(1))
                 subplot(2,2,1)
                 plot(x_pole(n),0,'k+','LineWidth',10);
                 hold on
@@ -284,27 +284,28 @@ for  tests = 1:config.pole_tests
     
     % Reward F2
     F2_bottom = 0;
-%     if config.velocity
-%         if longest_balance < 100
-%             F2 = 0;
-%         else
-%             %F2_bottom = sum(abs(x_pole(exited-100:exited)) + abs(x_dot(exited-100:exited)) + abs(theta(exited-100:exited,1)) +abs(theta_dot(exited-100:exited,1)));
-%             for p = 101:exited
-%                 F2_bottom = F2_bottom + abs(x_pole(p)) + abs(x_dot(p)) + abs(theta(p,1)) +abs(theta_dot(p,1));
-%             end
-%             
-%             F2 = 0.75/F2_bottom;
-%         end
-%         
-%         fitness(tests) = 1-(F1*0.1 +0.9*F2);
-%     else
+    if config.velocity
+        if longest_balance < 100
+            F2 = 0;
+        else
+            %F2_bottom = sum(abs(x_pole(exited-100:exited)) + abs(x_dot(exited-100:exited)) + abs(theta(exited-100:exited,1)) +abs(theta_dot(exited-100:exited,1)));
+            for p = 101:exited
+                F2_bottom = F2_bottom + abs(x_pole(p)) + abs(x_dot(p)) + abs(theta(p,1)) +abs(theta_dot(p,1));
+            end
+            
+            F2 = 0.75/F2_bottom;
+        end
+        
+        fitness(tests) = 1-(F1*0.1 +0.9*F2);
+    else
         fitness(tests) = 1-F1;
-   % end
+   end
 end
 
-individual.train_error = mean(fitness);
-individual.val_error = mean(fitness);
-individual.test_error = mean(fitness);
+%individual.train_error = mean(fitness);
+individual.train_error = median(fitness);
+% individual.val_error = mean(fitness);
+% individual.test_error = mean(fitness);
 
 % Go back to old seed
 rng(temp_seed,'twister');

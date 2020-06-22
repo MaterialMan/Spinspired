@@ -17,7 +17,7 @@ offspring.input_scaling = reshape(leak_rate,size(offspring.leak_rate));
 % W scaling
 W_scaling = offspring.W_scaling(:);
 pos = randperm(length(W_scaling),sum(rand(length(W_scaling),1) < config.mut_rate));
-W_scaling(pos) = mutateWeight(W_scaling(pos),[0 2],config);
+W_scaling(pos) = mutateWeight(W_scaling(pos),[-2 2],config);
 offspring.W_scaling = reshape(W_scaling,size(offspring.W_scaling));
 
 % cycle through all sub-reservoirs
@@ -27,6 +27,9 @@ for i = 1:config.num_reservoirs
     input_weights = offspring.input_weights{i}(:);
     pos = randperm(length(input_weights),sum(rand(length(input_weights),1) < config.mut_rate));
     input_weights(pos) = mutateWeight(input_weights(pos),[-1 1],config); 
+    
+    %input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
+    
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
         
     % hidden weights
@@ -44,13 +47,17 @@ for i = 1:config.num_reservoirs
             % select weights to change
             pos = randperm(length(W),sum(rand(length(W),1) < config.mut_rate));
             W(pos) = mutateWeight(W(pos),[-1 1],config);
+            
+            %W(W<0.1 & W~=0 & W>-0.1) = 0;
+            
             offspring.W{i,j} = reshape(W,size(offspring.W{i,j}));
             
-            %                 if rand < 0.5 % knock out a node and its connections
-            %                     pos2 = randi([1 length(offspring.W{i,j})],ceil(config.mut_rate*length(offspring.W{i,j})),1);
-            %                     offspring.W{i,j}(pos2,:) = 0;
-            %                     offspring.W{i,j}(:,pos2) = 0;
-            %                 end
+         
+                %if rand < 0.5 % knock out a node and its connections
+                % pos2 = randi([1 length(offspring.W{i,j})],ceil(config.mut_rate*length(offspring.W{i,j})),1);
+                %offspring.W{i,j}(pos2,:) = 0;
+                %offspring.W{i,j}(:,pos2) = 0;
+                %end
         end
                
         offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;

@@ -50,6 +50,11 @@ switch(config.architecture)
                 individual.res{i}.last_state{1} = x{i}(n,:);
                 
                 input = input_sequence(n,:);
+%                 if individual.subres_config{i}.add_input_states
+%                     input =  [states{i-1} input_sequence];%* (individual.W_scaling(i-1,i)*individual.W{i-1,i});
+%                 else
+%                     input =  [states{i-1}];
+%                 end
                 
                 individual.subres_config{i}.wash_out = 0;
                 [state,individual.res{i}]= individual.subres_config{i}.assessFcn(individual.res{i},input,individual.subres_config{i});
@@ -68,7 +73,7 @@ switch(config.architecture)
             states{i}= individual.subres_config{i}.assessFcn(individual.res{i},input,individual.subres_config{i});
         end
         
-    case 'pipeline'
+    case {'pipeline','pipeline_IA'}
         
         for i= 1:config.num_reservoirs
             individual.subres_config{i}.wash_out = 0;
@@ -76,9 +81,16 @@ switch(config.architecture)
             if i < 2
                 input = input_sequence;
             else
-                input =  [states{i-1} input_sequence];%* (individual.W_scaling(i-1,i)*individual.W{i-1,i});
+                if individual.subres_config{i}.add_input_states
+                    input =  [states{i-1} input_sequence];%* (individual.W_scaling(i-1,i)*individual.W{i-1,i});
+                else
+                    input =  [states{i-1}];
+                end
             end
-            states{i}= individual.subres_config{i}.assessFcn(individual.res{i},input,individual.subres_config{i});
+            
+            temp_indv = individual;
+            temp_indv.subres_config{i}.add_input_states = 0;
+            states{i}= individual.subres_config{i}.assessFcn(temp_indv.res{i},input,temp_indv.subres_config{i});
         end
         
 end

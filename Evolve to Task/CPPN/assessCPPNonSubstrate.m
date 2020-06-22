@@ -45,7 +45,6 @@ output = substrate.output_weights;
         cnt = cnt+1;
     end
     
-
 % query input weights
 cnt = 1; from =[]; to =[];
 for i = 1:length(input_node)
@@ -67,7 +66,7 @@ for i = 1:length(hidden_node)
     for j = 1:length(hidden_node)
         from(cnt,:) = [hidden_node(i).X hidden_node(i).Y hidden_node(i).Z];
         to(cnt,:) = [hidden_node(j).X hidden_node(j).Y hidden_node(j).Z];
-        cd(cnt,:) = [i j];
+       % cd(cnt,:) = [i j];
         cnt = cnt +1;
     end
 end
@@ -75,11 +74,11 @@ end
 hidden_sequence = [zeros(1,6); from to];
 [test_states,CPPN] = config.assessFcn(CPPN,hidden_sequence,config);
 CPPN_hidden_weights = test_states*CPPN.output_weights(:,2);
-%substrate.W{1} = reshape(CPPN_hidden_weights,size(substrate.W{1}));
+substrate.W{1} = reshape(CPPN_hidden_weights,size(substrate.W{1}))';
 
-for i = 1:length(cd)
-    substrate.W{1}(cd(i,1),cd(i,2)) = CPPN_hidden_weights(i);
-end
+% for i = 1:length(cd)
+%     substrate.W{1}(cd(i,1),cd(i,2)) = CPPN_hidden_weights(i);
+% end
 
 % query output weights
 if config_sub.evolve_output_weights

@@ -28,11 +28,7 @@ switch(config.err_type)
         
         % Finally take the "mean" of the "absoluteErr".
         err = mean(absolute_err);
-        
-        
-    case 'rmse'
-        err = sqrt(mean((desired_output-system_output).^2));
-        
+               
     case 'crossEntropy'
         [~,p] = max(system_output,[],2);
         tp = zeros(size(system_output));
@@ -44,8 +40,6 @@ switch(config.err_type)
     
     case 'NRMSE'
         err= sqrt((sum((desired_output-system_output).^2)/(var(desired_output)))*(1/length(desired_output)));
-        %err = compute_NRMSE(systemOutput,desiredOutput);
-        %err = goodnessOfFit(systemOutput,desiredOutput,type);
         
     case 'NSE'
         err= sum((desired_output-system_output).^2)/sum(desired_output.^2);
@@ -64,6 +58,9 @@ switch(config.err_type)
         %err = immse(systemOutput,desiredOutput);
         err = mean((desired_output-system_output).^2);
         
+    case 'RMSE'
+        err = sqrt(mean((desired_output-system_output).^2));
+        
     case 'SER'
         pre_defined = [-3 -1 1 3];
         for i=1:length(system_output)
@@ -73,6 +70,8 @@ switch(config.err_type)
         [~,err] = symerr(new_system_output,desired_output);
         
     case 'confusion'
+        
+        
         for i = 1:length(system_output)
             [~,I] = max(system_output(i,:));
             system_output(i,:) =zeros;
@@ -264,6 +263,11 @@ switch(config.err_type)
         [~,desired_output] = max(desired_output,[],2);
         
         err = 1- F1Score(desired_output,system_output);
+        
+        % check if all outputs are the same and apply a penalty
+        if sum(system_output == mode(system_output)) > size(system_output,1)*0.95
+            err = 1;
+        end
         
     case 'IJCNNpaper'
         

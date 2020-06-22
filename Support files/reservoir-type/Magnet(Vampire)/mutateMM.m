@@ -4,7 +4,7 @@ function offspring = mutateMM(offspring,config)
 
 input_scaling = offspring.input_scaling(:);
 pos = randperm(length(input_scaling),sum(rand(length(input_scaling),1) < config.mut_rate));
-input_scaling(pos) = mutateWeight(input_scaling(pos),[-1, 1],config);
+input_scaling(pos) = mutateWeight(input_scaling(pos),[-config.input_scaler, config.input_scaler],config);
 offspring.input_scaling = reshape(input_scaling,size(offspring.input_scaling));
 
 leak_rate = offspring.leak_rate(:);
@@ -55,13 +55,18 @@ pos = randperm(length(thickness),sum(rand(length(thickness),1) < config.mut_rate
 thickness(pos) = round(mutateWeight(thickness(pos),[0 1],config)*10)/10;
 offspring.thickness = reshape(thickness,size(offspring.thickness));
 
+time_steps_increment = offspring.time_steps_increment(:);
+pos = randperm(length(time_steps_increment),sum(rand(length(time_steps_increment),1) < config.mut_rate));
+time_steps_increment(pos) = round(mutateWeight(time_steps_increment(pos),[config.time_steps_increment(1) config.time_steps_increment(2)],config));
+offspring.time_steps_increment = reshape(time_steps_increment,size(offspring.time_steps_increment));
+
 %% cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
     
     % input weights
     input_weights = offspring.input_weights{i}(:);
     pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
+    input_weights(pos) = mutateWeight(input_weights(pos),[-config.input_scaler, config.input_scaler],config);
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
     
     % width of inputs
@@ -115,14 +120,15 @@ for i = 1:config.num_reservoirs
     pos = randperm(length(periodic_boundary),sum(rand(length(periodic_boundary),1) < config.mut_rate));
     periodic_boundary(pos) = round(mutateWeight(periodic_boundary(pos),[0 1],config));
     offspring.periodic_boundary(i,logical(config.periodic_boundary)) = reshape(periodic_boundary,size(offspring.periodic_boundary(i,logical(config.periodic_boundary))));
-
+    
+    
 end
 
 % mutate output weights
 if config.evolve_output_weights
     output_weights = offspring.output_weights(:);
     pos =  randperm(length(output_weights),ceil(config.mut_rate*length(output_weights)));
-    output_weights(pos) =  mutateWeight(output_weights(pos),[-1,1],config);
+    output_weights(pos) =  mutateWeight(output_weights(pos),[-config.output_weight_scaler,config.output_weight_scaler],config);
     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
 end
 

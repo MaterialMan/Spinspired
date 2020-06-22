@@ -55,8 +55,12 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).minimum_height(i,:) = [0 population(pop_indx).thickness(i)];
         population(pop_indx).maximum_height(i,:) = [population(pop_indx).thickness(i) 1];
         
+        % simulation details
+        % Input time-period
+        population(pop_indx).time_steps_increment(i) = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);
+        
         %% global params
-        population(pop_indx).input_scaling(i)= 2*rand-1; % not sure about range?
+        population(pop_indx).input_scaling(i)= 2*config.input_scaler*rand - config.input_scaler;%*(2*rand-1); % not sure about range?
         population(pop_indx).leak_rate(i) = rand;
         
         %% Input params
@@ -66,15 +70,39 @@ for pop_indx = 1:config.pop_size
         
         population(pop_indx).xy{i} = [config.cell_grid_x(:) config.cell_grid_y(:)];
         
-        if config.sparse_input_weights
-            input_weights = sprand(population(pop_indx).num_input_loc,  population(pop_indx).n_input_units+1, config.sparsity(i));
-            input_weights(input_weights ~= 0) = ...
-                2*input_weights(input_weights ~= 0)  - 1;
-            
-            population(pop_indx).input_weights{i} = input_weights;
-        else
-            population(pop_indx).input_weights{i}= 2*rand(population(pop_indx).num_input_loc,population(pop_indx).n_input_units+1)-1; % set random field strength
-        end
+        
+       % inputweights       
+       switch(config.input_weight_initialisation)
+           case 'norm' % normal distribution
+               if config.sparse_input_weights
+                   input_weights = sprandn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1, config.sparsity);
+               else
+                   input_weights = randn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1);
+               end
+           case 'uniform' % uniform dist between -1 and 1
+               if config.sparse_input_weights
+                   input_weights = sprand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1, config.sparsity);
+                   input_weights(input_weights ~= 0) = ...
+                       2*input_weights(input_weights ~= 0)  - 1;
+               else
+                   input_weights = 2*rand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1)-1;
+               end
+           case 'orth'
+               input_weights = ones(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1);
+       end
+       population(pop_indx).input_weights{i} = input_weights.*config.input_scaler;
+       
+%         if config.sparse_input_weights
+%             input_weights = sprand(population(pop_indx).num_input_loc,  population(pop_indx).n_input_units+1, config.sparsity(i));
+%             input_weights(input_weights ~= 0) = ...
+%                 2*input_weights(input_weights ~= 0)  - 1;
+%             
+%             population(pop_indx).input_weights{i} = input_weights;
+%         else
+%             population(pop_indx).input_weights{i}= 2*rand(population(pop_indx).num_input_loc,population(pop_indx).n_input_units+1)-1; % set random field strength
+%         end
+        
+        
         
         % input widths
         if config.input_widths
@@ -178,9 +206,9 @@ for pop_indx = 1:config.pop_size
     
     % add rand output weights
     if config.add_input_states
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units + population(pop_indx).n_input_units, population(pop_indx).n_output_units)-1;
+        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units*length(config.read_mag_direction) + population(pop_indx).n_input_units, population(pop_indx).n_output_units)-1;
     else
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units, population(pop_indx).n_output_units)-1;
+        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units*length(config.read_mag_direction), population(pop_indx).n_output_units)-1;
     end
     
     population(pop_indx).behaviours = [];

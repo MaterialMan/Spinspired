@@ -197,7 +197,21 @@ for metric_item = 1:length(config.metrics)
             TE = transferEntropy(X, Y, W, varargin);
             
         case 'connectivity'
-            metrics = [metrics individual.connectivity];
+            metrics = [metrics individual.connectivity*(individual.total_units+ (config.add_input_states*config.task_num_inputs))];
+            
+        case 'matrix_dissimilarity'
+            
+            W = []; W_i =[];
+            for i = 1:size(individual.W,1)
+                for j = 1:size(individual.W,2)
+                    W_i = [W_i individual.W{i,j}.*individual.W_scaling(i,j)];
+                end
+                W = [W; W_i];
+            end
+            
+            dissimilarity = (norm(zeros(size(individual.W,1))-W)./20)*(individual.total_units + (config.add_input_states*config.task_num_inputs));
+            
+            metrics = [metrics dissimilarity];
     end
 end
 

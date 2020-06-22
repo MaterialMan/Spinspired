@@ -50,7 +50,20 @@ if ~isempty(batch_path)
         file_path = new_dest_path;
     end
     
-    states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units);
+    %if single input entry, add previous state
+    if size(input_sequence,1) == 1
+        input_sequence = [zeros(size(input_sequence)); input_sequence];
+    end
+    
+    for i= 1:config.num_reservoirs
+        if size(input_sequence,1) == 2
+            states{i} = individual.last_state{i};
+        else
+            states{i} = zeros(size(input_sequence,1),individual.nodes(i));
+        end
+    end
+
+    %states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units);
     
     % iterate through subreservoirs
     for i = 1:config.num_reservoirs
@@ -97,8 +110,8 @@ if ~isempty(batch_path)
             states{i} = [];
             
             % use only the desired direction(s)
-            c.preprocess = 'rescale';
-            c.preprocess_shift = 'minus 1 plus 1';
+            c.preprocess = 'rescale_diff';
+            c.preprocess_shift = [0 1];
             x_states = featureNormailse(x_states,c);
             y_states = featureNormailse(y_states,c);
             z_states = featureNormailse(z_states,c);
@@ -106,17 +119,11 @@ if ~isempty(batch_path)
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
                     case 'x'
-                        % x_states = featureNormailse(x_states,'rescale');
                         states{i} = [states{i} x_states];
-                        %x_states = []; % release
                     case 'y'
-                        %y_states = featureNormailse(y_states,'rescale');
                         states{i} = [states{i} y_states];
-                        %y_states = []; % release
                     case 'z'
-                        %z_states = featureNormailse(z_states,'rescale');
                         states{i} = [states{i} z_states];
-                        %z_states = []; % release
                 end
             end
             
@@ -343,13 +350,13 @@ while ~feof(input_source)
     end
     if contains(l,'sim:time-step')
         if contains(l,'sim:time-steps-increment')
-            l = sprintf('sim:time-steps-increment = %d', config.time_steps_increment);
+            l = sprintf('sim:time-steps-increment = %d', individual.time_steps_increment(indx));
         else
             l = sprintf('sim:time-step = %d %s', config.time_step,config.time_units);
         end
     end
     if contains(l,'sim:total-time-steps') 
-        config.total_time_steps = config.time_steps_increment * length(input_sequence) + config.time_steps_increment;
+        config.total_time_steps = individual.time_steps_increment(indx) * size(input_sequence,1) + individual.time_steps_increment(indx);
         l = sprintf('sim:total-time-steps = %d', config.total_time_steps);
     end
     % applied field

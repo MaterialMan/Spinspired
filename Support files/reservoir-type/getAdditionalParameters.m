@@ -3,57 +3,51 @@
 function [config] = getAdditionalParameters(config)
 
 %% Set Default parameters
-config.mutate_type = 'uniform';            %options: 'gaussian', 'uniform'. Type of distribution new weight is chosen from.
+config.mutate_type = 'gaussian';            %options: 'gaussian', 'uniform'. Type of distribution new weight is chosen from.
 config.num_reservoirs = length(config.num_nodes);% num of subreservoirs. Default ESN should be 1.
 config.leak_on = 1;                           % add leak states
 
 % define connectivities
 config.add_input_states = 1;                  %add input to states
 config.sparse_input_weights = 1;              % use sparse inputs
-for i = 1:length(config.num_nodes)            % apply to all reservoirs, 0 to 1 sparsity of input weights
-    config.sparsity(i) = 1/config.num_nodes(i);
-end
+config.sparsity = 0.1;
+
 config.internal_sparsity = 0.1;
 config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
 config.connecting_sparsity = 0.1;
 config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
 config.evolve_output_weights = 0;             % evolve rather than train
-config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
+config.output_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 config.output_connectivity = 0.1;
 config.output_weight_scaler = 100;              % defines maximum/minimum weight value when evolving output weights
 
 config.evolve_feedback_weights = 0;             % find suitable feedback weights
 config.feedback_weight_initialisation = 'norm';
-config.feedback_connectivity = 0;
+config.feedback_connectivity = 0.1;
 config.teacher_forcing = 0;                 % train output using target signal then transition into "generative" mode
+config.feedback_scaling = 1;
+config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.multi_activ = 1;                      % use different activation funcs
-config.activ_list = {@tanh,@sin,@cos};     % what activations are in use 
+config.multi_activ = 0;                      % use different activation funcs
+config.activ_list = {@tanh};     % what activations are in use
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
 config.undirected_ensemble = 0;              % by default all inter-network weights are directed
 
 % default reservoir input scale
 config.scaler = 1;                          % this may need to change for different reservoir systems that don't fit to the typical neuron range, e.g. [-1 1]
-config.discrete = 0;
-config.noise_ratio = 0;
+config.discrete = 0;                        % select '1' for binary input for discrete systems            
+config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
+
 
 % input mechanism to use
-config.input_mechanism = '';%'spiking';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
+config.input_mechanism = 'continuous';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
 
-% preprocessing performed on input data
-switch(config.dataset)
-    case{'test_pulse'}
-        
-        config.preprocess = 0;
-        config.preprocess_shift = 'zero to one';
-        
-    otherwise
-        config.preprocess = 'scaling';
-        config.preprocess_shift = 'minus 1 plus 1';
-end
+% default preprocessing performed on input data
+config.preprocess = 'scaling';
+config.preprocess_shift = [-1 1]; % range for data
 
 % simulation details
 config.run_sim = 0;
@@ -84,7 +78,7 @@ switch(res_type)
         config.fft = 0;
         config.evolve_output_weights = 0;             % evolve rather than train
         config.plot_states = 0;
-       
+        
         %input params
         config.sparse_input_weights = 1;
         config.input_widths = 1;
@@ -101,22 +95,29 @@ switch(res_type)
         % Examples: 'Hypercube','Cube'
         % 'Torus','L-shape','Bucky','Barbell','Ring',
         % 'basicLattice','partialLattice','fullLattice','basicCube','partialCube','fullCube',ensembleLattice,ensembleCube,ensembleShape
-        config.self_loop = [1];               % give node a loop to self. Must be defined as array.
+        config.self_loop = [0];               % give node a loop to self. Must be defined as array.
         
         % error checks
-        if length(config.graph_type) ~= length(config.num_nodes) && length(config.self_loop) ~= length(config.num_nodes)
+        if length(config.graph_type) ~= length(config.num_nodes) || length(config.self_loop) ~= length(config.num_nodes)
             error('Number of graph types does not match number of reservoirs. Add more.')
         end
-        if (sqrt(config.num_nodes) ~= round(sqrt(config.num_nodes))) && contains(config.graph_type,'Lattice')
-            error('\n Number of nodes needs to be a square number. \n')
-        else
-            config.num_nodes = sqrt(config.num_nodes);
+        if contains(config.graph_type,'Lattice')
+            if (sqrt(config.num_nodes) ~= round(sqrt(config.num_nodes)))
+                error('\n Number of nodes needs to be a square number. \n')
+            else
+                config.num_nodes = sqrt(config.num_nodes);
+            end
         end
         
         % node details and connectivity
         config.SW_type = 'topology';                                % maintain the base topology through evolution
         config.ensemble_graph = 0;                                  % no connections between mutli-graph reservoirs
         [config,config.num_nodes] = getShape(config);               % call function to make graph.
+        
+        % pick node functions
+        config.multi_activ = 0;                      % use different activation funcs
+        config.activ_list = {@tanh};     % what activations are in use
+        
         
     case 'DNA'
         config.tau = 20;                         % settling time
@@ -213,7 +214,7 @@ switch(res_type)
         config.SW_type = 'topology_plus_weights';                    %options: 'topology_plus_weights', 'watts_strogartz'
         
     case 'Pipeline'
-        config.add_input_states = 0;
+        config.add_input_states = 1;
         
     case 'Oregonator'
         
@@ -259,18 +260,28 @@ switch(res_type)
         % reservoir params
         
         % multi-reservoir type
-        config.architecture = 'ensemble'; % can be 'ensemble','pipeline', or 'RoR'
+        config.architecture = 'pipeline_IA'; % can be 'ensemble','pipeline', or 'RoR'
         config.plot_states = 0;
         
-   case 'MM'
+        % error checks
+        if length(config.res_type) ~= length(config.num_nodes)
+            error('Number of graph types does not match number of reservoirs. Add more.')
+        end
+        
+    case 'MM'
+        % default MM data scaling
+        config.preprocess = 'rescale_diff';
+        config.preprocess_shift = [-1 1]; % range for data
         
         % reservoir params
         config.leak_on = 1;                         % add a leak rate filter
         config.add_input_states = 1;                % add input to states
-        config.bias = 0;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
+        config.bias = 1;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
         config.sparse_input_weights = 1;            % use a sparse input encoding
         config.sparsity = 0.1;                    % 0 to 1 sparsity of input weights
         config.input_widths = 0;                    % inputs can apply to a single cell (when '0') or multiple cells with a disspating radius of 'r' (r>0)
+        config.input_scaler = 2;                    % input weight multiplier, e.g.x2
+        config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. Check createMM.m for options
         
         % system settings
         config.material_type = {''};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
@@ -279,14 +290,14 @@ switch(res_type)
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
         config.macro_cell_size = [5];                % size of macro cell; an averaging cell over all spins inside
         config.macro_cell_units = {'!nm'};            % units for macro cell size
-
+        
         config.system_size_z = [0.1];               % thickness of film/system; currently x and y are determined by node size and is always a square.
         config.size_units = {'!nm','!nm','!nm'};     % units for x,y,z size
         
         % additional properties: random alloys, core shells, periodic
         % boundaries, user-specific strucutres etc.
         config.particle_size = [];                  % only in use when used with: shapes, core shell ; must be less than system size!
-        config.periodic_boundary = [1,1,1];         % vector represents x,y,z; '1' means there is a periodic boundary
+        config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible
         
         %defaults
@@ -315,24 +326,24 @@ switch(res_type)
         end
         config.shell_sizes = [];                    % defines the radial extent of a material as a fraction of the particle radius, e.g., [shell, core], range = 0 to 1
         %config.material_heights = [];               % type end heights of each material; if more than one, will start from zero to height(1), then height(1) to height(2) and so on.
-        config.evolve_material_density = [false];     % whether density can be changed: 'static' or 'dynamic'      
+        config.evolve_material_density = [false];     % whether density can be changed: 'static' or 'dynamic'
         config.material_density = [1];              % removes random atoms to equal density; 0 to 1 for each material, e.g., [0.5, 1]
         
         % material properties
         config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
-        config.damping_parameter = [0.01, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
-        config.anisotropy_parameter = [1e-25, 1e-22];   % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
-        config.exchange_parameter = [1e-21, 25e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
-        config.magmoment_parameter = [1, 10];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
+        config.damping_parameter = [0.001, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
+        config.anisotropy_parameter = [5.47e-26, 5.47e-26];   % 1e-25 to 1e-22 OR 'dynamic' | typical value 1e-24
+        config.exchange_parameter = [2.757e-21, 2.757e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+        config.magmoment_parameter = [0.606, 0.606];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
         config.applied_field_strength = [0,0];          % how many tesla (T)
         config.initial_spin_direction = {'1,0,0'};      % assign initial spin direction of material as a string. Add more cells for more materials.
         
         config.interfacial_exchange = [-25e-21, 25e-21];
-
+        
         %simulation params
         config.time_step = 100;                     % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
-        config.time_steps_increment = 100;           % time step to apply input; e.g. 100 or 1000
+        config.time_steps_increment = [100 100];           % time step to apply input; e.g. 100 or 1000
         config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
@@ -343,7 +354,7 @@ switch(res_type)
         
         % multi-reservoir type
         config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-
+        
     otherwise
         
 end
@@ -353,26 +364,35 @@ end
 % here.
 switch(config.dataset)
     
+    case 'cifar10'
+        config.leak_on = 0;                          % add leak states
+        %config.add_input_states = 0;
+        
     case 'autoencoder'
         config.leak_on = 0;                          % add leak states
         config.add_input_states = 0;
         config.figure_array = [config.figure_array figure];
-        config.sparse_input_weights = 0;
+        config.sparse_input_weights = 1;
+        %config.evolve_output_weights = 1;               % must evolve outputs as its an unsupervised problem
+        %config.error_to_check = 'train&val';
+        config.preprocess = 'clip';
+        config.preprocess_shift = '';
         
     case 'pole_balance'
-        config.time_steps = 1000;
-        config.simple_task = 2;
-        config.pole_tests = 2;
-        config.velocity = 1;
-        config.run_sim = 0;
+        config.time_steps = 500;                        % length of task simulation
+        config.simple_task = 2;                         % tasks: 1) balancing pole from up-right position , 2) swinging pole from downward position , 3)
+        config.pole_tests = 3;                          % how many tasks to average over
+        config.velocity = 1;                            % add velocity as an input to task (usually easier)
+        config.run_sim = 0;                             % whether to run simulation as it is calculated
         config.testFcn = @poleBalance;
-        config.evolve_output_weights = 1;
-        config.add_input_states = 0;                  %add input to states
+        config.evolve_output_weights = 1;               % must evolve outputs as its an unsupervised problem
+        config.add_input_states = 0;                    %add input to states
+        config.error_to_check = 'train';
         
     case 'robot'
         % type of task
         config.robot_behaviour = 'explore_maze';    %select behaviour/file to simulate
-        config.time_steps = 200;                    % sim time
+        config.time_steps = 500;                    % sim time
         %sensors
         config.sensor_range = 0.5;                 % range of lidar
         config.evolve_sensor_range = 1;             % use leakRate parameter as proxy for sensor range (evolvable)
@@ -392,25 +412,48 @@ switch(config.dataset)
         config.num_target_points = 1000;            % grid of target points used for fitness calculation
         config.maze_size = 5;                       % if maze, the size and complexity of maze
         % Go to selectDataset.m to change num_sensors
+        config.error_to_check = 'train';
         
     case 'attractor'
-        config.leak_on = 0;                          % add leak states
-        config.add_input_states = 0;
+        
+        config.error_to_check = 'train&test';
+        config.attractor_type = 'multi_attractor';
+        config.preprocess = '';
+        config.preprocess_shift = [0 1];
+
+        config.leak_on = 0;                          % remove leak states
+        config.add_input_states = 0;                 % remove input states
         config.sparse_input_weights = 1;
         
-        config.attractor_type = 'mackey_glass';
-        config.evolve_output_weights = 1;
-        config.teacher_forcing = 0;
-        config.evolve_feedback_weights = 1;             % find suitable feedback weights
-        config.feedback_weight_initialisation = 'norm';
-        config.feedback_connectivity = 0;
+        config.teacher_forcing = 0;                 % train output using target signal then transition into "generative" mode; evolving output weights will be worse
+        config.noise_ratio = 10e-5;                     % noise added in feedback training
+
+        config.evolve_output_weights = 1;             % evolve rather than train
+        config.output_weight_initialisation = 'uniform';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
+        config.output_connectivity = 0.1;
+        config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
         
-        config.preprocess = 0;
-        config.noise_ratio = 10e-5;
-        
+        config.evolve_feedback_weights = 1;             % find suitable feedback weights - currently doesn't work with teacher forcing
+        config.feedback_weight_initialisation = 'uniform';
+        config.feedback_connectivity = 0.1;
+        config.feedback_scaling = 1;
+
     case {'MSO1','MSO2','MSO3','MSO4','MSO5','MSO6','MSO7','MSO8','MSO9','MSO10','MSO11','MSO12'}  %MSO'
         
+        %config.preprocess = 0;
+        
+        
+    case {'image_painting','CPPN'}
+        %config.leak_on = 0;                          % add leak states
+        config.add_input_states = 0;
+        
+        % dummy figure
+        config.figure_array = [];
+        
+    case{'test_pulse'}
         config.preprocess = 0;
+        config.preprocess_shift = [0 1];
+        
     otherwise
         
 end

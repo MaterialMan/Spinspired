@@ -40,7 +40,7 @@ for i = 1:config.num_reservoirs
                 % change base graph
                 W= winner.W{i,j};
                 L = loser.W{i,j};
-                f = find(adjacency(config.G{i,j}));
+                f = find(adjacency(config.G{1,j}));
                 pos = randperm(length(f),ceil(config.rec_rate*length(f)));
                 L(f(pos)) = W(f(pos));
                 loser.W{i,j} = L;
@@ -49,7 +49,7 @@ for i = 1:config.num_reservoirs
                 % change SW weights - problem: will add more connections
                 W_weights = winner.W{i,j};  % current graph
                 L_weights = loser.W{i,j};  % current graph
-                base_W_0 = adjacency(config.G{i,j});
+                base_W_0 = adjacency(config.G{1,j});
                 pos_chng = find(~base_W_0); % non-base weights
                 
                 w = find(W_weights(pos_chng));
@@ -66,7 +66,7 @@ for i = 1:config.num_reservoirs
                 % change base graph
                 W= winner.W{i,j};
                 L = loser.W{i,j};
-                f = find(adjacency(config.G{i,j}));
+                f = find(adjacency(config.G{1,j}));
                 pos = randperm(length(f),ceil(config.rec_rate*length(f)));
                 L(f(pos)) = W(f(pos));
                 loser.W{i,j} = L;

@@ -10,6 +10,8 @@ switch(error_to_check)
         error = [individual.train_error] + [individual.val_error];
     case 'val&test'
         error = [individual.val_error] + [individual.test_error];
+    case 'train&test'
+        error = [individual.train_error] + [individual.test_error];
     case 'train&val&test'
         error = [individual.train_error] +[individual.val_error] +[individual.test_error];        
 end

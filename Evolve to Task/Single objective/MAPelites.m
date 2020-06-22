@@ -16,17 +16,17 @@ end
 
 %% type of network to evolve
 config.res_type = 'RoR';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
-config.num_nodes = [300];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
+config.num_nodes = [50];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
 
 %% Network details
-config.metrics = {'KR','GR','linearMC'}; % metrics to use (and order of metrics)
+config.metrics = {'KR','connectivity','matrix_dissimilarity'}; % metrics to use (and order of metrics)
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
 config.initial_population = 100;             % large pop better
 config.total_iter = 200;                    % num of gens
-config.mut_rate = 0.02;                       % mutation rate
+config.mut_rate = 0.05;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 
 %% Task parameters
@@ -53,11 +53,11 @@ end
 config.MAP_resolution = flip(recursiveDivision(config.total_MAP_size));     % list to define MAP of elites resolution, i.e., how many cells
 config.change_MAP_iter = round(config.total_iter/(length(config.MAP_resolution)-1)); % change the resolution after I iterations
 config.start_MAP_resolution = config.MAP_resolution(1);                        % record of first resolution point
-config.voxel_size = 10;                                                     % to measure behaviour space
+config.voxel_size = 10;                                                      % to measure behaviour space
 
 config.figure_array = [figure figure figure];
 
-config.gen_print = 1;
+config.gen_print = 5;
 config.save_gen = inf;
 config.plot =1;
 
@@ -191,7 +191,7 @@ for tests = 1:config.num_tests
             for b = 1:config.batch_size
                 offspring(b) = config.testFcn(offspring(b),config);
                 offspring(b).behaviours = round(getMetrics(offspring(b),config))+1;
-                rnd
+                %rnd
             end
         end
         
@@ -300,7 +300,7 @@ if ~isempty(MAP)
             % assign elites
             if isempty(newMAP{idx})
                 newMAP{idx} = MAP{i};
-            elseif MAP{i}.val_error < newMAP{idx}.val_error
+            elseif getError(config.error_to_check,MAP{i}) < getError(config.error_to_check,newMAP{idx})
                 newMAP{idx} = MAP{i};
             end
         end
@@ -327,9 +327,9 @@ end
 X = []; fitness =[];
 
 for i = 1:length(config.combs)
-    if ~isempty(database{i}) && database{i}.val_error < 1
+    if ~isempty(database{i})
         X = [X; database{i}.behaviours];
-        fitness = [fitness; database{i}.val_error];
+        fitness = [fitness; getError(config.error_to_check,database{i})];
     end
 end
 

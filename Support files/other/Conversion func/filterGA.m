@@ -13,8 +13,6 @@ mutRate = 0.1;
 deme_percent = 0.1;
 deme = round(pop_size*deme_percent);
 
-
-
 %% create pop of filters
 for i = 1:pop_size
     population(i).order = randi([1 config.max_order]);

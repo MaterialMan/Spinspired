@@ -6,18 +6,18 @@ function offspring = mutateSW(offspring,config)
 % params - input scaling and leak rate
 input_scaling = offspring.input_scaling(:);
 pos = randperm(length(input_scaling),sum(rand(length(input_scaling),1) < config.mut_rate));
-input_scaling(pos) = 2*rand(length(pos),1)-1;
+input_scaling(pos) = mutateWeight(input_scaling(pos),[-1 1],config);
 offspring.input_scaling = reshape(input_scaling,size(offspring.input_scaling));
 
 leak_rate = offspring.leak_rate(:);
 pos = randperm(length(leak_rate),sum(rand(length(leak_rate),1) < config.mut_rate));
-leak_rate(pos) = rand(length(pos),1);
+leak_rate(pos) = mutateWeight(leak_rate(pos),[0 1],config);
 offspring.input_scaling = reshape(leak_rate,size(offspring.leak_rate));
 
 % W scaling
 W_scaling = offspring.W_scaling(:);
 pos = randperm(length(W_scaling),sum(rand(length(W_scaling),1) < config.mut_rate));
-W_scaling(pos) = 2*rand(length(pos),1);
+W_scaling(pos) = mutateWeight(W_scaling(pos),[0 2],config);
 offspring.W_scaling = reshape(W_scaling,size(offspring.W_scaling));
 
 % cycle through all sub-reservoirs
@@ -25,10 +25,8 @@ for i = 1:config.num_reservoirs
     
     % input weights
     input_weights = offspring.input_weights{i}(:);
-    pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    for n = 1:length(pos)
-        input_weights(pos(n)) = mutateWeight(input_weights(pos(n)),config);
-    end
+    pos = randperm(length(input_weights),sum(rand(length(input_weights),1) < config.mut_rate));
+    input_weights(pos) = mutateWeight(input_weights(pos),[-1 1],config); 
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
     
     % hidden weights
@@ -40,18 +38,14 @@ for i = 1:config.num_reservoirs
                 
                 W = offspring.W{i,j};
                 %change base graph
-                f = find(adjacency(config.G{i,j}));
-                pos = randperm(length(f),ceil(config.mut_rate*length(f)));
-                
-                % select weights to change
-                for n = 1:length(pos)
-                    W(f(pos(n))) = mutateWeight(W(f(pos(n))),config);
-                end
+                f = find(adjacency(config.G{1,j}));
+                pos = randperm(length(f),sum(rand(length(f),1) < config.mut_rate));
+                W(f(pos)) = mutateWeight(W(f(pos)),[-1 1],config);
                 offspring.W{i,j} = W;
                 
             case 'topology_plus_weights'% must maintain proportion of connections
                 W = offspring.W{i,j};  % current graph
-                base_W_0 = adjacency(config.G{i,j});
+                base_W_0 = adjacency(config.G{1,j});
                 pos_chng = find(~base_W_0); % non-base weights
                 
                 w1 = find(W(pos_chng)); %all non-zero non-base weights
@@ -73,7 +67,7 @@ for i = 1:config.num_reservoirs
                             pos2(p) = randi([1 length(pos_chng)]);
                         end
                         
-                        W(pos_chng(pos2(p))) = mutateWeight(W(pos_chng(pos2(p))),config);
+                        W(pos_chng(pos2(p))) = mutateWeight(W(pos_chng(pos2(p))),[-1 1],config);
                         
                         %check still okay
                         if nnz(offspring.W{i,j}) ~= nnz(W)
@@ -81,7 +75,7 @@ for i = 1:config.num_reservoirs
                         end
                     else
                         % change non-zero non-base weight to another value
-                        W(pos_chng(w(pos(p)))) = mutateWeight(W(pos_chng(w(pos(p)))),config);
+                        W(pos_chng(w(pos(p)))) = mutateWeight(pos_chng(w(pos(p))),[-1 1],config);
                     end
                     
                 end
@@ -95,20 +89,17 @@ for i = 1:config.num_reservoirs
                 
                 %change base graph
                 f = find(base_W_0);
-                pos = randperm(length(f),ceil(config.mut_rate*length(f)));
+                pos = randperm(length(f),sum(rand(length(f),1) < config.mut_rate));
                 
                 % select weights to change
-                for n = 1:length(pos)
-                    W(f(pos(n))) = mutateWeight(W(f(pos(n))),config);
-                end
+                W(f(pos)) = mutateWeight(W(f(pos)),[-1 1],config);
                 offspring.W{i,j} = W;
                 
             case 'watts_strogartz'
                 
                 W = offspring.W{i,j};
                 f = find(W);
-                pos = randperm(length(f),ceil(config.mut_rate*length(f)));
-                
+                pos = randperm(length(f),sum(rand(length(f),1) < config.mut_rate));
                 for n = 1:length(pos)
                     % switch
                     if rand < config.P_rc% rewiring probability
@@ -130,7 +121,7 @@ for i = 1:config.num_reservoirs
                         W(row,list(indx)) = tmp_val1;
                         W(list(indx),col) = tmp_val2;
                     else
-                        W(f(pos(n))) = mutateWeight(W(f(pos(n))),config);
+                        W(f(pos(n))) = mutateWeight(W(f(pos(n))),[-1 1],config);
                     end
                 end
         end
@@ -151,16 +142,22 @@ for i = 1:config.num_reservoirs
         offspring.activ_Fcn = reshape(activFcn,size(offspring.activ_Fcn));
     end
     
+    if config.iir_filter_on
+        iir_feedfoward = offspring.iir_weights{i,1}(:,1);
+        pos = randperm(length(iir_feedfoward),sum(rand(length(iir_feedfoward),1) < config.mut_rate));
+        w_0 = mutateWeight(iir_feedfoward(pos),[-1 1],config);        
+        alpha = sin(w_0).*sinh((log(2)./2) * (3*rand) * (w_0./(sin(w_0))));
+        offspring.iir_weights{i,1}(pos,:) = alpha .* [1 0 -1]; 
+        offspring.iir_weights{i,2}(pos,:) = [1+alpha -2*cos(w_0) 1-alpha];       
+        
+    end
 end
 
 % mutate output weights
 if config.evolve_output_weights
     output_weights = offspring.output_weights(:);
-    pos =  randperm(length(output_weights),ceil(config.mut_rate*length(output_weights)));
-    
-    for n = 1:length(pos)
-        output_weights(pos(n)) = mutateWeight(output_weights(pos(n)),config);
-    end
+    pos = randperm(length(output_weights),sum(rand(length(output_weights),1) < config.mut_rate));   
+    output_weights(pos) = mutateWeight(output_weights(pos),[-config.output_weight_scaler config.output_weight_scaler],config);
     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
 end
 
@@ -169,30 +166,35 @@ if config.evolve_feedback_weights
     % feedback scaling
     feedback_scaling = offspring.feedback_scaling(:);
     pos =  randperm(length(feedback_scaling),sum(rand(length(feedback_scaling),1) < config.mut_rate));
-    feedback_scaling(pos) = 2*rand(length(pos),1);
+    feedback_scaling(pos) = mutateWeight(feedback_scaling(pos),[-1 1],config);
     offspring.feedback_scaling = reshape(feedback_scaling,size(offspring.feedback_scaling));
     
     feedback_weights = offspring.feedback_weights(:);
-    pos =  randperm(length(feedback_weights),ceil(config.mut_rate*length(feedback_weights)));
-    
-    for n = 1:length(pos)
-        feedback_weights(pos(n)) = mutateWeight(feedback_weights(pos(n)),config);
-    end
+    pos = randperm(length(feedback_weights),sum(rand(length(feedback_weights),1) < config.mut_rate));
+    feedback_weights(pos) = mutateWeight(feedback_weights(pos),[-1 1],config);
     offspring.feedback_weights = reshape(feedback_weights,size(offspring.feedback_weights));
 end
 end
 
-function value = mutateWeight(value,config)
+function value = mutateWeight(value,range,config)
 
-switch(config.mutate_type)
-    case 'gaussian'
-        value = value-randn*0.15;
-        
-    case 'uniform'
-        if rand > 0.5 % 50% chance to zero weight
-            value = 0;
-        else
-            value = 2*rand-1;
-        end
+if range(1)~=range(2)
+    switch(config.mutate_type)
+        case 'gaussian'
+            for i = 1:length(value)
+                flag = 1;
+                while(flag)
+                    t_value = value(i) + (range(1) + (range(2)-range(1))*randn);
+                    
+                    % check within range
+                    if (t_value <= range(2)) && (t_value >= range(1))
+                        flag = 0;
+                    end
+                end
+                value(i) = t_value;
+            end
+        case 'uniform'
+            value = range(1) + (range(2)-range(1))*rand;
+    end
 end
 end
