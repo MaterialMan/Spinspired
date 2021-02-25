@@ -66,9 +66,12 @@ for i = 1:config.num_reservoirs
     % input weights
     input_weights = offspring.input_weights{i}(:);
     pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    input_weights(pos) = mutateWeight(input_weights(pos),[-config.input_scaler, config.input_scaler],config);
+    input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
     
+    % input weight check
+    input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
+     
     % width of inputs
     if config.input_widths
         input_widths = offspring.input_widths{i}(:);

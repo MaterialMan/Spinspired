@@ -69,11 +69,8 @@ for pop_indx = 1:config.pop_size
         if config.iir_filter_on
             w_0 = rand(population(pop_indx).nodes(i),1);
             alpha = sin(w_0).*sinh((log(2)./2) * (3*rand) * (w_0./(sin(w_0))));
-            
             population(pop_indx).iir_weights{i,1} = alpha .* [1 0 -1]; % feedforward filter weights
-            
             population(pop_indx).iir_weights{i,2} = [1+alpha -2*cos(w_0) 1-alpha]; % feedback filter weights
-            
         end
         
         population(pop_indx).last_state{i} = zeros(1,population(pop_indx).nodes(i));
@@ -81,7 +78,6 @@ for pop_indx = 1:config.pop_size
     
     %track total nodes in use
     population(pop_indx).total_units = 0;
-    
     
     %% weights and connectivity of all reservoirs
     for i= 1:config.num_reservoirs
@@ -101,7 +97,6 @@ for pop_indx = 1:config.pop_size
             switch(config.internal_weight_initialisation)
                 case 'norm' % normal distribution
                     internal_weights = sprandn(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j));
-                   
                 case 'uniform' % uniform dist between -1 and 1
                     internal_weights = sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j));
                     internal_weights(internal_weights ~= 0) = ...
@@ -112,31 +107,38 @@ for pop_indx = 1:config.pop_size
                     internal_weights = orth(full(sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j))));   
             end
                 
-            
             % reassign undirected weights
             if (config.undirected_ensemble && i ~= j) || (config.undirected && i == j)
                 internal_weights = triu(internal_weights)+triu(internal_weights,1)';
             end
-    
             population(pop_indx).W{i,j} = internal_weights; 
-
         end
-        
+        % add sub-res nodes to total nodes
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i); 
     end
     
+    % Architecture switch - if defined architecture is given for RoR
+    % system, e.g. ring or lattice of reservoirs
+    if config.RoR_structure
+        % find indices for graph weights
+        graph_indx = logical(full(adjacency(config.G{1})));
+        % assign connectivity
+        population(pop_indx).W_switch = graph_indx;
+    else
+        population(pop_indx).W_switch = round(rand(config.num_reservoirs));
+    end
 
+     
     % add rand output weights
     if config.add_input_states
         output_units = population(pop_indx).total_units + population(pop_indx).n_input_units;
     else
         output_units =population(pop_indx).total_units;
     end
-    
+    %apply initialisation technique
     switch(config.output_weight_initialisation)
         case 'norm' % normal distribution
             output_weights = config.output_weight_scaler.*sprandn(output_units, population(pop_indx).n_output_units, config.output_connectivity);
-            
         case 'uniform' % uniform dist between -1 and 1
             output_weights = sprand(output_units, population(pop_indx).n_output_units, config.output_connectivity);
             output_weights(output_weights ~= 0) = ...
@@ -155,7 +157,6 @@ for pop_indx = 1:config.pop_size
         switch(config.feedback_weight_initialisation)
             case 'norm' % normal distribution
                 feedback_weights = sprandn(population(pop_indx).total_units, population(pop_indx).n_output_units, config.feedback_connectivity);
-                
             case 'uniform' % uniform dist between -1 and 1
                 feedback_weights = sprand(population(pop_indx).total_units, population(pop_indx).n_output_units, config.feedback_connectivity);
                 feedback_weights(feedback_weights ~= 0) = ...
@@ -164,11 +165,8 @@ for pop_indx = 1:config.pop_size
                 feedback_weights = orth(rand(population(pop_indx).total_units, population(pop_indx).n_output_units));
             case 'sparse_orth'
                 feedback_weights = orth(full(sprand(population(pop_indx).total_units, population(pop_indx).n_output_units, config.feedback_connectivity)));
-                
         end
         population(pop_indx).feedback_weights = feedback_weights; 
     end
-    
-    population(pop_indx).behaviours = [];
-    
+    population(pop_indx).behaviours = [];    
 end

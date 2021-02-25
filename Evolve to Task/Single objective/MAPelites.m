@@ -15,22 +15,22 @@ if isempty(gcp) && config.parallel
 end
 
 %% type of network to evolve
-config.res_type = 'RoR';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
+config.res_type = 'RoRmin';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
 config.num_nodes = [50];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
 
 %% Network details
-config.metrics = {'KR','connectivity','matrix_dissimilarity'}; % metrics to use (and order of metrics)
+config.metrics = {'KR','linearMC'}; % metrics to use (and order of metrics)
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
 config.initial_population = 100;             % large pop better
-config.total_iter = 200;                    % num of gens
+config.total_iter = 400;                    % num of gens
 config.mut_rate = 0.05;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 
 %% Task parameters
-config.dataset = 'narma_10';                                                  % Task to evolve for
+config.dataset = 'attractor';                                                  % Task to evolve for
 
 % get any additional params. This might include:
 % details on reservoir structure, extra task variables, etc.
@@ -57,7 +57,7 @@ config.voxel_size = 10;                                                      % t
 
 config.figure_array = [figure figure figure];
 
-config.gen_print = 5;
+config.gen_print = 25;
 config.save_gen = inf;
 config.plot =1;
 
@@ -167,10 +167,10 @@ for tests = 1:config.num_tests
             end
             
             % mix winner and loser first
-            offspring(b) = config.recFcn(MAP{winner},MAP{loser},config);
+           % offspring(b) = config.recFcn(MAP{winner},MAP{loser},config);
             
             % mutate offspring/loser
-            offspring(b) = config.mutFcn(offspring(b),config);   
+            offspring(b) = config.mutFcn(MAP{winner},config);   
         end
         
         
@@ -247,7 +247,7 @@ for tests = 1:config.num_tests
         if (mod(iter,config.gen_print) == 0)
             if  prev_gloabl_best ~= global_best %getError(config.error_to_check,MAP{best_indv}) ~= getError(config.error_to_check,MAP{prev_best})
                 % plot reservoir structure, task simulations etc.
-                %plotReservoirDetails(MAP,best_indv,1,best_indv,config);
+                plotReservoirDetails(MAP,best_indv,1,best_indv,config);
             end
             %plotReservoirDetails(MAP,store_global_best,tests,best_indv,1,prev_best,config)
             

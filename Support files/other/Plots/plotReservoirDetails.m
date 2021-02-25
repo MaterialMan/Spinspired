@@ -131,6 +131,49 @@ switch(config.dataset)
         hold off
         drawnow
         
+        
+    case 'multi_signal'
+        test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+        
+        for i = 1:4
+            subplot(3,2,i)
+            plot(config.train_output_sequence(config.wash_out+1:end,i),'--')
+            hold on
+            plot(test_sequence(:,i))
+            hold off
+            legend({'Target','Predicted'})
+        end
+        
+        subplot(3,2,[5 6])
+        xdft = fft(test_states);
+        xdft = xdft(1:length(test_states)/2+1);
+        freq = 0:config.Fs/length(test_states):config.Fs/2;
+        plot(freq,abs(xdft));
+        xlabel('Hz');
+        
+%         xdft = fft(test_states);
+%         plot(abs(test_states))
+
+%     case {'laser','narma_10','narma_30', 'sunspot'}
+%         
+%         test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+%         test_sequence = test_states*best_individual.output_weights;
+%         plotresponse(num2cell(config.train_output_sequence(config.wash_out+1:end,:)'),num2cell(test_sequence'))
+%         
+    case 'lorenz'
+        test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+        
+        subplot(1,2,1)
+        plot(config.train_output_sequence(config.wash_out+1:end,:))
+        hold on
+        plot(test_sequence)
+        hold off
+        
+        subplot(1,2,2)
+        plot3(test_sequence(:,1),test_sequence(:,2),test_sequence(:,3))
+        
     case 'autoencoder'
         
         test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
@@ -390,18 +433,55 @@ switch(config.dataset)
         
         %plot(config.test_input_sequence,[0.9290 0.6940 0.1250],'--')
         %hold on
+        subplot(2,2,[1 2])
         plot(desired_output,'--')
         hold on
         plot(system_output,'-')
+        plot(config.test_input_sequence(config.wash_out+1:end,:),'-')
         hold off
-        legend('Target','Output')
+        legend('Target','Output','Input')
         
+        subplot(2,2,3)
+        Fs = 2000; % sample frequency
+        %test = test_states(:,sum(test_states,1)>0);
+        test = test_states;
+        L = size(test,1);
+        xdft = fft(test);
+        P2 = abs(xdft/L);
+        P1 = P2(1:L/2+1);
+        P1(2:end-1) = 2*P1(2:end-1);
+        f = Fs*(0:(L/2))/L;
+        plot(f,P1)
+        title('Single-Sided Amplitude Spectrum of X(t)')
+        xlabel('f (Hz)')
+        ylabel('|P1(f)|')
+
+        subplot(2,2,4)
+        %phase=angle(P1);
+        phase = fftshift(xdft);
+        ly = length(phase);
+        f1 = (-ly/2:ly/2-1)/ly*Fs;
+        tol = 1e-6;
+        phase(abs(phase) < tol) = 0;
+        theta = angle(phase);
+        plot(f1,theta/pi)
+        %plot(f1,abs(phase))
+        grid on
+        xlabel('Frequency(Hz)');
+        ylabel('Phase (rad)')
+%         xdft = fft(test_states);
+%         xdft = xdft(1:length(test_states)/2+1);
+%         freq = 0:Fs/length(test_states):10000/2;
+%         plot(freq,abs(xdft));
+%         xlabel('Hz');
 %         p = plot([desired_output system_output]);
 %         p(1).Color = [0.9290 0.6940 0.1250];
 %         p(2).Color =[0 0.4470 0.7410];
 %         p(3).Color =[0.3010 0.7450 0.9330];
 end
 
+%draw task details
+drawnow
 
 % plot reservoir details
 if ~iscell(config.res_type)
@@ -492,6 +572,35 @@ if ~iscell(config.res_type)
             
             plotRoR(config.figure_array(2),best_individual,loser_individual,config);
             
+            if size(config.num_nodes,2) > 1
+                
+                G = digraph((best_individual.W_switch.*best_individual.W_scaling));
+                
+                set(0,'currentFigure',config.figure_array(1))
+                hold off
+                title('Reservoir structure')
+               
+                plot(G,'EdgeLabel',G.Edges.Weight,'LineWidth',abs(G.Edges.Weight))
+                drawnow
+            end
+            
+        case 'RoRmin'
+            
+            ax1 = subplot(1,3,1);
+             imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+            colormap(ax1,bluewhitered)
+            colorbar
+            xlabel('Input mapping')
+            ax2 = subplot(1,3,2);
+            imagesc(best_individual.W.*best_individual.W_scaling);
+            colormap(ax2,bluewhitered)
+            colorbar
+            xlabel('Internal weights')
+            ax3 = subplot(1,3,3);
+            imagesc(best_individual.output_weights);
+            colormap(ax3,bluewhitered)
+            colorbar
+            xlabel('Output mapping')
             
         case {'RBN','elementary_CA'}
             plotRBN(best_individual,config)
@@ -629,6 +738,7 @@ if ~iscell(config.res_type)
     
 end
 
+% draw reservoir details
 drawnow
 
 end

@@ -28,7 +28,7 @@ switch(config.err_type)
         
         % Finally take the "mean" of the "absoluteErr".
         err = mean(absolute_err);
-               
+        
     case 'crossEntropy'
         [~,p] = max(system_output,[],2);
         tp = zeros(size(system_output));
@@ -37,10 +37,10 @@ switch(config.err_type)
         end
         %err = -(sum(desiredOutput*log(systemOutput)'+(1-desiredOutput)*log(1-systemOutput)')/size(desiredOutput,1));
         err = (sum(diag(-desired_output'*log(system_output))-diag((1-desired_output')*log(1-system_output)))/size(desired_output,1));
-    
-    case 'NRMSE'
-        err= sqrt((sum((desired_output-system_output).^2)/(var(desired_output)))*(1/length(desired_output)));
         
+    case 'NRMSE'
+        err= sqrt(sum((desired_output-system_output).^2)/(var(desired_output)*length(desired_output)));
+        %err= sqrt((sum((desired_output-system_output).^2)/(var(desired_output)))*(1/length(desired_output)));
     case 'NSE'
         err= sum((desired_output-system_output).^2)/sum(desired_output.^2);
         
@@ -49,7 +49,7 @@ switch(config.err_type)
         
     case 'NMSE'
         err= mean((desired_output-system_output).^2)/var(desired_output);
-              
+        
     case 'NMSE_mem'
         err = computeNRMSE(system_output,desired_output).^2;
         %err = mean((systemOutput-desiredOutput(config.wash_out+1:end,:)).^2/var(systemOutput));
@@ -314,12 +314,35 @@ switch(config.err_type)
                 end
             end
             
-            err(p) = 1 - ((TP*TN)/((TP+FP)*(TN+FN)));            
-                
+            err(p) = 1 - ((TP*TN)/((TP+FP)*(TN+FN)));
+            
         end
         
         err = min(err);
         
+    case 'MC'
+        
+        MC_k= 0;
+        Y = system_output;
+        test_in_var = desired_output(2:end,1);
+        targVar = 1/(length(test_in_var)-1) * sum((test_in_var-mean(test_in_var)).*(test_in_var-mean(test_in_var)));
+        
+        for i = 1:size(desired_output,2)
+            
+            coVar = 1/(length(Y(:,i))-1) * sum((desired_output(:,i)-mean(desired_output(:,i)))...
+                .*(Y(:,i)-mean(Y(:,i))));
+            outVar = 1/(length(Y(:,i))-1) * sum((Y(:,i)-mean(Y(:,i))).*(Y(:,i)-mean(Y(:,i))));
+            totVar = (outVar*targVar(1));
+            MC_k(i) = (coVar*coVar)/totVar;
+            
+            %remove low values from measure
+            if MC_k(i) <= 0.1
+                MC_k(i) = 0;
+            end
+        end
+        
+        MC_k(isnan(MC_k)) = 0;
+        err = size(desired_output,2)-sum(MC_k);
         
     otherwise
         

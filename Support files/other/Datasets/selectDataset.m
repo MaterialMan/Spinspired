@@ -5,6 +5,7 @@ function [config] = selectDataset(config)
 scurr = rng;
 temp_seed = scurr.Seed;
 
+classification_data = 0;
 wash_out = 50;
 
 rng(1,'twister');
@@ -124,6 +125,48 @@ switch config.dataset
         config.train_fraction=0.5;    config.val_fraction=0.2;    config.test_fraction=0.2;
         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
         
+        
+    case 'multi_signal'
+        
+        err_type = 'NMSE';
+        
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
+        
+        sequence_length = 2000;
+        
+        freq = 100;
+        T = 100*(1/freq);
+        fprintf('Freq: %d Hz\n',freq);
+        config.Fs = 20000; %per channel
+        step = 1/config.Fs;
+        t = 0:step:T-step;
+        amplitude = 1;
+        t = t(:,1:sequence_length);
+        
+        % sinewave input
+        input_sequence=[];
+        input_sequence(:,1) = amplitude*sin(2*pi*freq*t);
+        
+        output_sequence = [];
+        output_sequence(:,1) = amplitude*2*sawtooth(2*freq*t)-1;
+        output_sequence(:,2) = amplitude*cos(2*pi*freq*t);
+        output_sequence(:,3) = amplitude*square(2*pi*freq*t);
+        output_sequence(:,4) = amplitude*sin(2*pi*2*freq*t);
+        
+        figure
+        subplot(2,2,1)
+        plot(input_sequence(1:1000,:))
+        
+        subplot(2,2,2)
+        plot(output_sequence(1:1000,:))
+        
+        subplot(2,2,[3 4])
+        xdft = fft(input_sequence);
+        xdft = xdft(1:length(input_sequence)/2+1);
+        freq = 0:config.Fs/length(input_sequence):config.Fs/2;
+        plot(freq,abs(xdft));
+        xlabel('Hz');
+        
         %% Time-series
     case 'IPIX_plus5' % good task
         err_type = 'IPIX';
@@ -176,32 +219,35 @@ switch config.dataset
         
     case 'sunspot' % good task but not sure about dataset- problem with dividing set
         
+        % requires deep learning toolbox
         err_type = 'NMSE';
         % Sunspot task - needs proper dataset separation
-        sequence_length = 3100;
-        config.train_fraction= 1600/sequence_length;    config.val_fraction=500/sequence_length;    config.test_fraction=1000/sequence_length;
+        sequence_length = 2899;
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         
         ahead = 1;
-        load sunspot.txt %solar_dataset;  %checkout the list at http://uk.mathworks.com/help/nnet/gs/neural-network-toolbox-sample-data-sets.html
-        data = sunspot(1:sequence_length+ahead,4);
-        input_sequence = data(1:end-ahead);
-        output_sequence = data(ahead+1:end);
+        %load sunspot.txt %solar_dataset;  %checkout the list at http://uk.mathworks.com/help/nnet/gs/neural-network-toolbox-sample-data-sets.html
+        data = solar_dataset;
+        data = [data{:}]';
+        
+        %data = sunspot(1:sequence_length+ahead,4);
+        input_sequence = data(1:sequence_length-ahead);
+        output_sequence = data(ahead+1:sequence_length);
         
         %fprintf('Sunspot task TSP: %s \n',datestr(now, 'HH:MM:SS'))
         
         %% Learning attractors
-        
     case 'spike_attractor'
         
         config.preprocess = '';
         config.preprocess_shift = [0 1];
-
+        
         err_type = 'MSE';
         
         wash_out =50;
         sequence_length = 4000+1000;
         config.train_fraction=0.8;    config.val_fraction=0;    config.test_fraction=0.2;
-       
+        
         %multiple attractor dataset
         num_attractors = 20;
         
@@ -216,12 +262,12 @@ switch config.dataset
                 
                 if indx == num_attractors
                     indx=1;
-                else 
+                else
                     indx = indx +1;
                 end
                 train_u(i+1,indx) = 0.5;
             end
-                train_y(i,indx) = 0.5;    
+            train_y(i,indx) = 0.5;
         end
         
         % test sequence
@@ -243,14 +289,24 @@ switch config.dataset
         input_sequence = [train_u; test_u];
         output_sequence = [train_y; test_y];
         
+    case 'lorenz'
+        err_type = 'NMSE';
+        config.train_fraction=1;    config.val_fraction=0;    config.test_fraction=0;
+        wash_out =0;
+        
+        data_length = 1e3; T = 100; h = 0.001;
+        [x,y, z] = createLorenz(28, 10, 8/3, T, h, data_length);  % roughly 100k datapoints
+        input_sequence= [1,1,1 ;zeros(data_length-1,3)];
+        output_sequence= [x, y, z];
+        
     case 'attractor' %reconstruct lorenz attractor
         err_type = 'NMSE';
-        config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
+        config.train_fraction=0.3333;    config.val_fraction=0;    config.test_fraction=0.6666;
         wash_out =100;
         
         switch(config.attractor_type)
             case 'lorenz'
-                data_length = 1e4; T = 100; h = 0.001;
+                data_length = 4e3; T = 100; h = 0.001;
                 [x,y, z] = createLorenz(28, 10, 8/3, T, h, data_length);  % roughly 100k datapoints
                 input_sequence= [x, y, z];
                 slice = [1 1 0.5];
@@ -265,7 +321,7 @@ switch config.dataset
                 input_sequence= [x, y];
                 slice = [1 1 0.5];
             case 'mackey_glass'
-                data_length = 8e3; T = 1e4;
+                data_length = 3e3; T = 1e4;
                 [x] = createMackeyGlass(17, 0.1, 0.2, 10, T ,data_length);
                 input_sequence= x';
                 %x = load('Mackey_Glass_t17.txt');
@@ -285,16 +341,16 @@ switch config.dataset
                 slice = [1 1 0.5];
             case 'dynamic' % not finished: still playing with
                 data_length = 4e3;
-                plot = 1;
+                plot_on = 1;
                 num_attractors = 10;
-                [x] = attractorSwitch(data_length,num_attractors,plot);
+                [x] = attractorSwitch(data_length,num_attractors,plot_on);
                 input_sequence= x;
                 slice = [1 1 1];
             case 'multi_attractor'
-                err_type = 'MSE';
+                err_type = 'NMSE';
                 %multiple attractor dataset
                 sequence_length = 5000; %4000 train, 1000 test
-                num_attractors = 20;
+                num_attractors = 3;
                 config.train_fraction=0.8;    config.val_fraction=0;    config.test_fraction=0.2;
                 
                 % create train sequence
@@ -351,7 +407,7 @@ switch config.dataset
         input_sequence(floor(data_length*config.train_fraction*slice(1))+1:floor(data_length*config.train_fraction),:) = zeros;
         input_sequence(floor(data_length*config.train_fraction)+floor(data_length*config.val_fraction*slice(2))+1:floor(data_length*config.train_fraction)+floor(data_length*config.val_fraction),:) = zeros;
         input_sequence(floor(data_length*config.train_fraction)+floor(data_length*config.val_fraction)+floor(data_length*config.test_fraction*slice(3))+1:end,:) = zeros;
-                
+        
         %% Pattern Recognition - using PCA to reduce dimensions maybe very useful
     case 'MNIST'
         
@@ -383,7 +439,7 @@ switch config.dataset
         train_id = train_id(randperm(length(train_id(:))));
         val_id = val_id(randperm(length(val_id(:))));
         test_id = test_id(randperm(length(test_id(:))));
-          
+        
         input_sequence = input_sequence([train_id val_id test_id],:);
         output_sequence = output_sequence([train_id val_id test_id],:);
         
@@ -442,9 +498,9 @@ switch config.dataset
         input_sequence = temp_inputSequence;
         output_sequence = temp_outputSequence;
         
-    case 'cifar10' 
+    case 'cifar10'
         
-         err_type = 'softmax';
+        err_type = 'softmax';
         config.preprocess = 0;
         config.preprocess_shift = 'zero to one';
         data_length = 5000;
@@ -472,7 +528,7 @@ switch config.dataset
         train_id = train_id(randperm(length(train_id(:))));
         val_id = val_id(randperm(length(val_id(:))));
         test_id = test_id(randperm(length(test_id(:))));
-          
+        
         input_sequence = input_sequence([train_id val_id test_id],:);
         output_sequence = output_sequence([train_id val_id test_id],:);
         
@@ -493,7 +549,7 @@ switch config.dataset
         output_sequence = [trainOutputSequence; test_output_sequence];
         config.train_fraction=size(train_input_sequence,1)/9961;    config.val_fraction=(size(testInputSequence,1)/9961)*0.1;    config.test_fraction=(size(testInputSequence,1)/9961)*0.9;
         
-%        t =  randperm(dataset_length,dataset_length);
+        %        t =  randperm(dataset_length,dataset_length);
         
         %% signal recovery
     case 'non_chan_eq_rodan' % (1:in, 1:out) error 0.999 Good task, requires memory
@@ -549,12 +605,13 @@ switch config.dataset
         output_sequence = combOutput;
         
     case 'spiral'
+        classification_data = 1;
         %config.preprocess = 0;
         %config.preprocess_shift = 'zero to one';
         
         err_type = 'softmax';
-        wash_out = 0;
-        config.train_fraction=0.4;    config.val_fraction=0.3;    config.test_fraction=0.3;
+        
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         num_samples = 400;
         noise = 0.1;
         
@@ -573,12 +630,13 @@ switch config.dataset
         
     case 'spiral_multi_class'
         
+        classification_data = 1;
         %config.preprocess = 0;
         %config.preprocess_shift = 'zero to one';
         
         err_type = 'softmax';
         wash_out = 0;
-        config.train_fraction=0.7;    config.val_fraction=0.15;    config.test_fraction=0.15;
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         
         N = 400; % number of points per class
         D = 2; % dimensionality
@@ -602,9 +660,10 @@ switch config.dataset
         
         
     case 'iris' %iris_dataset; (4:in, 3:out) %input alone 76% - medium task
-        err_type = 'softmax';%'IJCNNpaper';%'confusion';
         
-        % wash_out = 25;
+        classification_data = 1;
+        
+        err_type = 'softmax';%'IJCNNpaper';%'confusion';
         
         config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         dataset_length = 150;
@@ -618,18 +677,60 @@ switch config.dataset
         output_sequence = output_sequence(:,t)';
         
     case 'breast_cancer'
+        
+        classification_data = 1;
         % breast cancer
         err_type = 'softmax';
-        %wash_out = 25;
-        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
-        [input_sequence, output_sequence] =  cancer_dataset;
-        t =  randperm(length(input_sequence),length(input_sequence));
         
-        input_sequence = input_sequence(:,t)';
-        output_sequence = output_sequence(:,t)';
+        
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
+        %[input_sequence, output_sequence] =  cancer_dataset;
+        
+        T = readtable('wisconsin_WDBC.csv', 'HeaderLines',1);
+        T = T{:,:};
+        
+        input_sequence = T(:,1:end-1);
+        output=T(:,end);
+        output_sequence = zeros(length(input_sequence),2);
+        output_sequence(output==2,2) = 1;
+        output_sequence(output==1,1) = 1;
+        
+        t =  randperm(size(input_sequence,1),size(input_sequence,1));
+        input_sequence = input_sequence(t,:);
+        output_sequence = output_sequence(t,:);
+        
+    case 'robot-wall-follow'
+        
+        classification_data = 1;
+        % breast cancer
+        err_type = 'softmax';
+        
+        
+        config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
+        %[input_sequence, output_sequence] =  cancer_dataset;
+        
+        T = readtable('robot-wall-follow-classification.csv', 'HeaderLines',1);
+        T = T{:,:};
+        
+        input_sequence = T(:,1:end-1);
+        output=T(:,end);
+        output_sequence = zeros(length(input_sequence),4);
+        output_sequence(output==1,1) = 1;
+        output_sequence(output==2,2) = 1;
+        output_sequence(output==3,3) = 1;
+        output_sequence(output==4,4) = 1;
+        
+        t =  randperm(size(input_sequence,1),size(input_sequence,1));
+        input_sequence = input_sequence(t,:);
+        output_sequence = output_sequence(t,:);
+        
+        
         
         %% Multi-timescale
     case {'MSO1','MSO2','MSO3','MSO4','MSO5','MSO6','MSO7','MSO8','MSO9','MSO10','MSO11','MSO12'}  %MSO'
+        
+        %config.preprocess = '';
+        %config.preprocess_shift = [0 1]; % range for data
         
         task = str2num(config.dataset(4:end));
         err_type = 'NRMSE';
@@ -653,11 +754,39 @@ switch config.dataset
             u(t,12) = u(t,11) + sin(1.32*t);
         end
         
-        %predictor
+        % freq = [5 50 500 5000 50000];
+        Fs = 2000;            % Sampling frequency
+        % T = 1/Fs;             % Sampling period
+        % L = 2000;             % Length of signal
+        % t = (0:L-1)*T;        % Time vector
+        % u(:,1) =  sin(2*pi*freq(1)*t)';
+        % for n = 2:5
+        %     u(:,n) = u(:,n-1) + sin(2*pi*freq(n)*t)';
+        % end
+        
+        L = sequence_length;
+        subplot(1,2,1)
+        xdft = fft(u(:,task));
+        P2 = abs(xdft/L);
+        P1 = P2(1:L/2+1);
+        P1(2:end-1) = 2*P1(2:end-1);
+        f = Fs*(0:(L/2))/L;
+        plot(f,P1)
+        title('Single-Sided Amplitude Spectrum of X(t)')
+        xlabel('f (Hz)')
+        ylabel('|P1(f)|')
+        subplot(1,2,2)
+        plot(u(:,task))
+        
+        % remember
+        % input_sequence = u(ahead+1:sequence_length+ahead,task);
+        % output_sequence = u(1:sequence_length,task);
+        
+        % predict
         input_sequence = u(1:sequence_length,task);
         output_sequence = u(ahead+1:sequence_length+ahead,task);
         
-        [output_sequence] = featureNormailse(output_sequence,config);
+        % [output_sequence] = featureNormailse(output_sequence,config);
         
         %% Reinforcement - no teacher signal
     case 'pole_balance'
@@ -854,10 +983,10 @@ switch config.dataset
                 input_sequence = input_sequence(1:data_length,:,:);
                 output_sequence = input_sequence;
                 
-%                 I = imread('cat_50pixel.jpg');
-%                 output_sequence =double(I(:))./255;
-%                 input_sequence = double(I(:))./255 + randn(size(output_sequence))*noise_factor;
-%                 
+                %                 I = imread('cat_50pixel.jpg');
+                %                 output_sequence =double(I(:))./255;
+                %                 input_sequence = double(I(:))./255 + randn(size(output_sequence))*noise_factor;
+                %
         end
         
         %input_sequence= input_sequence';
@@ -875,29 +1004,85 @@ switch config.dataset
         
         %I = imread('panda400px.jpg');
         
-%         [XTrain, ~,XTest] = load_cifar10;
-%         I = [XTrain; XTest];
+        %         [XTrain, ~,XTest] = load_cifar10;
+        %         I = [XTrain; XTest];
         %I = reshape(I(1:data_length,:),data_length,size(I,2)/3,3);
         
         % given input x, y coordinates
         [x, y] = meshgrid(1:1:size(I,1));
         input_sequence = [x(:),y(:)];
-%         [x, y] = meshgrid(1:1:sqrt(size(I,2)/3));
-%         input_sequence = repmat([x(:),y(:)],data_length,1);
+        %         [x, y] = meshgrid(1:1:sqrt(size(I,2)/3));
+        %         input_sequence = repmat([x(:),y(:)],data_length,1);
         
         % recreate image
         r = double(I(:,:,1))./255;
         g = double(I(:,:,2))./255;
         b = double(I(:,:,3))./255;
         
-%         r = double(I(1:data_length,1:1024))./255;
-%         g = double(I(1:data_length,1025:2048))./255;
-%         b = double(I(1:data_length,2049:end))./255;
+        %         r = double(I(1:data_length,1:1024))./255;
+        %         g = double(I(1:data_length,1025:2048))./255;
+        %         b = double(I(1:data_length,2049:end))./255;
         
         output_sequence = [r(:) g(:) b(:)];
         
+        %% Metrics
+        case 'MC'
+        
+        err_type = 'MC';
+        config.train_fraction=0.6;    config.val_fraction=0;    config.test_fraction=0.4;
+        %wash_out = 0;
+        
+        data_length = 500 + wash_out*2;
+        
+        n_internal_units = sum(config.num_nodes);
+        
+        n_output_units = n_internal_units*2;
+        n_input_units = 1;
+        
+        data_sequence = 2*rand(n_input_units,data_length+1+n_output_units)-1;
+        
+        % rescale for each reservoir
+        [data_sequence] = featureNormailse(data_sequence,config);
+        
+        if config.discrete %strcmp(config.res_type,'elementary_CA') || strcmp(config.res_type,'2d_CA') || strcmp(config.res_type,'RBN')
+            data_sequence = floor(heaviside(data_sequence));
+        end
+        
+        input_sequence = data_sequence(n_output_units+1:data_length+n_output_units)';
+        
+        for i = 1:n_output_units
+            output_sequence(:,i) = data_sequence(n_output_units+1-i:data_length+n_output_units-i);
+        end      
+        
 end
 
+
+if classification_data
+    
+    wash_out = 0;
+    
+    % make sure distribution is even
+    indx = [];
+    num_classes = size(output_sequence,2);
+    div_d = ceil(size(input_sequence,1)/num_classes);
+    for k = 1:num_classes
+        n = find(output_sequence(:,k));
+        indx(:,k) = n(randi([1 length(n)],1,div_d));
+    end
+    
+    % get correct lengths and id's for data split
+    train_id = indx(1:div_d*config.train_fraction,:);
+    val_id = indx(1:div_d*config.val_fraction,:);
+    test_id = indx(1:div_d*config.test_fraction,:);
+    
+    % randomise
+    train_id = train_id(randperm(length(train_id(:))));
+    val_id = val_id(randperm(length(val_id(:))));
+    test_id = test_id(randperm(length(test_id(:))));
+    
+    input_sequence = input_sequence([train_id val_id test_id],:);
+    output_sequence = output_sequence([train_id val_id test_id],:);
+end
 
 %% preprocessing
 switch(config.input_mechanism)
@@ -927,8 +1112,8 @@ end
     split_train_test3way(output_sequence,config.train_fraction,config.val_fraction,config.test_fraction);
 
 % Add extra for washout
-train_input_sequence= [train_input_sequence(1:wash_out,:); train_input_sequence];
-train_output_sequence= [train_output_sequence(1:wash_out,:); train_output_sequence];
+%train_input_sequence= [train_input_sequence(1:wash_out,:); train_input_sequence];
+%train_output_sequence= [train_output_sequence(1:wash_out,:); train_output_sequence];
 
 if config.val_fraction > 0
     if (size(val_input_sequence,1) < wash_out)
@@ -941,8 +1126,8 @@ if config.val_fraction > 0
         val_input_sequence = wash_input_sequence;
         val_output_sequence = wash_output_sequence;
     else
-        val_input_sequence= [val_input_sequence(1:wash_out,:); val_input_sequence];
-        val_output_sequence= [val_output_sequence(1:wash_out,:); val_output_sequence];
+        %val_input_sequence= [val_input_sequence(1:wash_out,:); val_input_sequence];
+        %val_output_sequence= [val_output_sequence(1:wash_out,:); val_output_sequence];
     end
 end
 
@@ -957,8 +1142,8 @@ if config.test_fraction > 0
         test_input_sequence = wash_input_sequence;
         test_output_sequence = wash_output_sequence;
     else
-        test_input_sequence= [test_input_sequence(1:wash_out,:); test_input_sequence];
-        test_output_sequence= [test_output_sequence(1:wash_out,:); test_output_sequence];
+        %test_input_sequence= [test_input_sequence(1:wash_out,:); test_input_sequence];
+        %test_output_sequence= [test_output_sequence(1:wash_out,:); test_output_sequence];
     end
 end
 

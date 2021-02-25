@@ -25,15 +25,16 @@ if config.multi_activ%size(individual.activ_Fcn,2) > 1
 end
 
 for i= 1:config.num_reservoirs
-    for n = 2:size(input_sequence,1)
-        
-        %x{i}(n,:) = x{i}(n,:) + ((individual.W{i,i}*individual.W_scaling(i,i))'*states{i}(n-1,:)')';
+    for n = config.num_reservoirs+1:size(input_sequence,1)
         
         if i == 1
             input = ([individual.bias_node input_sequence(n,:)])';
         else
-            input = ([individual.bias_node input_sequence(n,:) states{i-1}(n-1,:)])'; % current state of previous reservoir
-            %input = ([individual.bias_node states{i-1}(n,:)])';
+            if   config.add_input_states
+                input = ([individual.bias_node input_sequence(n,:) states{i-1}(n-1,:)])'; % was previous, now current state of previous reservoir
+            else
+                input = ([individual.bias_node states{i-1}(n-1,:)])';
+            end
         end
         
         if config.multi_activ 

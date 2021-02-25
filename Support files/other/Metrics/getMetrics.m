@@ -29,7 +29,7 @@ for metric_item = 1:length(config.metrics)
             input_sequence = repmat(ui(:,1),1,n_input_units);
             
             % rescale for each reservoir
-            %[input_sequence] = featureNormailse(input_sequence,config);
+            [input_sequence] = featureNormailse(input_sequence,config);
             
             %kernel matrix - pick 'to' at halfway point
             M = config.assessFcn(individual,input_sequence,config);
@@ -62,7 +62,7 @@ for metric_item = 1:length(config.metrics)
             input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;
             
             % rescale for each reservoir
-            %[input_sequence] = featureNormailse(input_sequence,config);
+            [input_sequence] = featureNormailse(input_sequence,config);
             
             %collect states
             G = config.assessFcn(individual,input_sequence,config);
@@ -130,14 +130,14 @@ for metric_item = 1:length(config.metrics)
             % quadratic memory capacity (nonlinear) 
         case 'quadMC'
             
-            quad_MC = quadraticMC(individual,config,1,MC_num_timesteps);
+            quad_MC = quadraticMC(individual,config,1);
             
             metrics = [metrics quad_MC];
             
             % cross-memory capacity (nonlinear) 
         case 'crossMC'
             
-            cross_MC = crossMC(individual,config,1,MC_num_timesteps);
+            cross_MC = crossMC(individual,config,1);
             
             metrics = [metrics cross_MC];
             

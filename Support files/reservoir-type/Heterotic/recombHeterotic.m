@@ -33,7 +33,18 @@ loser.leak_rate = reshape(L,size(loser.leak_rate));
 % loser.res = reshape(L,size(loser.res));
 % swapped_sub_res = 1;
 %end
-    
+ 
+% W switch
+if isfield(winner,'W_switch')
+    if ~config.RoR_structure
+    W= winner.W_switch(:);
+    L = loser.W_switch(:);
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+    L(pos) = W(pos);
+    loser.W_switch = reshape(L,size(loser.W_switch));
+    end
+end
+
 % cycle through sub-reservoirs
 for i = 1:config.num_reservoirs
     

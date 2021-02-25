@@ -16,7 +16,7 @@
 % Date: 03/07/19
 
 clear
-close all
+%close all
 % add all subfolders to the path --> make all functions in subdirectories available
 % addpath(genpath(pwd));
 
@@ -32,8 +32,8 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'Graph';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [49];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
+config.res_type = 'RoRmin';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = [100];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
 config = selectReservoirType(config);   % collect function pointers for the selected reservoir type
 
 % Network details
@@ -52,9 +52,9 @@ config.dataset = 'blank';
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 100;                    % number of generations to evolve
-config.mut_rate = 0.02;                       % mutation rate
+config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 2000;                    % number of generations to evolve
+config.mut_rate = 0.05;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
@@ -65,9 +65,9 @@ config.p_min_start = sqrt(sum(config.num_nodes));%sum(config.num_nodes)/10;     
 config.p_min_check = 100;                   % change novelty threshold dynamically after "p_min_check" generations.
 
 % general params
-config.gen_print = 100;                       % after 'gen_print' generations display archive and database
+config.gen_print = 10;                       % after 'gen_print' generations display archive and database
 config.start_time = datestr(now, 'HH:MM:SS');
-config.figure_array = [figure figure];
+config.figure_array = [figure figure figure];
 config.save_gen = inf;                       % save data at generation = save_gen
 config.param_indx = 1;                      % index for recording database quality; start from 1
 
@@ -158,7 +158,8 @@ for tests = 1:config.num_tests
         
         %% Infection and mutation phase
         % winner infects loser
-        population(loser) = config.recFcn(population(winner),population(loser),config);
+        %population(loser) = config.recFcn(population(winner),population(loser),config);
+        
         % mutate offspring/loser
         population(loser) = config.mutFcn(population(loser),config);
         
@@ -204,6 +205,9 @@ for tests = 1:config.num_tests
             fprintf('Length of archive: %d, p_min; %d \n',length(archive), config.p_min);
             tic;
             plotSearch(database,gen,config)        % plot details
+            
+            set(0,'currentFigure',config.figure_array(3))
+            bar([reshape([database.behaviours],3, length(database))]', 'stacked')
             
             % measure voxel count and quality
             plot_behaviours = reshape([database.behaviours],length(config.metrics),length(database))';

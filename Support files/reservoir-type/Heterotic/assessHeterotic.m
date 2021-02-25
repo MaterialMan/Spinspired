@@ -38,10 +38,10 @@ switch(config.architecture)
                 
                 % gather previous states of all sub reservoirs
                 for k= 1:config.num_reservoirs
-                    if i~=k
-                        x{i}(n,:) = x{i}(n,:) + ((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')';
-                    else
+                    if i==k % other sub reservoirs
                         x{i}(n,:) = x{i}(n,:) + states{k}(n-1,:);
+                    else
+                        x{i}(n,:) = x{i}(n,:) + individual.W_switch(i,k)*((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')';
                     end
                 end
                 

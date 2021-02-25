@@ -15,7 +15,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 1;                        % use parallel toolbox
+config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -24,7 +24,7 @@ end
 
 % type of network to evolve
 config.res_type = 'RoR';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [10,10,10];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.num_nodes = [25];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
@@ -38,7 +38,7 @@ config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'spiral';          % Task to evolve for
+config.dataset = 'pole_balance';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -49,9 +49,9 @@ config = getAdditionalParameters(config);
 config = selectDataset(config);
 
 %% general params
-config.gen_print = 25;                       % after 'gen_print' generations print task performance and show any plots
+config.gen_print = 5;                       % after 'gen_print' generations print task performance and show any plots
 config.start_time = datestr(now, 'HH:MM:SS');
-config.save_gen = 50;                       % save data at generation = save_gen
+config.save_gen = inf;                       % save data at generation = save_gen
 
 % Only necessary if wanting to parallelise the microGA algorithm
 config.multi_offspring = 0;                 % multiple tournament selection and offspring in one cycle
@@ -59,7 +59,7 @@ config.num_sync_offspring = 4;%config.deme;    % length of cycle/synchronisation
 
 % type of metrics to apply; if necessary
 config.metrics = {'KR','GR','linearMC'};          % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
-config.record_metrics = 1;                  % save metrics
+config.record_metrics = 0;                  % save metrics
 
 % additional pruning, if required
 config.prune = 1;                           % after best individual is found prune the network to make more efficient
@@ -233,7 +233,7 @@ for test = 1:config.num_tests
                 [~,indx] = sort(pop_error);
                 
                 for p = 1:4
-                    [Pruned_best_individual{p}] = maxPruning(@testReservoir,{'train_error','val_error','test_error'},population(indx(p))...
+                    [Pruned_best_individual{p}] = maxPruning(config.testFcn,{'train_error','val_error','test_error'},population(indx(p))...
                         ,[population(indx(p)).train_error population(indx(p)).val_error population(indx(p)).test_error]...
                         ,config.tolerance,config); 
                 end

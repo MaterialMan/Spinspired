@@ -1,5 +1,7 @@
 %% Runs a basic pruning algorithm to delete unnecessary weights
 % option for parallel deletion
+
+% notes: need to add a mechansim to remove weak/small connections
 function [individual,old_W_fitness,old_Win_fitness,final_W] = maxPruning(pruneFnc,output_to_check,individual,base_behaviour,bounds,config)
 
 % get seed

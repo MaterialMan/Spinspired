@@ -15,13 +15,23 @@ function offspring = mutateHeterotic(offspring,config)
 % W scaling
 W_scaling = offspring.W_scaling(:);
 pos = randperm(length(W_scaling),sum(rand(length(W_scaling),1) < config.mut_rate));
-W_scaling(pos) = mutateWeight(W_scaling(pos),[-2 2],config);
+W_scaling(pos) = mutateWeight(W_scaling(pos),[-1 1],config);
 offspring.W_scaling = reshape(W_scaling,size(offspring.W_scaling));
 
 leak_rate = offspring.leak_rate(:);
 pos =  randperm(length(leak_rate),sum(rand(length(leak_rate),1) < config.mut_rate));
 leak_rate(pos) = mutateWeight(leak_rate(pos),[0 1],config);
 offspring.leak_rate = reshape(leak_rate,size(offspring.leak_rate));
+
+% W switch
+if isfield(offspring,'W_switch')
+    if ~config.RoR_structure
+    W_switch = offspring.W_switch(:);
+    pos = randperm(length(W_switch),sum(rand(length(W_switch),1) < config.mut_rate));
+    W_switch(pos) = round(mutateWeight(W_switch(pos),[0 1],config));
+    offspring.W_switch = reshape(W_switch,size(offspring.W_switch));
+    end
+end
 
 % cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs

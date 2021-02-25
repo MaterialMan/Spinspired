@@ -17,19 +17,30 @@ offspring.input_scaling = reshape(leak_rate,size(offspring.leak_rate));
 % W scaling
 W_scaling = offspring.W_scaling(:);
 pos = randperm(length(W_scaling),sum(rand(length(W_scaling),1) < config.mut_rate));
-W_scaling(pos) = mutateWeight(W_scaling(pos),[-2 2],config);
+W_scaling(pos) = mutateWeight(W_scaling(pos),[-1 1],config);
 offspring.W_scaling = reshape(W_scaling,size(offspring.W_scaling));
+
+% W switch
+if isfield(offspring,'W_switch')
+    if ~config.RoR_structure
+        W_switch = offspring.W_switch(:);
+        pos = randperm(length(W_switch),sum(rand(length(W_switch),1) < config.mut_rate));
+        W_switch(pos) = round(mutateWeight(W_switch(pos),[0 1],config));
+        offspring.W_switch = reshape(W_switch,size(offspring.W_switch));
+    end
+end
 
 % cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
+    
+    %anything below this becomes zero
+    minimum_weight = 0.1;
     
     % input weights
     input_weights = offspring.input_weights{i}(:);
     pos = randperm(length(input_weights),sum(rand(length(input_weights),1) < config.mut_rate));
     input_weights(pos) = mutateWeight(input_weights(pos),[-1 1],config); 
-    
-    %input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
-    
+    input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0;
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
         
     % hidden weights
@@ -48,16 +59,8 @@ for i = 1:config.num_reservoirs
             pos = randperm(length(W),sum(rand(length(W),1) < config.mut_rate));
             W(pos) = mutateWeight(W(pos),[-1 1],config);
             
-            %W(W<0.1 & W~=0 & W>-0.1) = 0;
-            
+            W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
             offspring.W{i,j} = reshape(W,size(offspring.W{i,j}));
-            
-         
-                %if rand < 0.5 % knock out a node and its connections
-                % pos2 = randi([1 length(offspring.W{i,j})],ceil(config.mut_rate*length(offspring.W{i,j})),1);
-                %offspring.W{i,j}(pos2,:) = 0;
-                %offspring.W{i,j}(:,pos2) = 0;
-                %end
         end
                
         offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;
@@ -95,12 +98,13 @@ for i = 1:config.num_reservoirs
 end
 
 % mutate output weights
-if config.evolve_output_weights
-    output_weights = offspring.output_weights(:);
-    pos = randperm(length(output_weights),sum(rand(length(output_weights),1) < config.mut_rate));   
-    output_weights(pos) = mutateWeight(output_weights(pos),[-config.output_weight_scaler config.output_weight_scaler],config);
-    offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
-end
+% if config.evolve_output_weights
+%     output_weights = offspring.output_weights(:);
+%     pos = randperm(length(output_weights),sum(rand(length(output_weights),1) < config.mut_rate));   
+%     output_weights(pos) = mutateWeight(output_weights(pos),[-config.output_weight_scaler config.output_weight_scaler],config);
+%     output_weights(output_weights<minimum_weight & output_weights~=0 & output_weights>-minimum_weight) = 0;
+%     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
+% end
 
 % mutate feedback weights
 if config.evolve_feedback_weights
@@ -113,6 +117,7 @@ if config.evolve_feedback_weights
     feedback_weights = offspring.feedback_weights(:);
     pos = randperm(length(feedback_weights),sum(rand(length(feedback_weights),1) < config.mut_rate));
     feedback_weights(pos) = mutateWeight(feedback_weights(pos),[-1 1],config);
+    feedback_weights(feedback_weights<minimum_weight & feedback_weights~=0 & feedback_weights>-minimum_weight) = 0;
     offspring.feedback_weights = reshape(feedback_weights,size(offspring.feedback_weights));
 end
 end

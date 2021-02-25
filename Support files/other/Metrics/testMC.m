@@ -4,7 +4,7 @@ rng(seed,'twister');
 
 n_internal_units = individual.total_units;%sum([genotype.nInternalUnits]);
 
-n_output_units = n_internal_units;
+n_output_units = n_internal_units*2;
 n_input_units = individual.n_input_units;
 
 %% Assign input data and collect target output
@@ -32,8 +32,8 @@ train_output_sequence = mem_output_sequence(1:sequence_length,:);
 test_output_sequence = mem_output_sequence(1+sequence_length:end,:);
 
 states = config.assessFcn(individual,train_input_sequence,config);
-
 test_states = config.assessFcn(individual,test_input_sequence,config);
+
 %train
 %output_weights = train_output_sequence(config.wash_out+1:end,:)'*states*inv(states'*states + config.reg_param*eye(size(states'*states)));
 

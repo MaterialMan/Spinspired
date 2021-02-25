@@ -34,29 +34,29 @@ for pop_indx = 1:config.pop_size
         %inputweights
         if i == 1
             sparsity = config.sparsity;
-            additional_input_units = 0;
+            additional_input_units = 0 + population(pop_indx).n_input_units + 1;
         else
             sparsity = config.connecting_sparsity;
-            additional_input_units = population(pop_indx).nodes(i-1);
+            additional_input_units = population(pop_indx).nodes(i-1) + population(pop_indx).n_input_units*config.add_input_states +1;
         end
         
         switch(config.input_weight_initialisation)
             case 'norm' % normal distribution
                 if config.sparse_input_weights
-                    input_weights = sprandn(population(pop_indx).nodes(i), additional_input_units + population(pop_indx).n_input_units +1, sparsity);
+                    input_weights = sprandn(population(pop_indx).nodes(i), additional_input_units , sparsity);
                 else
-                    input_weights = randn(population(pop_indx).nodes(i),  additional_input_units+population(pop_indx).n_input_units+1);
+                    input_weights = randn(population(pop_indx).nodes(i),  additional_input_units);
                 end
             case 'uniform' % uniform dist between -1 and 1
                 if config.sparse_input_weights
-                    input_weights = sprand(population(pop_indx).nodes(i),  additional_input_units+population(pop_indx).n_input_units+1, sparsity);
+                    input_weights = sprand(population(pop_indx).nodes(i),  additional_input_units, sparsity);
                     input_weights(input_weights ~= 0) = ...
                         2*input_weights(input_weights ~= 0)  - 1;
                 else
-                    input_weights = 2*rand(population(pop_indx).nodes(i),  additional_input_units+population(pop_indx).n_input_units+1)-1;
+                    input_weights = 2*rand(population(pop_indx).nodes(i),  additional_input_units1)-1;
                 end
             case 'orth'
-                input_weights = ones(population(pop_indx).nodes(i),  additional_input_units+population(pop_indx).n_input_units+1);
+                input_weights = ones(population(pop_indx).nodes(i),  additional_input_units);
         end
   
         population(pop_indx).input_weights{i} = input_weights;

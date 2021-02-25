@@ -24,13 +24,13 @@ end
 
 % type of network to evolve
 config.res_type = 'RoR';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [25];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.num_nodes = [5,5];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                         % num of tests/runs
-config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 5000;                    % number of generations to evolve
+config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 2000;                    % number of generations to evolve
 config.mut_rate = 0.05;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
@@ -38,7 +38,7 @@ config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'attractor';          % Task to evolve for
+config.dataset = 'laser';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -59,7 +59,7 @@ config.num_sync_offspring = 4;%config.deme;    % length of cycle/synchronisation
 
 % type of metrics to apply; if necessary
 config.metrics = {'KR','GR','linearMC'};          % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
-config.record_metrics = 0;                  % save metrics
+config.record_metrics = 1;                  % save metrics
 
 % additional pruning, if required
 config.prune = 0;                           % after best individual is found prune the network to make more efficient
@@ -265,7 +265,7 @@ for test = 1:config.num_tests
         [~,indx] = sort(pop_error);
         
         parfor p = 1:4
-            [Pruned_best_individual{p}] = maxPruning(@testReservoir,{'train_error','val_error','test_error'},population(indx(p))...
+            [Pruned_best_individual{p}] = maxPruning(config.testFcn,{'train_error','val_error','test_error'},population(indx(p))...
                 ,[population(indx(p)).train_error population(indx(p)).val_error population(indx(p)).test_error]...
                 ,config.tolerance,config); %,old_W_fitness(p),old_Win_fitness(p),full_W{p}
         end

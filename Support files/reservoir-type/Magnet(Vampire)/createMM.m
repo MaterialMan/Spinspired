@@ -5,7 +5,7 @@ for pop_indx = 1:config.pop_size
     
     % assign details for vampire directories
     population(pop_indx).batch_num = config.test;
-    population(pop_indx).core_indx = pop_indx;
+    
     
     % add performance records
     population(pop_indx).train_error = 1;
@@ -33,6 +33,12 @@ for pop_indx = 1:config.pop_size
     % iterate through subreservoirs
     for i = 1:config.num_reservoirs
         
+        if config.num_reservoirs > 1
+            population(pop_indx).core_indx(i) = i;
+        else
+            population(pop_indx).core_indx = pop_indx;
+        end
+        
         % material details
         population(pop_indx).material_type{i} = config.material_type{randi([1 length(config.material_type)])};
         population(pop_indx).material_shape{i} = config.material_shape{randi([1 length(config.material_shape)])};
@@ -46,9 +52,21 @@ for pop_indx = 1:config.pop_size
         %define num of units
         population(pop_indx).nodes(i) = config.num_nodes(i);
         
-        population(pop_indx).system_size(i,1) = (sqrt(population(pop_indx).nodes(i)) * config.macro_cell_size)-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
-        population(pop_indx).system_size(i,2) = (sqrt(population(pop_indx).nodes(i)) * config.macro_cell_size)-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
-        population(pop_indx).system_size(i,3) = config.system_size_z(i);
+        % check length of params
+        if length(config.macro_cell_size) > 1
+            population(pop_indx).macro_cell_size(i) = config.macro_cell_size(i); 
+        else 
+            population(pop_indx).macro_cell_size(i) = config.macro_cell_size; 
+        end
+        if (config.system_size_z) > 1 
+            system_size_z = config.system_size_z(i);
+        else 
+            system_size_z = config.system_size_z; 
+        end
+            
+        population(pop_indx).system_size(i,1) = (sqrt(population(pop_indx).nodes(i)) * population(pop_indx).macro_cell_size(i))-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,2) = (sqrt(population(pop_indx).nodes(i)) * population(pop_indx).macro_cell_size(i))-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+        population(pop_indx).system_size(i,3) = system_size_z;
         
         % layer thickness
         population(pop_indx).thickness(i) = round(rand*10)/10;
@@ -57,15 +75,16 @@ for pop_indx = 1:config.pop_size
         
         % simulation details
         % Input time-period
-        population(pop_indx).time_steps_increment(i) = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);
+        population(pop_indx).time_steps_increment = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);%config.time_steps_increment(1);%
         
         %% global params
         population(pop_indx).input_scaling(i)= 2*config.input_scaler*rand - config.input_scaler;%*(2*rand-1); % not sure about range?
         population(pop_indx).leak_rate(i) = rand;
         
         %% Input params
+        
         % set positions of magnetic sources. Need maxpos > minpos
-        [config.cell_grid_x, config.cell_grid_y] = meshgrid(1:1:sqrt(population(pop_indx).nodes(i)));
+        [config.cell_grid_x, config.cell_grid_y] = meshgrid(1:1:(population(pop_indx).system_size(i,1)+1)/population(pop_indx).macro_cell_size(i),1:1:(population(pop_indx).system_size(i,2)+1)/population(pop_indx).macro_cell_size(i));
         population(pop_indx).num_input_loc = population(pop_indx).nodes(i); %population(pop_indx).n_input_units;
         
         population(pop_indx).xy{i} = [config.cell_grid_x(:) config.cell_grid_y(:)];
@@ -75,34 +94,23 @@ for pop_indx = 1:config.pop_size
        switch(config.input_weight_initialisation)
            case 'norm' % normal distribution
                if config.sparse_input_weights
-                   input_weights = sprandn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1, config.sparsity);
+                   input_weights = sprandn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units + config.bias, config.sparsity);
                else
-                   input_weights = randn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1);
+                   input_weights = randn(population(pop_indx).nodes(i),  population(pop_indx).n_input_units + config.bias);
                end
            case 'uniform' % uniform dist between -1 and 1
                if config.sparse_input_weights
-                   input_weights = sprand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1, config.sparsity);
+                   input_weights = sprand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units + config.bias, config.sparsity);
                    input_weights(input_weights ~= 0) = ...
                        2*input_weights(input_weights ~= 0)  - 1;
                else
-                   input_weights = 2*rand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1)-1;
+                   input_weights = 2*rand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units + config.bias)-1;
                end
            case 'orth'
-               input_weights = ones(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1);
+               input_weights = ones(population(pop_indx).nodes(i),  population(pop_indx).n_input_units + config.bias);
        end
-       population(pop_indx).input_weights{i} = input_weights.*config.input_scaler;
+       population(pop_indx).input_weights{i} = input_weights;%.*config.input_scaler;
        
-%         if config.sparse_input_weights
-%             input_weights = sprand(population(pop_indx).num_input_loc,  population(pop_indx).n_input_units+1, config.sparsity(i));
-%             input_weights(input_weights ~= 0) = ...
-%                 2*input_weights(input_weights ~= 0)  - 1;
-%             
-%             population(pop_indx).input_weights{i} = input_weights;
-%         else
-%             population(pop_indx).input_weights{i}= 2*rand(population(pop_indx).num_input_loc,population(pop_indx).n_input_units+1)-1; % set random field strength
-%         end
-        
-        
         
         % input widths
         if config.input_widths
@@ -122,6 +130,10 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).anisotropy(i,m) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
             
             population(pop_indx).temperature(i,m) = config.temperature_parameter(1) + (config.temperature_parameter(2)-config.temperature_parameter(1))*rand;
+            
+            population(pop_indx).temperature_rescaling_exponent(i,m) = config.temperature_rescaling_exponent(1) + (config.temperature_rescaling_exponent(2)-config.temperature_rescaling_exponent(1))*rand;
+            
+            population(pop_indx).temperature_rescaling_curie_temperature(i,m) = config.temperature_rescaling_curie_temperature(1) + (config.temperature_rescaling_curie_temperature(2)-config.temperature_rescaling_curie_temperature(1))*rand;
             
             population(pop_indx).exchange(i,m) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
             
@@ -151,7 +163,7 @@ for pop_indx = 1:config.pop_size
         if config.evolve_material_density(i)
             population(pop_indx).material_density(i) = rand.*config.material_density;
         else
-            population(pop_indx).material_density = config.material_density;
+            population(pop_indx).material_density(i) = config.material_density;
         end
             
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
@@ -177,14 +189,14 @@ for pop_indx = 1:config.pop_size
                     population(pop_indx).W_scaling(i,j) = 0;
                     population(pop_indx).W{i,j} = zeros(population(pop_indx).nodes(i), population(pop_indx).nodes(j));
                     
-                case {'pipeline','pipeline_IA'}  % pipeline structure
+                case {'pipeline'}  % pipeline structure
                     if  j == i+1
                         switch(config.internal_weight_initialisation)
                             case 'norm' % normal distribution
-                                internal_weights = sprandn(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j));
+                                internal_weights = sprandn(population(pop_indx).nodes(i), population(pop_indx).nodes(j)*length(config.read_mag_direction) + config.add_pipeline_input*population(pop_indx).n_input_units + config.bias, population(pop_indx).connectivity(i,j));
                                 
                             case 'uniform' % uniform dist between -1 and 1
-                                internal_weights = sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j), population(pop_indx).connectivity(i,j));
+                                internal_weights = sprand(population(pop_indx).nodes(i), population(pop_indx).nodes(j)*length(config.read_mag_direction) + config.add_pipeline_input*population(pop_indx).n_input_units + config.bias, population(pop_indx).connectivity(i,j));
                                 internal_weights(internal_weights ~= 0) = ...
                                     2*internal_weights(internal_weights ~= 0)  - 1;
                         end

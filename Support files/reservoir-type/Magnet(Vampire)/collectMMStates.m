@@ -20,35 +20,11 @@ if isempty(batch_path) %&&  individual.core_indx == 1 % create new batch directo
     addpath(genpath(batch_path));
     
     % assign new path
-    batch_path = new_dest_path;    
+    batch_path = new_dest_path;
 end
 
+
 if ~isempty(batch_path)
-    
-    %% find or assign new cores
-    % check cores on path
-    current_core = strcat('core',num2str(individual.core_indx));
-    core_path = strcat(batch_path,'/Cores/',current_core,'/',current_core,'.txt');
-    core_check = exist(core_path,'file'); % will be 7 if folder exists
-    
-    if core_check == 7
-        % exists
-        file_path = core_path(1:end-(length(current_core)+4));
-    else
-        % does not exist
-        default_core = 'core0'; % default batch
-        path_to_copy = strcat(batch_path,'/Cores/',default_core);
-        new_dest_path = core_path(1:end-(length(current_core)+4));
-        
-        % make new directory
-        copyfile(path_to_copy,new_dest_path);
-        % copy over files
-        movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
-        % add to path
-        addpath(genpath(new_dest_path));
-        % assign new path
-        file_path = new_dest_path;
-    end
     
     %if single input entry, add previous state
     if size(input_sequence,1) == 1
@@ -62,18 +38,41 @@ if ~isempty(batch_path)
             states{i} = zeros(size(input_sequence,1),individual.nodes(i));
         end
     end
-
-    %states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units);
     
     % iterate through subreservoirs
-    for i = 1:config.num_reservoirs
+    parfor i = 1:config.num_reservoirs
+        
+        %% find or assign new cores
+        % check cores on path
+        current_core = strcat('core',num2str(individual.core_indx(i)));
+        core_path = strcat(batch_path,'/Cores/',current_core,'/',current_core,'.txt');
+        core_check = exist(core_path,'file'); % will be 7 if folder exists
+        
+        if core_check == 7
+            % exists
+            file_path = core_path(1:end-(length(current_core)+4));
+        else
+            % does not exist
+            default_core = 'core0'; % default batch
+            path_to_copy = strcat(batch_path,'/Cores/',default_core);
+            new_dest_path = core_path(1:end-(length(current_core)+4));
+            
+            % make new directory
+            copyfile(path_to_copy,new_dest_path);
+            % copy over files
+            movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
+            % add to path
+            addpath(genpath(new_dest_path));
+            % assign new path
+            file_path = new_dest_path;
+        end
         
         % change/update source/input files
-        if i > 1
-            changeSourceFile(file_path, individual, input_sequence, i, states{i-1},config)
-        else
-            changeSourceFile(file_path, individual, input_sequence, i, states{i},config)
-        end
+%         if i > 1
+%             changeSourceFile(file_path, individual, input_sequence, i, states{i-1},config)
+%         else
+        changeSourceFile(file_path, individual, input_sequence, i, states{i},config)
+        %end
         
         % change material files
         changeMaterialFile(file_path, individual, i, config);
@@ -88,7 +87,6 @@ if ~isempty(batch_path)
         
         % run vampire!
         command = strcat('cd "', file_path,'" && ./vampire-serial');
-        
         [status, cmdout] = system(command);
         
         if status == 0 % if run successful, read reservoir_output file and store in final_states matrix
@@ -110,11 +108,11 @@ if ~isempty(batch_path)
             states{i} = [];
             
             % use only the desired direction(s)
-            c.preprocess = 'rescale_diff';
-            c.preprocess_shift = [0 1];
-            x_states = featureNormailse(x_states,c);
-            y_states = featureNormailse(y_states,c);
-            z_states = featureNormailse(z_states,c);
+           % c.preprocess = 'rescale_diff';
+            %c.preprocess_shift = [0 1];
+            x_states = featureNormailse(x_states,config);
+            y_states = featureNormailse(y_states,config);
+            z_states = featureNormailse(z_states,config);
             
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
@@ -156,35 +154,41 @@ if ~isempty(batch_path)
                     grid off
                     
                     for t = 1:size(states{i},1)
-                        %newH = reshape(states{i}(t,:),node_grid_size,node_grid_size);
+                        %                         subplot(2,2,4)
+                        %                         %newH = reshape(states{i}(t,:),node_grid_size,node_grid_size);
                         set(h,'UData',reshape(x_states(t,:),node_grid_size,node_grid_size));
                         set(h,'VData',reshape(y_states(t,:),node_grid_size,node_grid_size));
                         set(h,'WData',reshape(z_states(t,:),node_grid_size,node_grid_size));
-                        drawnow
+                        
+                        %                         subplot(2,2,1)
+                        %                         Vq = interp2(reshape(z_states(t,1:end),node_grid_size,node_grid_size),5);
+                        %                         imagesc(Vq)
+                        %                         colormap(jet)
+                        %                         drawnow
                     end
                 end
             end
+            
         else
             states{i} = zeros(length(input_sequence),config.num_nodes(i));
             fprintf('simulation failed\n')
             cmdout
         end
         
+        if individual.core_indx(i) ~= 0
+            % clean up files
+            rmpath(file_path);
+            
+            try rmdir(file_path,'s');
+                
+            catch
+                warning('Error: Did not remove folder but contiued.\n')
+            end
+        end
     end
     
-    if individual.core_indx ~= 0
-    % clean up files
-    rmpath(file_path);
-    
-    try rmdir(file_path,'s');
-        
-    catch
-        warning('Error: Did not remove folder but contiued.\n')
-    end
-    end
-
 else
-    states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units); 
+    states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units);
 end
 
 % get leak states
@@ -268,7 +272,7 @@ end
 
 if config.plot_states
     subplot(2,2,1)
-    imagesc(rot90(reshape((max(abs(input))),node_grid_size,node_grid_size),3)')    
+    imagesc(rot90(reshape((max(abs(input))),node_grid_size,node_grid_size),3)')
     title('Input location')
     colormap(bluewhitered)
     colorbar
@@ -296,11 +300,11 @@ while ~feof(input_source)
     
     % crystal type
     if contains(l,'create:crystal-structure')
-        switch(individual.material_type{indx})
+        switch(individual.material_type{1})
             case 'random_alloy'
                 l = sprintf('create:crystal-structure = fcc'); % should always be fcc crystal
             otherwise
-                l = sprintf('create:crystal-structure = %s', config.crystal_structure{indx});
+                l = sprintf('create:crystal-structure = %s', config.crystal_structure{1});
         end
     end
     % periodic boundaries
@@ -318,30 +322,30 @@ while ~feof(input_source)
     if contains(l,'#create:sphere') && config.core_shell(indx)
         l = sprintf('create:sphere');
     end
-    if contains(l,'#dimensions:particle-size') && (config.core_shell(indx) || ~strcmp(individual.material_shape{indx},'film'))
+    if contains(l,'#dimensions:particle-size') && (config.core_shell(indx) || ~strcmp(individual.material_shape{1},'film'))
         l = sprintf('dimensions:particle-size = %d !nm',individual.particle_size(indx));
     end
     
     %create shape
-    if contains(l,'#create:sphere') && ~strcmp(individual.material_shape{indx},'film')
-        l = sprintf(strcat('create:',individual.material_shape{indx}));
+    if contains(l,'#create:sphere') && ~strcmp(individual.material_shape{1},'film')
+        l = sprintf(strcat('create:',individual.material_shape{1}));
     end
     
     % system dimensions
     if contains(l,'dimensions:unit-cell-size')
-        l = sprintf('dimensions:unit-cell-size = %.3f %s', config.unit_cell_size(indx),config.unit_cell_units{indx});
+        l = sprintf('dimensions:unit-cell-size = %.3f %s', config.unit_cell_size(1),config.unit_cell_units{1});
     end
     if contains(l,'dimensions:system-size-x')
-        l = sprintf('dimensions:system-size-x = %d %s', individual.system_size(indx,1), config.size_units{indx,1});
+        l = sprintf('dimensions:system-size-x = %d %s', individual.system_size(indx,1), config.size_units{1});
     end
     if contains(l,'dimensions:system-size-y')
-        l = sprintf('dimensions:system-size-y = %d %s', individual.system_size(indx,2), config.size_units{indx,2});
+        l = sprintf('dimensions:system-size-y = %d %s', individual.system_size(indx,2), config.size_units{2});
     end
     if contains(l,'dimensions:system-size-z')
-        l = sprintf('dimensions:system-size-z = %.2f %s', individual.system_size(indx,3), config.size_units{indx,3});
+        l = sprintf('dimensions:system-size-z = %.2f %s', individual.system_size(indx,3), config.size_units{3});
     end
     if contains(l,'cells:macro-cell-size')
-        l = sprintf('cells:macro-cell-size = %d %s', config.macro_cell_size(indx), config.macro_cell_units{indx});
+        l = sprintf('cells:macro-cell-size = %d %s', individual.macro_cell_size(indx), config.macro_cell_units{1});
     end
     
     % sim details
@@ -350,21 +354,21 @@ while ~feof(input_source)
     end
     if contains(l,'sim:time-step')
         if contains(l,'sim:time-steps-increment')
-            l = sprintf('sim:time-steps-increment = %d', individual.time_steps_increment(indx));
+            l = sprintf('sim:time-steps-increment = %d', individual.time_steps_increment);
         else
             l = sprintf('sim:time-step = %d %s', config.time_step,config.time_units);
         end
     end
-    if contains(l,'sim:total-time-steps') 
-        config.total_time_steps = individual.time_steps_increment(indx) * size(input_sequence,1) + individual.time_steps_increment(indx);
+    if contains(l,'sim:total-time-steps')
+        config.total_time_steps = individual.time_steps_increment * size(input_sequence,1) + individual.time_steps_increment;
         l = sprintf('sim:total-time-steps = %d', config.total_time_steps);
     end
     % applied field
-    if contains(l,'sim:applied-field-strength') 
+    if contains(l,'sim:applied-field-strength')
         l = sprintf('sim:applied-field-strength = %.2f !T' , individual.applied_field_strength(indx));
     end
-     if contains(l,'sim:applied-field-unit-vector') 
-        l = sprintf('sim:applied-field-unit-vector = %s' , config.applied_field_unit_vector{indx});
+    if contains(l,'sim:applied-field-unit-vector')
+        l = sprintf('sim:applied-field-unit-vector = %s' , config.applied_field_unit_vector{1});
     end
     
     % plot system
@@ -406,116 +410,116 @@ mat_file=fopen(strcat(file_path,'material_file'),'w');
 
 switch(individual.material_type{indx})
     
-     % TO DO!
-     case 'multilayer'
-         mat_source=fopen(strcat(file_path,'default_multi_material.txt'),'r');
-         for m = 1:individual.num_materials(indx)
-             while ~feof(mat_source)
-                 l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
-                 if contains(l,strcat('material[',num2str(m),']:damping-constant='))
-                     l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
-                 end
-                 
-                 if contains(l,strcat('material[',num2str(m),']:exchange-matrix')) % need to apdapt this
-                     for k = 1:individual.num_materials(indx)
-                         if m == k
+    % TO DO!
+    case 'multilayer'
+        mat_source=fopen(strcat(file_path,'default_multi_material.txt'),'r');
+        for m = 1:individual.num_materials(indx)
+            while ~feof(mat_source)
+                l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
+                if contains(l,strcat('material[',num2str(m),']:damping-constant='))
+                    l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:exchange-matrix')) % need to apdapt this
+                    for k = 1:individual.num_materials(indx)
+                        if m == k
                             l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.exchange(indx,m));
-                         else
-                             l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.interfacial_exchange(indx));
-                         end
-                     end
-                 end
-                 
-                 if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
-                     l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
-                     l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:initial-spin-direction='))
-                     l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:minimum-height'))
-                     l = sprintf(strcat('material[',num2str(m),']:minimum-height=%.1f'), individual.minimum_height(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:maximum-height'))
-                     l = sprintf(strcat('material[',num2str(m),']:maximum-height=%.1f'), individual.maximum_height(indx,m));
-                 end
-                 fprintf(mat_file,'%s \n',l);  % print line to file
-             end     
-         end
-         
+                        else
+                            l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.interfacial_exchange(indx));
+                        end
+                    end
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
+                    l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
+                    l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:initial-spin-direction='))
+                    l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
+                end
+                if contains(l,strcat('material[',num2str(m),']:minimum-height'))
+                    l = sprintf(strcat('material[',num2str(m),']:minimum-height=%.1f'), individual.minimum_height(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:maximum-height'))
+                    l = sprintf(strcat('material[',num2str(m),']:maximum-height=%.1f'), individual.maximum_height(indx,m));
+                end
+                fprintf(mat_file,'%s \n',l);  % print line to file
+            end
+        end
+        
     case 'core_shell'
         
         mat_source=fopen(strcat(file_path,'default_core_shell.txt'),'r');
         for m = 1:individual.num_materials(indx)
-             while ~feof(mat_source)
-                 l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
-                 if contains(l,strcat('material[',num2str(m),']:damping-constant'))
-                     l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
-                 end
-                  if contains(l,strcat('material[',num2str(m),']:exchange-matrix')) % need to apdapt this
-                     for k = 1:individual.num_materials(indx)
-                         if m == k
+            while ~feof(mat_source)
+                l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
+                if contains(l,strcat('material[',num2str(m),']:damping-constant'))
+                    l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:exchange-matrix')) % need to apdapt this
+                    for k = 1:individual.num_materials(indx)
+                        if m == k
                             l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.exchange(indx,m));
-                         else
-                             l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.interfacial_exchange(indx));
-                         end
-                     end
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
-                     l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
-                     l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:initial-spin-direction'))
-                     l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:core-shell-size'))
-                     l = sprintf(strcat('material[',num2str(m),']:core-shell-size = %.1f'), individual.core_shell_size(indx,m));
-                 end
-                 fprintf(mat_file,'%s \n',l);  % print line to file
-             end     
-         end
+                        else
+                            l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.interfacial_exchange(indx));
+                        end
+                    end
+                end
+                if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
+                    l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
+                    l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:initial-spin-direction'))
+                    l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
+                end
+                if contains(l,strcat('material[',num2str(m),']:core-shell-size'))
+                    l = sprintf(strcat('material[',num2str(m),']:core-shell-size = %.1f'), individual.core_shell_size(indx,m));
+                end
+                fprintf(mat_file,'%s \n',l);  % print line to file
+            end
+        end
         
     case 'random_alloy'
         
         mat_source=fopen(strcat(file_path,'default_random_alloy.txt'),'r');
         for m = 1:individual.num_materials(indx)
-             while ~feof(mat_source)
-                 l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
-                 if contains(l,strcat('material[',num2str(m),']:damping-constant='))
-                     l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
-                 end
-
-                  if contains(l,strcat('material[1]:exchange-matrix[1]')) % need to apdapt this
-                      l = sprintf(strcat('material[1]:exchange-matrix[1]=%s'), individual.exchange(indx,1));
-                  end
-                  if contains(l,strcat('material[1]:exchange-matrix[2]')) % need to apdapt this
-                      l = sprintf(strcat('material[1]:exchange-matrix[2]=%s'), individual.interfacial_exchange(indx));
-                  end
-                  if contains(l,strcat('material[2]:exchange-matrix[1]')) % need to apdapt this
-                      l = sprintf(strcat('material[2]:exchange-matrix[1]=%s'), individual.interfacial_exchange(indx));
-                  end
-                  if contains(l,strcat('material[2]:exchange-matrix[2]')) % need to apdapt this
-                      l = sprintf(strcat('material[2]:exchange-matrix[2]=%s'), individual.exchange(indx,2));
-                  end
-
-                 if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
-                     l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
-                     l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
-                 end
-                 if contains(l,strcat('material[',num2str(m),']:initial-spin-direction='))
-                     l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
-                 end
-                 if contains(l,'material[1]:alloy-fraction')
-                     l = sprintf('material[1]:alloy-fraction[2]=%.2f', individual.alloy_fraction(indx));
-                 end
-                 fprintf(mat_file,'%s \n',l);  % print line to file
-             end     
+            while ~feof(mat_source)
+                l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
+                if contains(l,strcat('material[',num2str(m),']:damping-constant='))
+                    l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
+                end
+                
+                if contains(l,strcat('material[1]:exchange-matrix[1]')) % need to apdapt this
+                    l = sprintf(strcat('material[1]:exchange-matrix[1]=%s'), individual.exchange(indx,1));
+                end
+                if contains(l,strcat('material[1]:exchange-matrix[2]')) % need to apdapt this
+                    l = sprintf(strcat('material[1]:exchange-matrix[2]=%s'), individual.interfacial_exchange(indx));
+                end
+                if contains(l,strcat('material[2]:exchange-matrix[1]')) % need to apdapt this
+                    l = sprintf(strcat('material[2]:exchange-matrix[1]=%s'), individual.interfacial_exchange(indx));
+                end
+                if contains(l,strcat('material[2]:exchange-matrix[2]')) % need to apdapt this
+                    l = sprintf(strcat('material[2]:exchange-matrix[2]=%s'), individual.exchange(indx,2));
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
+                    l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
+                    l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
+                end
+                if contains(l,strcat('material[',num2str(m),']:initial-spin-direction='))
+                    l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
+                end
+                if contains(l,'material[1]:alloy-fraction')
+                    l = sprintf('material[1]:alloy-fraction[2]=%.2f', individual.alloy_fraction(indx));
+                end
+                fprintf(mat_file,'%s \n',l);  % print line to file
+            end
         end
         
     otherwise
@@ -537,12 +541,21 @@ switch(individual.material_type{indx})
             end
             % finish...
             if contains(l,'material[1]:density')
-                l = sprintf('material[1]:density=%.3f', individual.material_density(indx,1));
+                l = sprintf('material[1]:density=%.3f', individual.material_density(indx));
             end
             
             if contains(l,'material[1]:initial-spin-direction=')
-                l = sprintf('material[1]:initial-spin-direction=%s', config.initial_spin_direction{indx});
+                l = sprintf('material[1]:initial-spin-direction=%s', config.initial_spin_direction{1});
             end
+            
+            if contains(l,'material[1]:temperature-rescaling-exponent') && config.temperature_rescaling_exponent(2) > 0
+                l = sprintf('material[1]:temperature-rescaling-exponent=%.3f', individual.temperature_rescaling_exponent(indx));
+            end
+            
+            if contains(l,'material[1]:temperature-rescaling-curie-temperature') && config.temperature_rescaling_curie_temperature(2) > 0
+                l = sprintf('material[1]:temperature-rescaling-curie-temperature=%d', individual.temperature_rescaling_curie_temperature(indx));
+            end
+            
             fprintf(mat_file,'%s \n',l);  % print line to file
         end
         

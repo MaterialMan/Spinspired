@@ -26,6 +26,12 @@ switch(res_type)
         config.mutFcn = @mutateRoR;
         config.recFcn = @recombRoR;
         
+   case 'RoRmin'
+        config.createFcn = @createMinRoR;
+        config.assessFcn = @collectMinRoRStates;
+        config.mutFcn = @mutateMinRoR;
+        config.recFcn = @recombRoR;
+        
     case 'Pipeline'
         config.createFcn = @createPipeline;
         config.assessFcn = @collectPipelineStates;
