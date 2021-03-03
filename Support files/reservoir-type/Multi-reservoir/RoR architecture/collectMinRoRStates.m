@@ -19,9 +19,11 @@ W = (individual.W.*individual.W_scaling);
 if config.evolve_feedback_weights 
     W_fb = individual.feedback_scaling*individual.feedback_weights';
 end
-target_output = target_output + config.noise_ratio*rand(size(target_output)); % add noise to regulate weights
-force_input = ([target_output repmat(individual.bias_node,size(target_output,1),1)]*(individual.input_weights.*individual.input_scaling));
 
+if config.evolve_feedback_weights || config.teacher_forcing
+    target_output = target_output + config.noise_ratio*rand(size(target_output)); % add noise to regulate weights
+    force_input = ([target_output repmat(individual.bias_node,size(target_output,1),1)]*(individual.input_weights.*individual.input_scaling));
+end
 
 %equation: x(n) = f(Win*u(n) + S)
 for n = 1:size(input_sequence,1)-1

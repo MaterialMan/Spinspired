@@ -43,13 +43,6 @@ pos = randperm(length(applied_field_strength),sum(rand(length(applied_field_stre
 applied_field_strength(pos) = mutateWeight(applied_field_strength(pos),config.applied_field_strength,config);
 offspring.applied_field_strength = reshape(applied_field_strength,size(offspring.applied_field_strength));
 
-if config.evolve_material_density
-    material_density = offspring.material_density(:);
-    pos = randperm(length(material_density),sum(rand(length(material_density),1) < config.mut_rate));
-    material_density(pos) = mutateWeight(material_density(pos),[0 1],config);
-    offspring.material_density = reshape(material_density,size(offspring.material_density));
-end
-
 thickness = offspring.thickness(:);
 pos = randperm(length(thickness),sum(rand(length(thickness),1) < config.mut_rate));
 thickness(pos) = round(mutateWeight(thickness(pos),[0 1],config)*10)/10;
@@ -59,6 +52,32 @@ time_steps_increment = offspring.time_steps_increment(:);
 pos = randperm(length(time_steps_increment),sum(rand(length(time_steps_increment),1) < config.mut_rate));
 time_steps_increment(pos) = round(mutateWeight(time_steps_increment(pos),[config.time_steps_increment(1) config.time_steps_increment(2)],config));
 offspring.time_steps_increment = reshape(time_steps_increment,size(offspring.time_steps_increment));
+
+if config.evolve_material_density
+    material_density = offspring.material_density(:);
+    pos = randperm(length(material_density),sum(rand(length(material_density),1) < config.mut_rate));
+    material_density(pos) = mutateWeight(material_density(pos),[0 1],config);
+    offspring.material_density = reshape(material_density,size(offspring.material_density));
+end
+
+if config.evolve_geometry
+    if config.evolve_poly
+        poly_coord = offspring.poly_coord(:);
+        pos = randperm(length(poly_coord),sum(rand(length(poly_coord),1) < config.mut_rate));
+        poly_coord(pos) = mutateWeight(poly_coord(pos),[0 1],config);
+        offspring.poly_coord = reshape(poly_coord,size(offspring.poly_coord)); 
+    else
+        geo_width = offspring.geo_width(:);
+        pos = randperm(length(geo_width),sum(rand(length(geo_width),1) < config.mut_rate));
+        geo_width(pos) = mutateWeight(geo_width(pos),[0 1],config);
+        offspring.geo_width = reshape(geo_width,size(offspring.geo_width));
+        
+        geo_height = offspring.geo_height(:);
+        pos = randperm(length(geo_height),sum(rand(length(geo_height),1) < config.mut_rate));
+        geo_height(pos) = mutateWeight(geo_height(pos),[0 1],config);
+        offspring.geo_height = reshape(geo_height,size(offspring.geo_height));
+    end
+end
 
 %% cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs

@@ -39,8 +39,72 @@ if ~isempty(batch_path)
         end
     end
     
+    % collect states of system - depending on architecture type
+    switch(config.architecture)
+        case 'ensemble'
+            parfor i = 1:config.num_reservoirs
+                states{i} = getStates(batch_path,individual,input_sequence,states{i},i,config)
+            end
+        case 'pipeline' % need to finish
+            % cycle through layers of pipeline
+            for i = 1:config.num_layers
+                if i == 1 % use inital input for first reservoir
+                    previous_states = states{i};
+                else
+                    previous_states = states{i-1}; %use previous states as input for current layer... 
+                    % need to add weighting mechanism
+                end
+                % collect states of current layer
+                parfor j = 1:individual.num_reservoirs_in_layer(i)
+                        layer_states{j} = getStates(batch_path,individual(i),input_sequence,previous_states,j,config);
+                end
+                % concat states for layer to be used for next layer
+                for j = 1:config.num_reservoirs
+                    states{i} = [states{i} layer_states{j}];
+                end
+            end
+            
+        otherwise
+            states{1} = getStates(batch_path,individual,input_sequence,states{1},1,config);
+    end
+
+else
+    states{1} = zeros(size(input_sequence,1),sum(config.num_nodes) +individual.n_input_units);
+end
+
+% get leak states
+if config.leak_on
+    states = getLeakStates(states,individual,input_sequence,config);
+end
+
+% concat all states for output weights
+final_states = [];
+for i= 1:config.num_reservoirs
+    final_states = [final_states states{i}];
+    
+    %assign last state variable
+    individual.last_state{i} = states{i}(end,:);
+end
+
+% concat input states
+if config.add_input_states == 1
+    final_states = [final_states input_sequence];
+end
+
+if size(input_sequence,1) == 2
+    final_states = final_states(end,:); % remove washout
+else
+    final_states = final_states(config.wash_out+1:end,:); % remove washout
+end
+
+
+end
+
+
+%% assess ensemble reservoirs
+function states = getStates(batch_path,individual,input_sequence,previous_states,i,config)
     % iterate through subreservoirs
-    parfor i = 1:config.num_reservoirs
+   % parfor i = 1:config.num_reservoirs
         
         %% find or assign new cores
         % check cores on path
@@ -68,11 +132,7 @@ if ~isempty(batch_path)
         end
         
         % change/update source/input files
-%         if i > 1
-%             changeSourceFile(file_path, individual, input_sequence, i, states{i-1},config)
-%         else
-        changeSourceFile(file_path, individual, input_sequence, i, states{i},config)
-        %end
+        changeSourceFile(file_path, individual, input_sequence, i, previous_states,config)
         
         % change material files
         changeMaterialFile(file_path, individual, i, config);
@@ -105,23 +165,23 @@ if ~isempty(batch_path)
             z_states = tmp_states(size(input_sequence,1)*2 +1:end,:);
             
             tmp_states = []; % release
-            states{i} = [];
+            states = [];
             
             % use only the desired direction(s)
-           % c.preprocess = 'rescale_diff';
-            %c.preprocess_shift = [0 1];
+            config.preprocess = 'rescale_diff';
+            config.preprocess_shift = [0 1];
             x_states = featureNormailse(x_states,config);
             y_states = featureNormailse(y_states,config);
             z_states = featureNormailse(z_states,config);
-            
+%             
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
                     case 'x'
-                        states{i} = [states{i} x_states];
+                        states = [states x_states];
                     case 'y'
-                        states{i} = [states{i} y_states];
+                        states = [states y_states];
                     case 'z'
-                        states{i} = [states{i} z_states];
+                        states = [states z_states];
                 end
             end
             
@@ -132,7 +192,7 @@ if ~isempty(batch_path)
                 title('Input')
                 
                 subplot(2,2,3)
-                plot(states{i})
+                plot(states)
                 title('Scaled states')
                 drawnow
                 
@@ -150,10 +210,10 @@ if ~isempty(batch_path)
                     
                     axis([1 node_grid_size 1 node_grid_size -1.25 1.25]);
                     zticks([-1 0 1])
-                    zticklabels({min(min(states{i}(:,1:end))) ,0, max(max(states{i}(:,1:end)))})
+                    zticklabels({min(min(states(:,1:end))) ,0, max(max(states(:,1:end)))})
                     grid off
                     
-                    for t = 1:size(states{i},1)
+                    for t = 1:size(states,1)
                         %                         subplot(2,2,4)
                         %                         %newH = reshape(states{i}(t,:),node_grid_size,node_grid_size);
                         set(h,'UData',reshape(x_states(t,:),node_grid_size,node_grid_size));
@@ -170,55 +230,24 @@ if ~isempty(batch_path)
             end
             
         else
-            states{i} = zeros(length(input_sequence),config.num_nodes(i));
+            states = zeros(length(input_sequence),config.num_nodes(i)*length(config.read_mag_direction));
             fprintf('simulation failed\n')
             cmdout
         end
         
-        if individual.core_indx(i) ~= 0
+        if individual.core_indx(i) ~= 0 && config.num_reservoirs == 1
             % clean up files
             rmpath(file_path);
             
             try rmdir(file_path,'s');
                 
             catch
-                warning('Error: Did not remove folder but contiued.\n')
+               % warning('Error: Did not remove folder but contiued.\n')
             end
         end
-    end
+    %end
     
-else
-    states{1} = zeros(size(input_sequence,1),individual.nodes(1) +individual.n_input_units);
 end
-
-% get leak states
-if config.leak_on
-    states = getLeakStates(states,individual,input_sequence,config);
-end
-
-% concat all states for output weights
-final_states = [];
-for i= 1:config.num_reservoirs
-    final_states = [final_states states{i}];
-    
-    %assign last state variable
-    individual.last_state{i} = states{i}(end,:);
-end
-
-% concat input states
-if config.add_input_states == 1
-    final_states = [final_states input_sequence];
-end
-
-if size(input_sequence,1) == 2
-    final_states = final_states(end,:); % remove washout
-else
-    final_states = final_states(config.wash_out+1:end,:); % remove washout
-end
-
-
-end
-
 
 %% change input signal to vampire simulator
 function changeSourceFile(file_path, individual, input_sequence, indx, previous_states,config)
@@ -253,6 +282,8 @@ switch(individual.architecture)
         else
             input =  previous_states(:,1:end-individual.n_input_units*(size(previous_states,2) > individual.nodes(indx))) * (individual.W_scaling(indx-1,indx)*individual.W{indx-1,indx});
         end
+    otherwise
+        input = individual.input_scaling(1)*(individual.input_weights{1}*[input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]')';
 end
 
 % change input widths
@@ -371,6 +402,7 @@ while ~feof(input_source)
         l = sprintf('sim:applied-field-unit-vector = %s' , config.applied_field_unit_vector{1});
     end
     
+   
     % plot system
     if contains(l,'sim:cells-source-output') % plot magnetic moments
         if config.plt_system
@@ -523,6 +555,7 @@ switch(individual.material_type{indx})
         end
         
     otherwise
+        
         mat_source=fopen(strcat(file_path,'default_material.txt'),'r');
         while ~feof(mat_source)
             l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
@@ -556,6 +589,36 @@ switch(individual.material_type{indx})
                 l = sprintf('material[1]:temperature-rescaling-curie-temperature=%d', individual.temperature_rescaling_curie_temperature(indx));
             end
             
+            if contains(l,'material[1]:geometry-file') && ~isempty(config.geometry_file)
+                l = sprintf('material[1]:geometry-file=%s',config.geometry_file);
+                
+                % find file and add to core
+                try
+                    geo_path = which('geometry_files.txt');
+                catch
+                    error('Error: Could not find the .geo file provided')
+                end
+                geo_path = geo_path(1:end-18);
+                
+                if config.evolve_geometry
+                    % create new geo file
+                    geo_file=fopen(strcat(file_path,config.geometry_file),'w');
+                    
+                    if config.evolve_poly
+                        fprintf(geo_file,'%d \n',config.poly_num); % add number of lines
+                        coord = individual.poly_coord;
+                    else
+                        % add new coordinates
+                        fprintf(geo_file,'4 \n'); % add number of lines
+                        coord = createRect(individual.geo_width,individual.geo_height); % get coords
+                    end
+                    fprintf(geo_file,'%.2f %.2f \n',coord');
+                    fclose(geo_file);
+                else
+                    % copy the known geo file to core directory
+                    copyfile(strcat(geo_path,config.geometry_file),strcat(file_path,config.geometry_file));
+                end
+            end
             fprintf(mat_file,'%s \n',l);  % print line to file
         end
         

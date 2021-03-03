@@ -30,7 +30,7 @@ config.mut_rate = 0.05;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 
 %% Task parameters
-config.dataset = 'attractor';                                                  % Task to evolve for
+config.dataset = 'narma_10';                                                  % Task to evolve for
 
 % get any additional params. This might include:
 % details on reservoir structure, extra task variables, etc.

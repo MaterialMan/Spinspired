@@ -9,7 +9,7 @@ classification_data = 0;
 wash_out = 50;
 
 rng(1,'twister');
-
+    
 switch config.dataset
     
     %% test data
@@ -1052,10 +1052,8 @@ switch config.dataset
         
         for i = 1:n_output_units
             output_sequence(:,i) = data_sequence(n_output_units+1-i:data_length+n_output_units-i);
-        end      
-        
+        end              
 end
-
 
 if classification_data
     

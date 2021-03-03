@@ -17,6 +17,7 @@ material[1]:second-order-uniaxial-anisotropy-constant=1.0e-24
 material[1]:initial-spin-direction=1,0,0
 #material[1]:temperature-rescaling-exponent=2.39 
 #material[1]:temperature-rescaling-curie-temperature = 1390 
+#material[1]:geometry-file=cutout.geo
 
 #material[2]:damping-constant = 0.1
 #material[2]:exchange-matrix[1] = -1.09e-21

@@ -73,11 +73,11 @@ dipole:solver=tensor
 # data output
 #------------------------------------------
 output:time-steps
-screen:time-steps
+#screen:time-steps
 output:temperature
 output:applied-field-strength
 output:material-magnetisation
-screen:material-magnetisation
+#screen:material-magnetisation
 
 #sim:cells-source-output = true 
 #config:macro-cells 
