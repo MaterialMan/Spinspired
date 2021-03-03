@@ -57,15 +57,6 @@ pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
 loser.applied_field_strength = reshape(L,size(loser.applied_field_strength ));
 
-% material densities
-if config.evolve_material_density
-    W= winner.material_density(:);
-    L = loser.material_density(:);
-    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
-    L(pos) = W(pos);
-    loser.material_density = reshape(L,size(loser.material_density));
-end
-
 % layer thickness
 W= winner.thickness(:);
 L = loser.thickness(:);
@@ -79,6 +70,38 @@ L = loser.time_steps_increment(:);
 pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
 loser.time_steps_increment = reshape(L,size(loser.time_steps_increment));
+
+% material densities
+if config.evolve_material_density
+    W= winner.material_density(:);
+    L = loser.material_density(:);
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+    L(pos) = W(pos);
+    loser.material_density = reshape(L,size(loser.material_density));
+end
+
+if config.evolve_geometry
+    if config.evolve_poly
+        W= winner.poly_coord(:);
+        L = loser.poly_coord(:);
+        pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+        L(pos) = W(pos);
+        loser.poly_coord = reshape(L,size(loser.poly_coord));
+    else
+        W= winner.geo_width(:);
+        L = loser.geo_width(:);
+        pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+        L(pos) = W(pos);
+        loser.geo_width = reshape(L,size(loser.geo_width));
+        
+        W= winner.geo_height(:);
+        L = loser.geo_height(:);
+        pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+        L(pos) = W(pos);
+        loser.geo_height = reshape(L,size(loser.geo_height));
+    end
+end
+
 
 %% inputs
 for i = 1:config.num_reservoirs

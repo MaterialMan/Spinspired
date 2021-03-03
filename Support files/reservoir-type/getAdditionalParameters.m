@@ -30,7 +30,7 @@ config.feedback_scaling = 1;
 config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.activ_list = {@tanh};     % what activations are in use
+config.activ_list = {@linearNode,@tanh};     % what activations are in use
 config.multi_activ = length(config.activ_list) > 1;                      % use different activation funcs
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
@@ -285,7 +285,7 @@ switch(res_type)
             error('Number of graph types does not match number of reservoirs. Add more.')
         end
         
-    case 'MM'
+case {'MM','MM_new'}
         % default MM data scaling
         config.preprocess = 'rescale_diff';
         config.preprocess_shift = [0 1]; % range for data
@@ -302,8 +302,8 @@ switch(res_type)
         
         % system settings
         config.material_type = {'toy'};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
-        config.crystal_structure = {'sc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
-        config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
+        config.crystal_structure = {'fcc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.unit_cell_size = [2.507];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
         config.macro_cell_size = [5];                % size of macro cell; an averaging cell over all spins inside
         config.macro_cell_units = {'!nm'};            % units for macro cell size
@@ -316,6 +316,12 @@ switch(res_type)
         config.particle_size = [];                  % only in use when used with: shapes, core shell ; must be less than system size!
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
+        
+	config.evolve_geometry = 1;                    % manipulate geomtry
+        config.evolve_poly = 1; % otherwise evolve a rectangle
+        config.poly_num = 4; 
+        config.geometry_file =  'custom.geo';                    %add specific geometry file
+
         
         %defaults
         for i = 1:length(config.num_nodes)
@@ -349,7 +355,7 @@ switch(res_type)
         
         % material properties
         config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
-        config.temperature_rescaling_exponent = [2.39 2.39]; % for more acurate temperature measures. [Co=2.369,FE=2.876,Ni=2.322]
+        config.temperature_rescaling_exponent = [2.369 2.369]; % for more acurate temperature measures. [Co=2.369,FE=2.876,Ni=2.322]
         config.temperature_rescaling_curie_temperature = [1395 1395]; % [Co=1395,FE=1049,Ni=635]
         config.damping_parameter = [0.001, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [6.69e-24, 6.69e-24];   % 1e-26 to 1e-22 OR 'dynamic' | typical value 1e-24
@@ -373,12 +379,28 @@ switch(res_type)
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        config.architecture = 'ensemble';
+        %         if length(config.num_nodes) < 2
+        %             config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        %         else
+        %             config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        %         end
+        
+        if iscell(config.num_nodes)
+            
+            for i = 1:length(config.num_nodes) % cycle through layers
+                config.num_reservoirs(i) =   length(config.num_nodes{i});
+                %(i) = sum(config.num_nodes{i});
+            end
+        end
+        
         config.add_pipeline_input = 0;
+        config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
         config.internal_sparsity = 0.1;
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
         config.connecting_sparsity = 0;
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
+
 
     otherwise
         
