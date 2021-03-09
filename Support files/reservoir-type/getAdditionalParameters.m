@@ -332,7 +332,7 @@ case {'MM','MM_new'}
         config.evolve_geometry = 1;                    % manipulate geomtry
         config.evolve_poly = 0; % otherwise evolve a rectangle
         config.poly_num = 4; 
-        config.geometry_file =  'rect.geo';                    %add specific geometry file
+        config.geometry_file = 'custom.geo';                    %add specific geometry file
 
         
         %defaults
@@ -391,15 +391,9 @@ case {'MM','MM_new'}
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';
-        %         if length(config.num_nodes) < 2
-        %             config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         else
-        %             config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         end
-        
+        config.architecture = ''; %% architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+
         if iscell(config.num_nodes)
-            
             for i = 1:length(config.num_nodes) % cycle through layers
                 config.num_reservoirs(i) =   length(config.num_nodes{i});
                 %(i) = sum(config.num_nodes{i});

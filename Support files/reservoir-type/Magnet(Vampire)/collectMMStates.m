@@ -42,13 +42,13 @@ if ~isempty(batch_path)
     % collect states of system - depending on architecture type
     switch(config.architecture)
         case 'ensemble'
-            parfor i = 1:config.num_reservoirs
+            parfor i = 1:config.num_reservoirs % cyclce through all subres - all independent from eachother
                 states{i} = getStates(batch_path,individual,input_sequence,states{i},i,config)
             end
         case 'pipeline' % need to finish
             % cycle through layers of pipeline
             for i = 1:config.num_layers
-                if i == 1 % use inital input for first reservoir
+                if i == 1 % use iniital input for first reservoir
                     previous_states = states{i};
                 else
                     previous_states = states{i-1}; %use previous states as input for current layer... 
