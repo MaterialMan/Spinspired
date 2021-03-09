@@ -587,7 +587,24 @@ if ~iscell(config.res_type)
         case 'RoRmin'
             
             ax1 = subplot(1,3,1);
-             imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+            imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+            colormap(ax1,bluewhitered)
+            colorbar
+            xlabel('Input mapping')
+            ax2 = subplot(1,3,2);
+            imagesc(best_individual.W.*best_individual.W_scaling);
+            colormap(ax2,bluewhitered)
+            colorbar
+            xlabel('Internal weights')
+            ax3 = subplot(1,3,3);
+            imagesc(best_individual.output_weights);
+            colormap(ax3,bluewhitered)
+            colorbar
+            xlabel('Output mapping')
+            
+        case 'restrictedRoR'
+            ax1 = subplot(1,3,1);
+            imagesc((best_individual.input_weights.*best_individual.restricted_input_mask).*best_individual.input_scaling);
             colormap(ax1,bluewhitered)
             colorbar
             xlabel('Input mapping')
@@ -721,6 +738,11 @@ if ~iscell(config.res_type)
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
             states = states(:,1:end-best_individual.n_input_units);
             
+            for i = 1:size(states,1)
+               imagesc(reshape(states(i,config.num_nodes*2+1:end),sqrt(config.num_nodes),sqrt(config.num_nodes)))
+               caxis([-1 1])
+               drawnow
+            end
         case 'Oregonator'
             config.plot_states = 1;
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);

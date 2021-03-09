@@ -32,6 +32,12 @@ switch(res_type)
         config.mutFcn = @mutateMinRoR;
         config.recFcn = @recombRoR;
         
+   case 'restrictedRoR'
+        config.createFcn = @createRestrictedRoR;
+        config.assessFcn = @collectRestrictedRoRStates;
+        config.mutFcn = @mutateRestrictedRoR;
+        config.recFcn = @recombRestrictedRoR;
+        
     case 'Pipeline'
         config.createFcn = @createPipeline;
         config.assessFcn = @collectPipelineStates;

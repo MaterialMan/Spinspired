@@ -611,6 +611,9 @@ switch(individual.material_type{indx})
                         % add new coordinates
                         fprintf(geo_file,'4 \n'); % add number of lines
                         coord = createRect(individual.geo_width,individual.geo_height); % get coords
+%                         rectangle('Position',[0 0 individual.geo_width individual.geo_height])
+%                         axis([0 1 0 1])
+%                         drawnow
                     end
                     fprintf(geo_file,'%.2f %.2f \n',coord');
                     fclose(geo_file);
