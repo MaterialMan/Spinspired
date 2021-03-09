@@ -584,20 +584,37 @@ if ~iscell(config.res_type)
                 drawnow
             end
             
-        case 'RoRmin'
+        case {'RoRmin','restrictedRoR'}
             
-            ax1 = subplot(1,3,1);
-             imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+            ax1 = subplot(2,3,1);
+            imagesc((best_individual.input_weights.*best_individual.input_scaling)');
             colormap(ax1,bluewhitered)
             colorbar
             xlabel('Input mapping')
-            ax2 = subplot(1,3,2);
+            ax2 = subplot(2,3,2);
             imagesc(best_individual.W.*best_individual.W_scaling);
             colormap(ax2,bluewhitered)
             colorbar
             xlabel('Internal weights')
-            ax3 = subplot(1,3,3);
+            ax3 = subplot(2,3,3);
             imagesc(best_individual.output_weights);
+            colormap(ax3,bluewhitered)
+            colorbar
+            xlabel('Output mapping')
+            
+            % loser
+            ax1 = subplot(2,3,4);
+            imagesc((loser_individual.input_weights.*loser_individual.input_scaling)');
+            colormap(ax1,bluewhitered)
+            colorbar
+            xlabel('Input mapping')
+            ax2 = subplot(2,3,5);
+            imagesc(loser_individual.W.*loser_individual.W_scaling);
+            colormap(ax2,bluewhitered)
+            colorbar
+            xlabel('Internal weights')
+            ax3 = subplot(2,3,6);
+            imagesc(loser_individual.output_weights);
             colormap(ax3,bluewhitered)
             colorbar
             xlabel('Output mapping')

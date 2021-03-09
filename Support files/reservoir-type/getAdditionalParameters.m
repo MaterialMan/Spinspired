@@ -14,7 +14,7 @@ config.sparsity = 0.1;                          % sparsity of input weights
 
 config.internal_sparsity = 0.1;            % sparsity of internal reservoir  weights
 config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
-config.connecting_sparsity = 0;
+config.connecting_sparsity = 0.1;
 config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
 config.evolve_output_weights = 0;             % evolve rather than train
@@ -30,7 +30,7 @@ config.feedback_scaling = 1;
 config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.activ_list = {@linearNode,@tanh};     % what activations are in use
+config.activ_list = {@tanh};     % what activations are in use
 config.multi_activ = length(config.activ_list) > 1;                      % use different activation funcs
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
@@ -69,10 +69,22 @@ end
 
 switch(res_type)
     
+    case 'restrictedRoR'
+        config.restricted_num_inputs = round(config.num_nodes*2);
+        config.restricted_num_outputs = round(config.num_nodes*0.5);
+        config.RoR_structure = 0;
+        config.noise_level = 10e-9;
+        config.mut_rate_connecting = 0.001;
+        config.prune_rate = 0.00;
+        
+        % take off sparse input weights
+        config.sparse_input_weights = 1;              % use sparse inputs
+        config.sparsity = 0.1;                          % sparsity of input weights
+
     case {'RoR','RoRmin'}
         
-        config.noise_level = 10e-6;
-        config.mut_rate_connecting = 0.001;
+        config.noise_level = 10e-9;
+        config.mut_rate_connecting = 0.01;
         config.prune_rate = 0.00;
         
         config.RoR_structure = 0;
