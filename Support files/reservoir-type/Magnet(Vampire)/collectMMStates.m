@@ -45,24 +45,6 @@ if ~isempty(batch_path)
             parfor i = 1:config.num_reservoirs
                 states{i} = getStates(batch_path,individual,input_sequence,states{i},i,config)
             end
-        case 'pipeline' % need to finish
-            % cycle through layers of pipeline
-            for i = 1:config.num_layers
-                if i == 1 % use inital input for first reservoir
-                    previous_states = states{i};
-                else
-                    previous_states = states{i-1}; %use previous states as input for current layer... 
-                    % need to add weighting mechanism
-                end
-                % collect states of current layer
-                parfor j = 1:individual.num_reservoirs_in_layer(i)
-                        layer_states{j} = getStates(batch_path,individual(i),input_sequence,previous_states,j,config);
-                end
-                % concat states for layer to be used for next layer
-                for j = 1:config.num_reservoirs
-                    states{i} = [states{i} layer_states{j}];
-                end
-            end
             
         otherwise
             states{1} = getStates(batch_path,individual,input_sequence,states{1},1,config);
@@ -74,7 +56,7 @@ end
 
 % get leak states
 if config.leak_on
-    states = getLeakStates(states,individual,input_sequence,config);
+    states = getLeakStates(states,individual);
 end
 
 % concat all states for output weights

@@ -285,7 +285,7 @@ switch(res_type)
             error('Number of graph types does not match number of reservoirs. Add more.')
         end
         
-case {'MM','MM_new'}
+case {'MM','multiMM'}
         % default MM data scaling
         config.preprocess = 'rescale_diff';
         config.preprocess_shift = [0 1]; % range for data
@@ -302,8 +302,8 @@ case {'MM','MM_new'}
         
         % system settings
         config.material_type = {'toy'};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
-        config.crystal_structure = {'fcc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
-        config.unit_cell_size = [2.507];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
+        config.crystal_structure = {''};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
         config.macro_cell_size = [5];                % size of macro cell; an averaging cell over all spins inside
         config.macro_cell_units = {'!nm'};            % units for macro cell size
@@ -317,19 +317,19 @@ case {'MM','MM_new'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
-	config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 1; % otherwise evolve a rectangle
+        config.evolve_geometry = 0;                    % manipulate geomtry
+        config.evolve_poly = 0; % otherwise evolve a rectangle
         config.poly_num = 4; 
-        config.geometry_file =  'custom.geo';                    %add specific geometry file
+        config.geometry_file =  '';                    %add specific geometry file
 
-        
-        %defaults
+        %defaults for different material types - may conflict with multiMM
         for i = 1:length(config.num_nodes)
             config.random_alloy(i) = false;
             config.core_shell(i) = false;
             config.user_structure_file{i} = '';            % if wanting to load a specific strucutre, write file name
             config.evolve_material_density(i) = false;     % whether density can be changed: 'static' or 'dynamic'
             
+            % set params for specific material types
             switch(config.material_type{1})
                 case 'toy'
                     config.unit_cell_size = 3.47;
@@ -370,7 +370,7 @@ case {'MM','MM_new'}
         config.time_step = 100;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
         config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
-        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
+        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
@@ -379,26 +379,30 @@ case {'MM','MM_new'}
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';
-        %         if length(config.num_nodes) < 2
-        %             config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         else
-        %             config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         end
-        
+        config.architecture = 'pipeline';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+
+        % calculate number of reservoirs in total if multilayered system (signified by cell type)
         if iscell(config.num_nodes)
-            
-            for i = 1:length(config.num_nodes) % cycle through layers
-                config.num_reservoirs(i) =   length(config.num_nodes{i});
-                %(i) = sum(config.num_nodes{i});
+            config.num_layers = length(config.num_nodes);
+            for i = 1:config.num_layers 
+                len(i) = length(config.num_nodes{i});
             end
+            config.dummy_node_list = zeros(config.num_layers,max(len));
+            
+            for i = 1:config.num_layers  % cycle through layers
+                config.dummy_node_list(i,1:length(config.num_nodes{i})) = config.num_nodes{i};
+                config.num_res_in_layer(i) = length(config.num_nodes{i});
+                config.total_units_per_layer(i) = sum(config.num_nodes{i});
+            end
+            config.total_units = sum(config.total_units_per_layer);
         end
         
+        % params for multilayered system
         config.add_pipeline_input = 0;
-        config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
-        config.internal_sparsity = 0.1;
+        %config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
+        config.sparsity = 0.1; % input sparsity
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
-        config.connecting_sparsity = 0;
+        config.connecting_sparsity = 0.1; % connecting sparsity
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
 

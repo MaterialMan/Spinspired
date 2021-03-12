@@ -111,6 +111,12 @@ switch(res_type)
         config.mutFcn = @mutateMM;
         config.recFcn = @recombMM;
         
+    case 'multiMM'
+        config.createFcn = @createMultiMM;
+        config.assessFcn = @collectMultiMMStates;
+        config.mutFcn = @mutateMultiMM;
+        config.recFcn = @recombMultiMM;
+        
     case 'GOL'
         config.createFcn = @createGOL;
         config.assessFcn = @assessGOL;

@@ -31,7 +31,7 @@ for pop_indx = 1:config.pop_size
     end
     
     %track total nodes in use
-    population(pop_indx).total_units = 0;
+    population(pop_indx).total_units = config.total_units;
     
     % assign architecture and material details
     population(pop_indx).architecture = config.architecture;
@@ -39,15 +39,11 @@ for pop_indx = 1:config.pop_size
     % iterate through layers
     for layer_indx = 1:config.num_layers
         
-        % iterate through subreservoirs
-        for res_indx = 1:config.num_reservoirs(layer_indx)
+        % iterate through subreservoirs in layer
+        for res_indx = 1:config.num_res_in_layer(layer_indx)
             
-            if config.num_reservoirs(layer_indx) > 1
-                population(pop_indx).layer(layer_indx).core_indx(res_indx) = res_indx;
-            else
-                population(pop_indx).layer(layer_indx).core_indx = pop_indx;
-            end
-            
+             population(pop_indx).layer(layer_indx).core_indx(res_indx) = res_indx;
+
             % material details
             population(pop_indx).layer(layer_indx).material_type{res_indx} = config.material_type{randi([1 length(config.material_type)])};
             population(pop_indx).layer(layer_indx).material_shape{res_indx} = config.material_shape{randi([1 length(config.material_shape)])};
@@ -59,7 +55,7 @@ for pop_indx = 1:config.pop_size
             end
             
             %define num of units
-            population(pop_indx).layer(layer_indx).nodes(res_indx) = config.num_nodes{layer_indx}(res_indx);
+            population(pop_indx).layer(layer_indx).nodes(res_indx) = config.dummy_node_list(layer_indx,res_indx);%config.total_units_per_layer(res_indx);
             
             % check length of params
             if length(config.macro_cell_size) > 1
@@ -87,24 +83,42 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).layer(layer_indx).time_steps_increment = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);%config.time_steps_increment(1);%
             
             %% global params
-            population(pop_indx).layer(layer_indx).input_scaling(res_indx)= 2*config.input_scaler*rand - config.input_scaler;%*(2*rand-1); % not sure about range?
+            population(pop_indx).layer(layer_indx).input_scaling(res_indx)= 2*rand-1;
             population(pop_indx).layer(layer_indx).leak_rate(res_indx) = rand;
             
             %% Input params
             
             % set positions of magnetic sources. Need maxpos > minpos
             [config.cell_grid_x, config.cell_grid_y] = meshgrid(1:1:(population(pop_indx).layer(layer_indx).system_size(res_indx,1)+1)/population(pop_indx).layer(layer_indx).macro_cell_size(res_indx),1:1:(population(pop_indx).layer(layer_indx).system_size(res_indx,2)+1)/population(pop_indx).layer(layer_indx).macro_cell_size(res_indx));
-            population(pop_indx).layer(layer_indx).num_input_loc = population(pop_indx).layer(layer_indx).nodes(res_indx); %population(pop_indx).n_input_units;
+            population(pop_indx).layer(layer_indx).num_input_loc = population(pop_indx).layer(layer_indx).nodes(res_indx); 
             
             population(pop_indx).layer(layer_indx).xy{res_indx} = [config.cell_grid_x(:) config.cell_grid_y(:)];
             
+            % input weights
+            if layer_indx == 1
+                population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
+                    getWeights(config.input_weight_initialisation,...
+                    population(pop_indx).n_input_units + config.bias,...
+                    population(pop_indx).layer(layer_indx).nodes(res_indx),...
+                    config.sparsity);
+            else
+                switch(population(pop_indx).architecture)
+                    case 'pipeline'
+                        population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
+                            getWeights(config.input_weight_initialisation,...
+                            config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction),...
+                            population(pop_indx).layer(layer_indx).nodes(res_indx),...
+                            config.connecting_sparsity);
+                    case 'pipline_IA'
+                        population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
+                            getWeights(config.input_weight_initialisation,...
+                            config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction) + population(pop_indx).n_input_units + config.bias,...
+                            population(pop_indx).layer(layer_indx).nodes(res_indx),...
+                            config.connecting_sparsity);
+                        
+                end
+            end
             
-            % inputweights
-            population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
-                getWeights(config.input_weight_initialisation,...
-                population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                population(pop_indx).n_input_units + config.bias,...
-                config.sparsity);
                         
             % input widths
             if config.input_widths
@@ -160,7 +174,6 @@ for pop_indx = 1:config.pop_size
                 population(pop_indx).layer(layer_indx).material_density(res_indx) = config.material_density;
             end
             
-            population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).layer(layer_indx).nodes(res_indx);
         end
         
     end
@@ -174,17 +187,17 @@ for pop_indx = 1:config.pop_size
 %         config.internal_sparsity);
     
     % cycle through all other connecting matrices
-    for layer_indx = 1:config.num_layers
-        for res_indx = 1:length(population(pop_indx).layer(layer_indx).nodes)
-            for res_indx2 = 1:length(population(pop_indx).layer(layer_indx).nodes)
-                population(pop_indx).W{layer_indx,res_indx} = getWeights(config.internal_weight_initialisation,...
-                    population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                    population(pop_indx).layer(layer_indx).nodes(res_indx2),...
-                    config.internal_sparsity);
-                
-            end
-        end
-    end
+%     for layer_indx = 1:config.num_layers
+%         for res_indx = 1:config.num_res_in_layer
+%             for res_indx2 = 1:config.num_res_in_layer
+%                 population(pop_indx).W{layer_indx,res_indx} = getWeights(config.internal_weight_initialisation,...
+%                     population(pop_indx).layer(layer_indx).nodes(res_indx),...
+%                     population(pop_indx).layer(layer_indx).nodes(res_indx2),...
+%                     config.internal_sparsity);
+%                 
+%             end
+%         end
+%     end
     
     % add rand output weights
     if config.add_input_states

@@ -31,63 +31,57 @@ if ~isempty(batch_path)
         input_sequence = [zeros(size(input_sequence)); input_sequence];
     end
     
-    for layer = 1:config.num_layers
-        for i= 1:config.num_reservoirs
-            if size(input_sequence,1) == 2
-                states{layer,i} = individual.last_state{i};
-            else
-                states{layer,i} = zeros(size(input_sequence,1),individual.layer(layer).nodes(i));
-            end
-        end
-    end
+    % add bia node to input
+    input_sequence = [input_sequence repmat(config.bias,size(input_sequence,1),1)]; % add bias node to input
     
-    %% NOT FINISHED needs layering added
     % collect states of system - depending on architecture type
     switch(config.architecture)
         case 'ensemble'
-            for i = 1:config.num_reservoirs
-                states{layer,i} = getStates(batch_path,individual.layer(layer),input_sequence,states{layer,i},i,config);
+            parfor num_res = 1:config.num_res_in_layer(1)
+                states{num_res} = getStates(batch_path,individual.layer(1),input_sequence,num_res,config);
             end
-        case 'pipeline' % need to finish
+
+        case {'pipeline','pipeline_IA'} % need to finish
             % cycle through layers of pipeline
-            for i = 1:config.num_layers
-                if i == 1 % use inital input for first reservoir
-                    previous_states = states{layer,i};
+            for layer = 1:config.num_layers
+                if layer > 1 % use inital input for first reservoir
+                    if strcmp(config.architecture,'pipeline_IA')
+                        layer_input = [layer_input states{layer-1}];
+                    else
+                        layer_input = states{layer-1}; %use previous states as input for current layer...
+                    end
                 else
-                    previous_states = states{layer,i-1}; %use previous states as input for current layer... 
-                    % need to add weighting mechanism
+                    layer_input = input_sequence; 
                 end
+                    
                 % collect states of current layer
-                parfor j = 1:individual.num_reservoirs_in_layer(i)
-                        layer_states{j} = getStates(batch_path,individual(i),input_sequence,previous_states,j,config);
+                for num_res = 1:config.num_res_in_layer(layer)
+                    %individual.layer(layer).core_indx
+                    layer_states{num_res} = getStates(batch_path,individual.layer(layer),layer_input,num_res,config);
                 end
                 % concat states for layer to be used for next layer
-                for j = 1:config.num_reservoirs
-                    states{i} = [states{i} layer_states{j}];
+                states{layer} = [];
+                for j = 1:config.num_res_in_layer(layer)
+                    states{layer} = [states{layer} layer_states{j}];
                 end
+                
             end
             
         otherwise
-            states{1} = getStates(batch_path,individual,input_sequence,states{1},1,config);
+            states{1} = getStates(batch_path,individual,input_sequence,1,config);
     end
 
 else
-    states{1} = zeros(size(input_sequence,1),sum(config.num_nodes) +individual.n_input_units);
-end
-
-
-% get leak states
-if config.leak_on
-    states = getLeakStates(states,individual,input_sequence,config);
+    states{1} = zeros(size(input_sequence,1), config.total_units + individual.n_input_units);
 end
 
 % concat all states for output weights
 final_states = [];
-for i= 1:config.num_reservoirs
-    final_states = [final_states states{i}];
+for layer= 1:config.num_layers
+    final_states = [final_states states{layer}];
     
     %assign last state variable
-    individual.last_state{i} = states{i}(end,:);
+    individual.last_state{layer} = states{layer}(end,:);
 end
 
 % concat input states
@@ -101,18 +95,26 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
+% if wanting to tidy directories as the algorithm runs
+% if individual.core_indx(i) ~= 0 
+%     % clean up files
+%     rmpath(batch_path);
+%     
+%     try rmdir(batch_path,'s');
+%         
+%     catch
+%         % warning('Error: Did not remove folder but contiued.\n')
+%     end
+% end
 
 end
 
 
 %% assess ensemble reservoirs
-function states = getStates(batch_path,individual,input_sequence,previous_states,i,config)
-    % iterate through subreservoirs
-   % parfor i = 1:config.num_reservoirs
-        
-        %% find or assign new cores
+function states = getStates(batch_path,individual,input_sequence,indx,config)     
+        % find or assign new cores
         % check cores on path
-        current_core = strcat('core',num2str(individual.core_indx(i)));
+        current_core = strcat('core',num2str(individual.core_indx(indx)));
         core_path = strcat(batch_path,'/Cores/',current_core,'/',current_core,'.txt');
         core_check = exist(core_path,'file'); % will be 7 if folder exists
         
@@ -136,13 +138,13 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
         end
         
         % change/update source/input files
-        changeSourceFile(file_path, individual, input_sequence, i, previous_states,config)
+        changeSourceFile(file_path, individual, input_sequence, indx,config)
         
         % change material files
-        changeMaterialFile(file_path, individual, i, config);
+        changeMaterialFile(file_path, individual, indx, config);
         
         % change system files
-        changeInputFile(file_path, individual, input_sequence, i, config);
+        changeInputFile(file_path, individual, input_sequence, indx, config);
         
         % rewrite files and run
         c1 = strcat('mv "',file_path,'material_file" "',file_path,'material.mat"');
@@ -155,8 +157,8 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
         
         if status == 0 % if run successful, read reservoir_output file and store in final_states matrix
             output_file = fopen(strcat(file_path,'reservoir_output.txt'), 'r');
-            formatSpec = [repmat('%f ',1,individual.nodes(i))];
-            size_states = [individual.nodes(i) Inf];
+            formatSpec = [repmat('%f ',1,individual.nodes(indx))];
+            size_states = [individual.nodes(indx) Inf];
             tmp_states = fscanf(output_file,formatSpec,size_states)';
             fclose(output_file);
             
@@ -172,12 +174,12 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             states = [];
             
             % use only the desired direction(s)
-%             config.preprocess = 'rescale_diff';
-%             config.preprocess_shift = [0 1];
-%             x_states = featureNormailse(x_states,config);
-%             y_states = featureNormailse(y_states,config);
-%             z_states = featureNormailse(z_states,config);
-%             
+            config.preprocess = 'rescale_diff';
+            config.preprocess_shift = [0 1];
+            x_states = featureNormailse(x_states,config);
+            y_states = featureNormailse(y_states,config);
+            z_states = featureNormailse(z_states,config);
+             
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
                     case 'x'
@@ -234,27 +236,18 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             end
             
         else
-            states = zeros(length(input_sequence),config.num_nodes(i)*length(config.read_mag_direction));
+            states = zeros(length(input_sequence),config.num_nodes(indx)*length(config.read_mag_direction));
             fprintf('simulation failed\n')
             cmdout
+        end    
+                          
+        if config.leak_on
+            states = getLeakStates(states,individual);
         end
-        
-        if individual.core_indx(i) ~= 0 && config.num_reservoirs == 1
-            % clean up files
-            rmpath(file_path);
-            
-            try rmdir(file_path,'s');
-                
-            catch
-               % warning('Error: Did not remove folder but contiued.\n')
-            end
-        end
-    %end
-    
 end
 
 %% change input signal to vampire simulator
-function changeSourceFile(file_path, individual, input_sequence, indx, previous_states,config)
+function changeSourceFile(file_path, individual, input_sequence, indx,config)
 
 input_file = fopen(strcat(file_path,'sourcefield.txt'), 'w');
 
@@ -269,26 +262,7 @@ fprintf(input_file,strjoin(s), inputspos');
 % write input values for each location
 timesteps = 0:size(input_sequence, 1)-1;
 
-switch(individual.architecture)
-    case 'ensemble'
-        input = individual.input_scaling(indx)*(individual.input_weights{indx}*[input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]')';
-        
-    case 'pipeline_IA'
-        if indx < 2
-            input = individual.input_scaling(indx)*(individual.input_weights{indx}*[input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]')';
-        else
-            input = previous_states(:,1:end-individual.n_input_units*(size(previous_states,2) > individual.nodes(indx))) * (individual.input_scaling(indx)*individual.input_weights{indx})...
-                + individual.W{indx-1,indx}*individual.W_scaling(indx-1,indx)*previous_states;
-        end
-    case 'pipeline'
-        if indx < 2
-            input = individual.input_scaling(indx)*(individual.input_weights{indx}*[input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]')';
-        else
-            input =  previous_states(:,1:end-individual.n_input_units*(size(previous_states,2) > individual.nodes(indx))) * (individual.W_scaling(indx-1,indx)*individual.W{indx-1,indx});
-        end
-    otherwise
-        input = individual.input_scaling(1)*(individual.input_weights{1}*[input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]')';
-end
+input = config.input_scaler*(individual.input_scaling(indx)*(input_sequence*individual.input_weights{indx}));
 
 % change input widths
 node_grid_size = sqrt(individual.nodes(indx));
