@@ -23,13 +23,13 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'multiMM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = {49;49};                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'RoRmin';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
+config.num_nodes = [repmat(25,1,4)];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                         % num of tests/runs
-config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 config.total_gens = 1000;                    % number of generations to evolve
 config.mut_rate = 0.05;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
@@ -38,7 +38,7 @@ config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'narma_10';          % Task to evolve for
+config.dataset = 'henon_map';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -227,7 +227,7 @@ for test = 1:config.num_tests
             
             % print info
             if (mod(gen,config.gen_print) == 0) 
-                fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4f, Loser: %.4f, Best Error: %.4f \n',gen,toc/config.gen_print,getError(config.error_to_check,population(winner)),getError(config.error_to_check,population(loser)),best(test,gen));
+                fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4f, Loser: %.4f, Best Error: %.4f \n',gen,toc/config.gen_print,getError(config.error_to_check,population(winner)),getError(config.error_to_check,population(loser)),getError('test',population(best_indv(test,gen))));
                 tic;
                 if best_indv(gen) ~= last_best
                     % plot reservoir structure, task simulations etc.

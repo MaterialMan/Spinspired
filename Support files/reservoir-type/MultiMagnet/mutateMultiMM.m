@@ -82,8 +82,8 @@ for layer = 1: config.num_layers
         end
     end
     
-    minimum_weight = 0.1; % anything less than this will be set to zero
-    prob_2_del = 0.5;
+    minimum_weight = 0.01; % anything less than this will be set to zero
+    prob_2_del = 0.25;
 
     %% cycle through all sub-reservoirs
     for i = 1:config.num_res_in_layer(layer)
@@ -109,26 +109,26 @@ for layer = 1: config.num_layers
             offspring.layer(layer).input_widths{i} = reshape(input_widths,size(offspring.layer(layer).input_widths{i}));
         end
         
-        if config.random_alloy(i) || config.core_shell(i)
-            interfacial_exchange = offspring.layer(layer).interfacial_exchange(i);
-            pos = randperm(length(interfacial_exchange),sum(rand(length(interfacial_exchange),1) < config.mut_rate));
-            interfacial_exchange(pos) = mutateWeight(interfacial_exchange(pos),config.exchange_parameter,config);
-            offspring.layer(layer).interfacial_exchange(i) = reshape(interfacial_exchange,size(offspring.layer(layer).interfacial_exchange(i)));
-        end
-        
-        if config.random_alloy(i)
-            alloy_fraction = offspring.layer(layer).alloy_fraction(i);
-            pos = randperm(length(alloy_fraction),sum(rand(length(alloy_fraction),1) < config.mut_rate));
-            alloy_fraction(pos) = mutateWeight(alloy_fraction(pos),[0 1],config);
-            offspring.layer(layer).alloy_fraction = reshape(alloy_fraction,size(offspring.layer(layer).alloy_fraction));
-        end
-        
-        if config.core_shell(i)
-            shell_size = offspring.layer(layer).shell_size(i,2);
-            pos = randperm(length(shell_size),sum(rand(length(shell_size),1) < config.mut_rate));
-            shell_size(pos) = mutateWeight(shell_size(pos),[0 1],config);
-            offspring.layer(layer).shell_size(i,2) = reshape(shell_size,size(offspring.layer(layer).shell_size(i,2)));
-        end
+%         if config.random_alloy(i) || config.core_shell(i)
+%             interfacial_exchange = offspring.layer(layer).interfacial_exchange(i);
+%             pos = randperm(length(interfacial_exchange),sum(rand(length(interfacial_exchange),1) < config.mut_rate));
+%             interfacial_exchange(pos) = mutateWeight(interfacial_exchange(pos),config.exchange_parameter,config);
+%             offspring.layer(layer).interfacial_exchange(i) = reshape(interfacial_exchange,size(offspring.layer(layer).interfacial_exchange(i)));
+%         end
+%         
+%         if config.random_alloy(i)
+%             alloy_fraction = offspring.layer(layer).alloy_fraction(i);
+%             pos = randperm(length(alloy_fraction),sum(rand(length(alloy_fraction),1) < config.mut_rate));
+%             alloy_fraction(pos) = mutateWeight(alloy_fraction(pos),[0 1],config);
+%             offspring.layer(layer).alloy_fraction = reshape(alloy_fraction,size(offspring.layer(layer).alloy_fraction));
+%         end
+%         
+%         if config.core_shell(i)
+%             shell_size = offspring.layer(layer).shell_size(i,2);
+%             pos = randperm(length(shell_size),sum(rand(length(shell_size),1) < config.mut_rate));
+%             shell_size(pos) = mutateWeight(shell_size(pos),[0 1],config);
+%             offspring.layer(layer).shell_size(i,2) = reshape(shell_size,size(offspring.layer(layer).shell_size(i,2)));
+%         end
         
         periodic_boundary = offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary));
         pos = randperm(length(periodic_boundary),sum(rand(length(periodic_boundary),1) < config.mut_rate));

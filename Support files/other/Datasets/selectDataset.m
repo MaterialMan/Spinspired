@@ -118,13 +118,19 @@ switch config.dataset
         input_sequence = (input_sequence*2)*0.2;
         
     case 'henon_map' % input error > 1 - good task
-        
-        err_type = 'NMSE';
-        sequence_length= 3000;
+%         
+       % err_type = 'NMSE';
+%         sequence_length= 8000;
+%         stdev = 0.05;
+%         config.train_fraction=0.375;    config.val_fraction=0.375;    config.test_fraction=0.25;
+%         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
+
+        wash_out = 200;
+        err_type = 'NRMSE_zhong';
+        sequence_length= 2000;
         stdev = 0.05;
-        config.train_fraction=0.5;    config.val_fraction=0.2;    config.test_fraction=0.2;
+        config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
-        
         
     case 'multi_signal'
         
@@ -1029,12 +1035,12 @@ switch config.dataset
         case 'MC'
         
         err_type = 'MC';
-        config.train_fraction=0.6;    config.val_fraction=0;    config.test_fraction=0.4;
-        %wash_out = 0;
+        config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
+        wash_out = 50;
         
-        data_length = 500 + wash_out*2;
+        data_length = 1000 + wash_out*2;
         
-        n_internal_units = sum(config.num_nodes);
+        n_internal_units = config.total_units;%sum(config.num_nodes);
         
         n_output_units = n_internal_units*2;
         n_input_units = 1;
@@ -1042,7 +1048,7 @@ switch config.dataset
         data_sequence = 2*rand(n_input_units,data_length+1+n_output_units)-1;
         
         % rescale for each reservoir
-        [data_sequence] = featureNormailse(data_sequence,config);
+        %[data_sequence] = featureNormailse(data_sequence,config);
         
         if config.discrete %strcmp(config.res_type,'elementary_CA') || strcmp(config.res_type,'2d_CA') || strcmp(config.res_type,'RBN')
             data_sequence = floor(heaviside(data_sequence));

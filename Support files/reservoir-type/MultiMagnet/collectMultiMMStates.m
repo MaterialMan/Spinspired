@@ -55,8 +55,8 @@ if ~isempty(batch_path)
                 end
                     
                 % collect states of current layer
-                for num_res = 1:config.num_res_in_layer(layer)
-                    %individual.layer(layer).core_indx
+                parfor num_res = 1:config.num_res_in_layer(layer)
+                    %individual.layer(layer).core_indx = num_res
                     layer_states{num_res} = getStates(batch_path,individual.layer(layer),layer_input,num_res,config);
                 end
                 % concat states for layer to be used for next layer
@@ -242,7 +242,7 @@ function states = getStates(batch_path,individual,input_sequence,indx,config)
         end    
                           
         if config.leak_on
-            states = getLeakStates(states,individual);
+            states = getLeakStates(states,individual,indx);
         end
 end
 
@@ -328,18 +328,18 @@ while ~feof(input_source)
     end
     
     %core shell details
-    if contains(l,'#create:sphere') && config.core_shell(indx)
-        l = sprintf('create:sphere');
-    end
-    if contains(l,'#dimensions:particle-size') && (config.core_shell(indx) || ~strcmp(individual.material_shape{1},'film'))
-        l = sprintf('dimensions:particle-size = %d !nm',individual.particle_size(indx));
-    end
-    
-    %create shape
-    if contains(l,'#create:sphere') && ~strcmp(individual.material_shape{1},'film')
-        l = sprintf(strcat('create:',individual.material_shape{1}));
-    end
-    
+%     if contains(l,'#create:sphere') && config.core_shell(indx)
+%         l = sprintf('create:sphere');
+%     end
+%     if contains(l,'#dimensions:particle-size') && (config.core_shell(indx) || ~strcmp(individual.material_shape{1},'film'))
+%         l = sprintf('dimensions:particle-size = %d !nm',individual.particle_size(indx));
+%     end
+%     
+%     %create shape
+%     if contains(l,'#create:sphere') && ~strcmp(individual.material_shape{1},'film')
+%         l = sprintf(strcat('create:',individual.material_shape{1}));
+%     end
+%     
     % system dimensions
     if contains(l,'dimensions:unit-cell-size')
         l = sprintf('dimensions:unit-cell-size = %.3f %s', config.unit_cell_size(1),config.unit_cell_units{1});

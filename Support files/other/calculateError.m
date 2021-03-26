@@ -47,6 +47,9 @@ switch(config.err_type)
     case 'NRMSE_henon'
         err = sqrt(mean((system_output-desired_output).^2))/(max(max(desired_output))-min(min(desired_output))); %Rodan paper
         
+    case 'NRMSE_zhong'
+        err = sqrt(mean(norm(system_output-desired_output).^2)/mean(norm(desired_output-mean(desired_output)).^2)); %Rodan paper
+        
     case 'NMSE'
         err= mean((desired_output-system_output).^2)/var(desired_output);
         

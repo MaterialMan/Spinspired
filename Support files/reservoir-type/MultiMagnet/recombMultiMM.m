@@ -125,31 +125,31 @@ for layer = 1: config.num_layers
         end
         
         % interfacial exchange
-        if config.random_alloy(i) || config.core_shell(i)
-            W= winner.layer(layer).interfacial_exchange(i);
-            L = loser.layer(layer).interfacial_exchange(i);
-            pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
-            L(pos) = W(pos);
-            loser.layer(layer).interfacial_exchange(i) = reshape(L,size(loser.layer(layer).interfacial_exchange(i)));
-        end
-        
-        if config.random_alloy(i)
-            % random alloy params
-            W= winner.layer(layer).alloy_fraction(i);
-            L = loser.layer(layer).alloy_fraction(i);
-            pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
-            L(pos) = W(pos);
-            loser.layer(layer).alloy_fraction(i) = reshape(L,size(loser.layer(layer).alloy_fraction(i)));
-        end
-        
-        if config.core_shell(i)
-            % core shell params
-            W= winner.layer(layer).shell_size(i,2);
-            L = loser.layer(layer).shell_size(i,2);
-            pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
-            L(pos) = W(pos);
-            loser.layer(layer).shell_size(i,2) = reshape(L,size(loser.layer(layer).shell_size(i,2)));
-        end
+%         if config.random_alloy(i) || config.core_shell(i)
+%             W= winner.layer(layer).interfacial_exchange(i);
+%             L = loser.layer(layer).interfacial_exchange(i);
+%             pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+%             L(pos) = W(pos);
+%             loser.layer(layer).interfacial_exchange(i) = reshape(L,size(loser.layer(layer).interfacial_exchange(i)));
+%         end
+%         
+%         if config.random_alloy(i)
+%             % random alloy params
+%             W= winner.layer(layer).alloy_fraction(i);
+%             L = loser.layer(layer).alloy_fraction(i);
+%             pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+%             L(pos) = W(pos);
+%             loser.layer(layer).alloy_fraction(i) = reshape(L,size(loser.layer(layer).alloy_fraction(i)));
+%         end
+%         
+%         if config.core_shell(i)
+%             % core shell params
+%             W= winner.layer(layer).shell_size(i,2);
+%             L = loser.layer(layer).shell_size(i,2);
+%             pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+%             L(pos) = W(pos);
+%             loser.layer(layer).shell_size(i,2) = reshape(L,size(loser.layer(layer).shell_size(i,2)));
+%         end
         
         % boundary params
         W= winner.layer(layer).periodic_boundary(i,logical(config.periodic_boundary));

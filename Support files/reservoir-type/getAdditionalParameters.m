@@ -30,7 +30,7 @@ config.feedback_scaling = 1;
 config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.activ_list = {@linearNode,@tanh};     % what activations are in use
+config.activ_list = {@tanh};     % what activations are in use
 config.multi_activ = length(config.activ_list) > 1;                      % use different activation funcs
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
@@ -75,17 +75,11 @@ switch(res_type)
         config.mut_rate_connecting = 0.001;
         config.prune_rate = 0.00;
         
-        config.RoR_structure = 0;
-        if config.RoR_structure
-            config.graph_type = {'Ring'};
-            % Define substrate. Add graph type to cell array for multi-reservoirs
-            % Examples: 'Hypercube','Cube'
-            % 'Torus','L-shape','Bucky','Barbell','Ring',
-            % 'basicLattice','partialLattice','fullLattice','basicCube','partialCube','fullCube',ensembleLattice,ensembleCube,ensembleShape
-            config.self_loop = [0];               % give node a loop to self. Must be defined as array.
-            % node details and connectivity
-            [config,config.num_nodes] = getShape(config);
-        end
+        config.RoR_structure = 'Graph';
+        config.graph_type = {'Ring'}; % if using 'Graph' as RoR_structure
+        config.total_units = sum(config.num_nodes);
+        config.mulit_leak_rate = 0;
+        
         
     case 'ELM'
         config.leak_on = 0;                           % add leak states
@@ -370,7 +364,7 @@ case {'MM','multiMM'}
         config.time_step = 100;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
         config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
-        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
+        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
@@ -379,7 +373,7 @@ case {'MM','multiMM'}
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'pipeline';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
 
         % calculate number of reservoirs in total if multilayered system (signified by cell type)
         if iscell(config.num_nodes)
@@ -402,7 +396,7 @@ case {'MM','multiMM'}
         %config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
         config.sparsity = 0.1; % input sparsity
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
-        config.connecting_sparsity = 0.1; % connecting sparsity
+        config.connecting_sparsity = 0.001; % connecting sparsity
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
 
