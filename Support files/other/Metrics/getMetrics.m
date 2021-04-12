@@ -10,7 +10,7 @@ config.reg_param = 10e-9;
 config.wash_out = 50;
 metrics_type =  config.metrics;
 num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
-MC_num_timesteps = 500 + config.wash_out*2;
+MC_num_timesteps = 1000 + config.wash_out*2;
 n_input_units = individual.n_input_units;
 
 for metric_item = 1:length(config.metrics)

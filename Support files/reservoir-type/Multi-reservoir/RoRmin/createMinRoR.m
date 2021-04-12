@@ -89,12 +89,11 @@ for pop_indx = 1:config.pop_size
         case 'feedback_only'
             population(pop_indx).test_mask{2} = tril((population(pop_indx).W_scaling == 0));
         case 'Graph'
-            
             config.self_loop = [0];               % give node a loop to self. Must be defined as array.
             % node details and connectivity
             t_config = config;
             
-            % error checks
+            % error checks - currently, all subreservoirs must be equal size
             if contains(config.graph_type,'Lattice')
                 if (sqrt(length(config.num_nodes)) ~= round(sqrt(length(config.num_nodes))))
                     error('\n Number of nodes needs to be a square number. \n')
@@ -104,8 +103,7 @@ for pop_indx = 1:config.pop_size
             else
                 t_config.num_nodes = size(config.num_nodes,2);
             end
-            
-            
+
             [t_config,~] = getShape(t_config);
             % find indices for graph weights
             graph_indx = logical(full(adjacency(t_config.G{1})));
@@ -115,17 +113,7 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).test_mask{2} = (population(pop_indx).W_scaling == 0);
     end
     
-%     if config.RoR_structure
-%         % find indices for graph weights
-%         graph_indx = logical(full(adjacency(config.G{1})));
-%         % assign connectivity
-%         population(pop_indx).W_switch = graph_indx;
-%     else
-%         population(pop_indx).W_switch = round(rand(config.num_reservoirs));
-%     end
 
-
-    
     % add rand output weights
     if config.add_input_states
         output_units = population(pop_indx).total_units + population(pop_indx).n_input_units;
@@ -165,6 +153,7 @@ switch(weight_initialisation)
 end
 end
 
+% currently, all subreservoirs must be equal size
 function weights = getArchitectureWeights(graph_indx,config)
 
 weights = zeros(config.total_units);

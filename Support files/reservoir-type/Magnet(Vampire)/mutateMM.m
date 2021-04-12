@@ -79,18 +79,35 @@ if config.evolve_geometry
     end
 end
 
+%define minimum weight
+minimum_weight = 0.01; % anything less than this will be set to zero
+prob_2_del = 0.25;
+
 %% cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
     
     % input weights
-    input_weights = offspring.input_weights{i}(:);
-    pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
-    offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
-    
-    % input weight check
-    input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
+%     input_weights = offspring.input_weights{i}(:);
+%     pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
+%     input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
+%     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
+%     
+%     % input weight check
+%     input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
      
+    % mutate all input weights
+    input_weights = offspring.input_weights{i}(:);
+    indices = find(input_weights); % find outputs in use
+    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
+    if rand < prob_2_del
+        input_weights(indices(pos)) = 0; % delete weight
+    end
+    new_pos = randperm(length(input_weights),length(pos)); % find new positions to change
+    input_weights(new_pos) = mutateWeight(input_weights(new_pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
+    input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0;
+    offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights));
+
+
     % width of inputs
     if config.input_widths
         input_widths = offspring.input_widths{i}(:);

@@ -4,6 +4,10 @@
 %       config.num_nodes = {layer1;layer2; ... etc};
 % Or,
 %       config.num_nodes = {[25,10,50];[10,5]};
+%
+% This allows uneven number of reservoirs in each layer, e.g. acting as
+% tree network. Alternatively, a pipeline (deep) network can be defined (e.g.
+% {[],[],[],..} (mulitple layers) or an ensemble, e.g {[10 10 10 10]} (one layer only)
 
 function population = createMultiMM(config)
 

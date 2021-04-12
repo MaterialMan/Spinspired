@@ -3,6 +3,9 @@
 function [config] = getAdditionalParameters(config)
 
 %% Set Default parameters
+% if iscell(config.num_nodes)
+% config.total_units = sum(config.num_nodes);
+
 config.mutate_type = 'gaussian';            %options: 'gaussian', 'uniform'. Type of distribution new weight is chosen from.
 config.num_reservoirs = length(config.num_nodes);% num of subreservoirs. Default ESN should be 1.
 config.leak_on = 1;                           % add leak states
@@ -76,7 +79,7 @@ switch(res_type)
         config.prune_rate = 0.00;
         
         config.RoR_structure = 'Graph';
-        config.graph_type = {'Ring'}; % if using 'Graph' as RoR_structure
+        config.graph_type = {'fullLattice'}; % if using 'Graph' as RoR_structure
         config.total_units = sum(config.num_nodes);
         config.mulit_leak_rate = 0;
         
@@ -361,9 +364,9 @@ case {'MM','multiMM'}
         config.interfacial_exchange = [-25e-21, 25e-21];
         
         %simulation params
-        config.time_step = 100;                    % simulation/itegrator time-step
+        config.time_step = 10;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
-        config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
+        config.time_steps_increment = [1000 1000];    % time step to apply input; e.g. 100 or 1000
         config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
