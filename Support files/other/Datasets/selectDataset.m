@@ -9,23 +9,24 @@ classification_data = 0;
 wash_out = 50;
 
 rng(1,'twister');
-    
+
 switch config.dataset
     
     %% test data
     case 'test_pulse'
         err_type = 'NMSE';
-        wash_out =0;
-        sequence_length = 300;
+        wash_out =100;
+        sequence_length = 900;
         config.train_fraction= 1/3;    config.val_fraction= 1/3;    config.test_fraction= 1/3;
         
         input_sequence = zeros(sequence_length,1);
         
-        for i=1:sequence_length
-            if mod(i,30) == 0
-                input_sequence(i) = 1;
-            end
-        end
+        input_sequence([200,400,600]) = 1;
+        %         for i=1:sequence_length
+        %             if mod(i,30) == 0
+        %                 input_sequence(i) = 1;
+        %             end
+        %         end
         
         ahead  = 1;
         output_sequence = input_sequence(1:end-ahead);
@@ -43,12 +44,46 @@ switch config.dataset
         output_sequence = input_sequence(1:end-ahead);
         input_sequence = input_sequence(ahead+1:end);
         
+    case 'test_sine'
+        err_type = 'NMSE';
+        wash_out =50;
+        config.train_fraction=0.5;    config.val_fraction=0.25;    config.test_fraction=0.25;
+        
+        sequence_length = 500;
+        
+        freq = 1000;
+        T = 100*(1/freq);
+        fprintf('Freq: %d Hz\n',freq);
+        config.Fs = 20000; %per channel
+        step = 1/config.Fs;
+        t = 0:step:T-step;
+        amplitude = 1;
+        t = t(:,1:sequence_length);
+        
+        % sinewave input
+        input_sequence=[];
+        input_sequence(:,1) = [zeros(1,10) amplitude*sin(2*pi*freq*t)];
+        output_sequence = input_sequence;
+        
+    case 'step_response'
+        err_type = 'NMSE';
+        wash_out =0;
+        sequence_length = 1000;
+        config.train_fraction= 0.5;    config.val_fraction= 0;    config.test_fraction= 0.5;
+        
+        input_sequence = zeros(sequence_length,1);
+        input_sequence([10:500 510:end]) = 1;
+        
+        input_sequence = input_sequence(1:sequence_length);
+        ahead  = 1;
+        output_sequence = input_sequence(1:end-ahead);
+        input_sequence = input_sequence(ahead+1:end);
         %% system modelling and chaotic systems
     case 'secondorder_task' %best 3.61e-3
         
         err_type = 'NMSE';
         
-        sequence_length = 1500;
+        sequence_length = 1000;
         config.train_fraction=0.5;    config.val_fraction=0.25;    config.test_fraction=0.25;
         
         u = rand(sequence_length,1)/2;
@@ -119,10 +154,10 @@ switch config.dataset
         
     case 'henon_map' % input error > 1 - good task
         
-        err_type = 'NMSE';
-        sequence_length= 3000;
+        err_type = 'NRMSE_zhong';
+        sequence_length= 2000;
         stdev = 0.05;
-        config.train_fraction=0.5;    config.val_fraction=0.2;    config.test_fraction=0.2;
+        config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
         
         
@@ -294,10 +329,23 @@ switch config.dataset
         config.train_fraction=1;    config.val_fraction=0;    config.test_fraction=0;
         wash_out =0;
         
-        data_length = 1e3; T = 100; h = 0.001;
+        data_length = 1000; T = 50; h = 0.1;
         [x,y, z] = createLorenz(28, 10, 8/3, T, h, data_length);  % roughly 100k datapoints
         input_sequence= [1,1,1 ;zeros(data_length-1,3)];
         output_sequence= [x, y, z];
+        
+    case 'lorenz_pred'
+        err_type = 'NMSE';
+        config.train_fraction=0.5;    config.val_fraction=0.25;    config.test_fraction=0.25;
+        wash_out =0;
+        
+        data_length = 1000; T = 50; h = 0.1;
+        [x,y, z] = createLorenz(28, 10, 8/3, T, h, data_length);  % roughly 100k datapoints
+        
+        data = [x, y, z];
+        ahead = 1;
+        input_sequence = data(1:data_length-ahead,:);
+        output_sequence = data(ahead+1:data_length,:);
         
     case 'attractor' %reconstruct lorenz attractor
         err_type = 'NMSE';
@@ -1026,7 +1074,7 @@ switch config.dataset
         output_sequence = [r(:) g(:) b(:)];
         
         %% Metrics
-        case 'MC'
+    case 'MC'
         
         err_type = 'MC';
         config.train_fraction=0.6;    config.val_fraction=0;    config.test_fraction=0.4;
@@ -1052,7 +1100,7 @@ switch config.dataset
         
         for i = 1:n_output_units
             output_sequence(:,i) = data_sequence(n_output_units+1-i:data_length+n_output_units-i);
-        end              
+        end
 end
 
 if classification_data

@@ -27,7 +27,7 @@ x0 = [1; 1; 1];
 % ode45 method
 eps = 0.000001;
 options = odeset('RelTol',eps,'AbsTol',[eps eps eps/10]);
-sol = ode45(@f, 0:h:T, x0,options);
+sol = ode45(@f, 0:h:T, x0, options);
 t = linspace(0,T,data_points);
 X_ode = deval(sol,t)';
 

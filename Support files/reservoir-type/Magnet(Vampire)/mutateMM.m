@@ -101,6 +101,7 @@ for i = 1:config.num_reservoirs
     end
     
     % hidden weights
+    if config.num_reservoirs > 1
     for j = 1:config.num_reservoirs
         switch(offspring.architecture)
             case 'pipeline'
@@ -115,7 +116,7 @@ for i = 1:config.num_reservoirs
         
         offspring.connectivity(i,j) = nnz(offspring.W{i,j})/offspring.total_units.^2;
     end
-    
+    end
     
     if config.random_alloy(i) || config.core_shell(i)
         interfacial_exchange = offspring.interfacial_exchange(i);

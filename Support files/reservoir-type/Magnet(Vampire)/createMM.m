@@ -89,7 +89,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).time_steps_increment = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);%config.time_steps_increment(1);%
         
         %% global params
-        population(pop_indx).input_scaling(res_indx)= 2*config.input_scaler*rand - config.input_scaler;%*(2*rand-1); % not sure about range?
+        population(pop_indx).input_scaling(res_indx)= 2*rand-1;%*(2*rand-1); % not sure about range?
         population(pop_indx).leak_rate(res_indx) = rand;
         
         %% Input params
@@ -226,7 +226,7 @@ for pop_indx = 1:config.pop_size
                     % no connectivity
                     population(pop_indx).connectivity(res_indx,j) = 0;
                     population(pop_indx).W_scaling(res_indx,j) = 0;
-                    population(pop_indx).W{res_indx,j} = zeros(population(pop_indx).nodes(res_indx), population(pop_indx).nodes(j));
+%                    population(pop_indx).W{res_indx,j} = zeros(population(pop_indx).nodes(res_indx), population(pop_indx).nodes(j));
             end
         end
         

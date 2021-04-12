@@ -47,17 +47,24 @@ else
     reg_weights=[];
     reg_param = [10e-1 10e-3 10e-5 10e-7 10e-9 10e-11];
     
+    % find states in use
+    in_use = (sum(train_states)) ~= 0;
+    temp_states = train_states(:,in_use);
+    temp_weights = zeros(size(individual.output_weights));
+    
     for i = 1:length(reg_param)
         %Train: tanspose is inversed compared to equation
-        output_weights = train_output_sequence(config.wash_out+1:end,:)'*train_states*inv(train_states'*train_states + reg_param(i)*eye(size(train_states'*train_states)));
-        
+        %output_weights = train_output_sequence(config.wash_out+1:end,:)'*train_states*inv(train_states'*train_states + reg_param(i)*eye(size(train_states'*train_states)));
+        output_weights = train_output_sequence(config.wash_out+1:end,:)'*temp_states*inv(temp_states'*temp_states + reg_param(i)*eye(size(temp_states'*temp_states)));
+
         % Calculate trained output Y
-        output_train_sequence = train_states*output_weights';
+        %output_train_sequence = train_states*output_weights';
+        output_train_sequence = temp_states*output_weights';
         reg_train_error(i,:)  = calculateError(output_train_sequence,train_output_sequence,config);
         
         % Calculate trained output Y
         if config.val_fraction > 0
-            output_val_sequence = val_states*output_weights';
+            output_val_sequence = val_states(:,in_use)*output_weights';
             reg_val_error(i,:)  = calculateError(output_val_sequence,val_output_sequence,config);
         end
         reg_weights(i,:,:) =output_weights';
@@ -70,8 +77,12 @@ else
         [~, reg_indx]= min(sum(reg_train_error,2));
         individual.val_error = 0;
     end
+    
+    
+    temp_weights(in_use,:) = reshape(reg_weights(reg_indx,:,:),size(reg_weights,2),size(reg_weights,3));
+        
     individual.train_error = sum(reg_train_error(reg_indx,:));
-    individual.output_weights =reshape(reg_weights(reg_indx,:,:),size(reg_weights,2),size(reg_weights,3));
+    individual.output_weights = temp_weights;%reshape(reg_weights(reg_indx,:,:),size(reg_weights,2),size(reg_weights,3));
     
     %remove NaNs
     individual.output_weights(isnan(individual.output_weights)) = 0;
@@ -95,7 +106,8 @@ if config.test_fraction > 0
             test_states = config.assessFcn(individual,config.test_input_sequence,config,test_output_sequence);
     end
     
-    test_sequence = test_states*individual.output_weights;
+   % test_sequence = test_states*individual.output_weights;
+    test_sequence = test_states(:,in_use)*individual.output_weights(in_use,:);
     individual.test_error = sum(calculateError(test_sequence,test_output_sequence,config));
 else
     individual.test_error = 0;

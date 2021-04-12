@@ -330,7 +330,7 @@ case {'MM','MM_new'}
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
         config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 0; % otherwise evolve a rectangle
+        config.evolve_poly = 0;                         % otherwise evolve a rectangle
         config.poly_num = 4; 
         config.geometry_file = 'custom.geo';                    %add specific geometry file
 
@@ -372,7 +372,7 @@ case {'MM','MM_new'}
         config.damping_parameter = [0.001, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [6.69e-24, 6.69e-24];   % 1e-26 to 1e-22 OR 'dynamic' | typical value 1e-24
         config.exchange_parameter = [6.064e-21, 6.064e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
-        config.magmoment_parameter = [1.72, 1.72];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
+        config.magmoment_parameter = [1.72, 1.72];            % 1 (<1muB can have intergration problems) to 10 | typical value 1.4
         config.applied_field_strength = [0,0];          % how many tesla (T)
         config.initial_spin_direction = {'1,0,0'};      % assign initial spin direction of material as a string. Add more cells for more materials.
         
@@ -407,7 +407,8 @@ case {'MM','MM_new'}
         config.connecting_sparsity = 0;
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
-
+        config.total_units  = config.num_nodes*length(config.read_mag_direction);
+        
     otherwise
         
 end

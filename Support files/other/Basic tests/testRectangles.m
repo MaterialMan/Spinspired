@@ -21,7 +21,7 @@ config = selectReservoirType(config);   % collect function pointers for the sele
 config.discrete = 0;               % select '1' for binary input for discrete systems
 config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
 config.dataset = 'narma_10';          % Task to evolve for
-config.figure_array = [figure];
+config.figure_array = [figure figure];
 config.preprocess ='';
 
 config.metrics = {'KR','linearMC'}; 
@@ -41,7 +41,9 @@ config.pop_size = 1;                       % initail population size. Note: this
 config.test = 1;
 
 %% 
+task_type = 0; % 1:tasks, 0: metrics
 base_size = 100;
+config.total_units = base_size*length(config.read_mag_direction);
 shape_list = [2 4 5 10;...
               50 25 20 10]';
           
@@ -51,9 +53,10 @@ for shape = 1:size(shape_list,1)
     default_pop = config.createFcn(config);
 
     mask = zeros(shape_list(shape,2),shape_list(shape,2));
-    mask(1:shape_list(shape,1),1:shape_list(shape,2)) = 1;
+    mask(1:shape_list(shape,1),1:shape_list(shape,2)) = 1; 
     inputs_in_use = find(mask);
-        
+    metrics = [];
+    
     parfor input_pos = 1:length(inputs_in_use)
         warning('off','all')
         t_config = config;
@@ -67,18 +70,76 @@ for shape = 1:size(shape_list,1)
         population(input_pos).geo_width = shape_list(shape,1)/shape_list(shape,2);
         population(input_pos).geo_height = 1;%shape_list(shape,1)/shape_list(shape,2);
         
-        population(input_pos) = config.testFcn(population(input_pos),t_config);
-        error(input_pos) =  population(input_pos).test_error;
-        fprintf('Shape: %d, width: %.2f, height: %.2f, pos: %d, error: %.4f\n', shape,shape_list(shape,1),shape_list(shape,2),input_pos,Error(input_pos))
-       % metrics(input_pos,:) = getMetrics(population(input_pos),t_config);    
+        t = tic;
+%         if task_type == 1
+%             population(input_pos) = config.testFcn(population(input_pos),t_config);
+%             error(input_pos) =  population(input_pos).test_error;
+%             fprintf('Shape: %d, width: %.2f, height: %.2f, pos: %d, error: %.4f\n', shape,shape_list(shape,1),shape_list(shape,2),input_pos,error(input_pos))
+%         else
+            metrics(input_pos,:) = getMetrics(population(input_pos),t_config);
+            fprintf('Shape: %d, width: %.2f, height: %.2f, pos: %d, Metrics: %.4f %.4f\n', shape,shape_list(shape,1),shape_list(shape,2),input_pos,metrics(input_pos,:))
+        %end
+       toc(t)
     end
     
-    subplot(2,2,shape)
-    error_matrix{shape} = zeros(size(mask));
-    error_matrix(logical(mask(inputs_in_use))) = error;
-    imagesc(error_matrix)
-    colorbar
-    drawnow
+    if task_type 
+        figure(config.figure_array(1))
+        set(gcf,'color','w');
+        subplot(2,2,shape)
+        error_matrix{shape} = zeros(size(mask));
+        error_matrix{shape}(logical(mask(inputs_in_use))) = error;
+        imagesc(error_matrix{shape})
+        colorbar
+        caxis([0 0.2])
+        drawnow
+        set(gca, 'ColorScale', 'log')
+        save(strcat('shape_test_',config.dataset,'.mat'))
+    else
+        figure(config.figure_array(1))
+        set(gcf,'color','w');
+        subplot(2,2,shape)
+        metrics_matrix{shape,1} = zeros(size(mask));
+        metrics_matrix{shape,1}(logical(mask(inputs_in_use))) = metrics(:,1);
+        imagesc(metrics_matrix{shape,1})
+        colorbar
+        caxis([0 config.total_units])
+        
+        figure(config.figure_array(2))
+        set(gcf,'color','w');
+        subplot(2,2,shape)
+        metrics_matrix{shape,2} = zeros(size(mask));
+        metrics_matrix{shape,2}(logical(mask(inputs_in_use))) = round(metrics(:,2));
+        imagesc(metrics_matrix{shape,2})
+        colorbar
+        caxis([0 30])
+        drawnow
+
+        save(strcat('shape_test_metrics.mat'))
+    end
+    
+end
+
+
+figure
+set(gcf,'color','w');
+if task_type
+    boxplot([error_matrix{1}(find(error_matrix{1})) error_matrix{2}(find(error_matrix{2})) error_matrix{3}(find(error_matrix{3})) error_matrix{4}(find(error_matrix{4}))],'Notch', 'on')
+    set(gca, 'YScale', 'log')
+    xlabel('Shape dimensions')
+    ylabel('NMSE')
+    xticklabels({'2 x 50', '4 x 25', '5 x 20', '10 x10' })
+else
+    subplot(1,2,1)
+    boxplot([metrics_matrix{1,1}(find(metrics_matrix{1,1})) metrics_matrix{2,1}(find(metrics_matrix{2,1})) metrics_matrix{3,1}(find(metrics_matrix{3,1})) metrics_matrix{4,1}(find(metrics_matrix{4,1}))],'Notch', 'on')
+    xlabel('Shape dimensions')
+    ylabel('NMSE')
+    xticklabels({'2 x 50', '4 x 25', '5 x 20', '10 x10' })
+
+    subplot(1,2,2)
+    boxplot([metrics_matrix{1,2}(logical(mask(inputs_in_use))) metrics_matrix{2,2}(find(metrics_matrix{2,2})) metrics_matrix{3,2}(find(metrics_matrix{3,2})) metrics_matrix{4,2}(find(metrics_matrix{4,2}))],'Notch', 'on')
+    xlabel('Shape dimensions')
+    ylabel('NMSE')
+    xticklabels({'2 x 50', '4 x 25', '5 x 20', '10 x10' })
 end
 
 

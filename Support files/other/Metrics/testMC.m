@@ -2,7 +2,7 @@ function MC = testMC(individual,config,seed,data_length)
 
 rng(seed,'twister');
 
-n_internal_units = individual.total_units;%sum([genotype.nInternalUnits]);
+n_internal_units = config.total_units;
 
 n_output_units = n_internal_units*2;
 n_input_units = individual.n_input_units;

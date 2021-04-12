@@ -9,7 +9,7 @@ metrics = [];
 config.reg_param = 10e-9;
 config.wash_out = 50;
 metrics_type =  config.metrics;
-num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
+num_timesteps = round(config.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
 MC_num_timesteps = 500 + config.wash_out*2;
 n_input_units = individual.n_input_units;
 
@@ -29,7 +29,7 @@ for metric_item = 1:length(config.metrics)
             input_sequence = repmat(ui(:,1),1,n_input_units);
             
             % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
+            %[input_sequence] = featureNormailse(input_sequence,config);
             
             %kernel matrix - pick 'to' at halfway point
             M = config.assessFcn(individual,input_sequence,config);
@@ -62,7 +62,7 @@ for metric_item = 1:length(config.metrics)
             input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;
             
             % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
+            %[input_sequence] = featureNormailse(input_sequence,config);
             
             %collect states
             G = config.assessFcn(individual,input_sequence,config);

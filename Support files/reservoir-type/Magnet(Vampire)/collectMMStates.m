@@ -159,6 +159,8 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             tmp_states(isnan(tmp_states)) = 0;
             tmp_states(isinf(tmp_states)) = 0;
             
+            tmp_states = tmp_states.*1e20;
+            
             % separate 3 directional states
             x_states = tmp_states(1:size(input_sequence,1),:);
             y_states = tmp_states(size(input_sequence,1)+1:size(input_sequence,1)*2,:);
@@ -168,11 +170,11 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             states = [];
             
             % use only the desired direction(s)
-            config.preprocess = 'rescale_diff';
-            config.preprocess_shift = [0 1];
-            x_states = featureNormailse(x_states,config);
-            y_states = featureNormailse(y_states,config);
-            z_states = featureNormailse(z_states,config);
+%            config.preprocess = 'rescale_diff';
+%             config.preprocess_shift = [0 1];
+%             x_states = featureNormailse(x_states,config);
+%             y_states = featureNormailse(y_states,config);
+%             z_states = featureNormailse(z_states,config);
 %             
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
@@ -615,7 +617,7 @@ switch(individual.material_type{indx})
 %                         axis([0 1 0 1])
 %                         drawnow
                     end
-                    fprintf(geo_file,'%.2f %.2f \n',coord');
+                    fprintf(geo_file,'%.4f %.4f \n',coord');
                     fclose(geo_file);
                 else
                     % copy the known geo file to core directory

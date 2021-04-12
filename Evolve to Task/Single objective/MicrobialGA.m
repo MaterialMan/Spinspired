@@ -15,7 +15,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 0;                        % use parallel toolbox
+config.parallel = 1;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -23,13 +23,13 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'restrictedRoR';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [25];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'MM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
+config.num_nodes = [49];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                         % num of tests/runs
-config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 config.total_gens = 2000;                    % number of generations to evolve
 config.mut_rate = 0.05;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
@@ -49,7 +49,7 @@ config = getAdditionalParameters(config);
 config = selectDataset(config);
 
 %% general params
-config.gen_print = 25;                       % after 'gen_print' generations print task performance and show any plots
+config.gen_print = 1;                       % after 'gen_print' generations print task performance and show any plots
 config.start_time = datestr(now, 'HH:MM:SS');
 config.save_gen = inf;                       % save data at generation = save_gen
 
