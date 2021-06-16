@@ -111,6 +111,12 @@ switch(res_type)
         config.mutFcn = @mutateMM;
         config.recFcn = @recombMM;
         
+    case 'STO'
+        config.createFcn = @createSTO;
+        config.assessFcn = @collectSTOStates;
+        config.mutFcn = @mutateSTO;
+        config.recFcn = @recombSTO;
+        
     case 'GOL'
         config.createFcn = @createGOL;
         config.assessFcn = @assessGOL;
