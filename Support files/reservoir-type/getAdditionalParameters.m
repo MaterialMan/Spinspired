@@ -30,7 +30,7 @@ config.feedback_scaling = 1;
 config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.activ_list = {@linearNode,@tanh};     % what activations are in use
+config.activ_list = {@tanh};     % what activations are in use
 config.multi_activ = length(config.activ_list) > 1;                      % use different activation funcs
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
 config.undirected = 0;                       % by default all networks are directed
@@ -69,6 +69,19 @@ end
 
 switch(res_type)
     
+    case 'restrictedRoR'
+        %config.restricted_num_inputs = 4;
+        %config.restricted_num_outputs = config.num_nodes;
+        config.RoR_structure = 0;
+        config.noise_level = 10e-6;
+        config.mut_rate_connecting = 0.001;
+        config.prune_rate = 0.00;
+        
+        % take off sparse input weights
+        config.sparse_input_weights = 0;              % use sparse inputs
+        config.sparsity = 1;                          % sparsity of input weights
+        
+        
     case {'RoR','RoRmin'}
         
         config.noise_level = 10e-6;
@@ -302,8 +315,8 @@ case {'MM','MM_new'}
         
         % system settings
         config.material_type = {'toy'};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
-        config.crystal_structure = {'fcc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
-        config.unit_cell_size = [2.507];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
+        config.crystal_structure = {'sc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
         config.macro_cell_size = [5];                % size of macro cell; an averaging cell over all spins inside
         config.macro_cell_units = {'!nm'};            % units for macro cell size
@@ -317,8 +330,8 @@ case {'MM','MM_new'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
-	config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 1; % otherwise evolve a rectangle
+        config.evolve_geometry = 1;                    % manipulate geomtry
+        config.evolve_poly = 0;                         % otherwise evolve a rectangle
         config.poly_num = 4; 
         config.geometry_file =  'custom.geo';                    %add specific geometry file
 
@@ -370,12 +383,12 @@ case {'MM','MM_new'}
         config.time_step = 100;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
         config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
-        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
+        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
         config.plt_system = 0;                      % to create plot files from vampire simulation
-        config.plot_rate =100;                        % rate to build plot files
+        config.plot_rate = 100;                        % rate to build plot files
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
@@ -387,7 +400,6 @@ case {'MM','MM_new'}
         %         end
         
         if iscell(config.num_nodes)
-            
             for i = 1:length(config.num_nodes) % cycle through layers
                 config.num_reservoirs(i) =   length(config.num_nodes{i});
                 %(i) = sum(config.num_nodes{i});
@@ -400,7 +412,6 @@ case {'MM','MM_new'}
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
         config.connecting_sparsity = 0;
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
-
 
     otherwise
         

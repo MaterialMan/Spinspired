@@ -5,7 +5,7 @@
 function config = selectReservoirType(config)
 
 % if more than one type of reservoir set to heterotic
-if iscell(config.res_type) 
+if iscell(config.res_type)
     res_type = 'Heterotic';
 else
     res_type = config.res_type;
@@ -26,11 +26,17 @@ switch(res_type)
         config.mutFcn = @mutateRoR;
         config.recFcn = @recombRoR;
         
-   case 'RoRmin'
+    case 'RoRmin'
         config.createFcn = @createMinRoR;
         config.assessFcn = @collectMinRoRStates;
         config.mutFcn = @mutateMinRoR;
         config.recFcn = @recombRoR;
+        
+    case 'restrictedRoR'
+        config.createFcn = @createRestrictedRoR;
+        config.assessFcn = @collectRestrictedRoRStates;
+        config.mutFcn = @mutateRestrictedRoR;
+        config.recFcn = @recombRestrictedRoR;
         
     case 'Pipeline'
         config.createFcn = @createPipeline;

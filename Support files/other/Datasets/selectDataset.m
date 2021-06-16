@@ -117,14 +117,19 @@ switch config.dataset
         [input_sequence,output_sequence] = generate_new_NARMA_sequence(sequence_length,10);
         input_sequence = (input_sequence*2)*0.2;
         
-    case 'henon_map' % input error > 1 - good task
+    case 'henon_map' % input error > 1 - good task. Ref: Rodan Minimum complexity
         
         err_type = 'NMSE';
-        sequence_length= 3000;
+        wash_out = 200;
+        sequence_length= 8000;
         stdev = 0.05;
-        config.train_fraction=0.5;    config.val_fraction=0.2;    config.test_fraction=0.2;
-        [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
+        config.train_fraction=0.25;    config.val_fraction=0.375;    config.test_fraction=0.375;
+        y = generateHenonMap(sequence_length+1,stdev);
         
+        ahead = 1;
+        y = 2*y-0.5; % rescale and shift 
+        input_sequence = y(1:end-1,:);
+        output_sequence = y(ahead+1:end,:);
         
     case 'multi_signal'
         
@@ -168,8 +173,10 @@ switch config.dataset
         xlabel('Hz');
         
         %% Time-series
-    case 'IPIX_plus5' % good task
-        err_type = 'IPIX';
+    case 'IPIX_plus5' % good task. Ref: Rodan Minimum complexity
+
+        err_type = 'NMSE';
+        wash_out = 100;
         sequence_length = 2000;
         config.train_fraction=0.4;    config.val_fraction=0.25;    config.test_fraction=0.35;   %val and test are switched later so ratios need to be swapped
         
@@ -184,8 +191,10 @@ switch config.dataset
         
         %fprintf('Low IPIX task - 5 ahead. \n Started at %s \n',datestr(now, 'HH:MM:SS'))
         
-    case 'IPIX_plus1' % good task
-        err_type = 'IPIX';
+    case 'IPIX_plus1' % good task. Ref: Rodan Minimum complexity
+
+        err_type = 'NMSE';
+        wash_out = 100;
         sequence_length = 2000;
         config.train_fraction=0.4;    config.val_fraction=0.25;    config.test_fraction=0.35;   %val and test are switched later so ratios need to be swapped
         
@@ -289,15 +298,19 @@ switch config.dataset
         input_sequence = [train_u; test_u];
         output_sequence = [train_y; test_y];
         
-    case 'lorenz'
+    case 'lorenz_pred'
         err_type = 'NMSE';
-        config.train_fraction=1;    config.val_fraction=0;    config.test_fraction=0;
-        wash_out =0;
+        config.train_fraction=0.5;    config.val_fraction=0.25;    config.test_fraction=0.25;
+        wash_out =50;
         
-        data_length = 1e3; T = 100; h = 0.001;
+        ahead = 1;
+        
+        data_length = 1e3+ahead; T = 100; h = 0.001;
         [x,y, z] = createLorenz(28, 10, 8/3, T, h, data_length);  % roughly 100k datapoints
-        input_sequence= [1,1,1 ;zeros(data_length-1,3)];
-        output_sequence= [x, y, z];
+        data= [x, y, z];
+                
+        input_sequence = data(1:end-ahead,:);
+        output_sequence = data(ahead+1:end,:);
         
     case 'attractor' %reconstruct lorenz attractor
         err_type = 'NMSE';
@@ -533,6 +546,7 @@ switch config.dataset
         output_sequence = output_sequence([train_id val_id test_id],:);
         
     case 'japanese_vowels' %(12: IN, 9:OUT - binary ) - input only 83% accuracy!  Train:0.2288  Test:0.1863
+        
         err_type = 'softmax'; %Paper: Optimization and applications of echo state networks with leaky- integrator neurons
         
         % Nine male speakers uttered two Japanese vowels /ae/ successively.
@@ -547,20 +561,24 @@ switch config.dataset
         [train_input_sequence,trainOutputSequence,testInputSequence,test_output_sequence] = readJapVowels();
         input_sequence = [train_input_sequence; testInputSequence];
         output_sequence = [trainOutputSequence; test_output_sequence];
+        
         config.train_fraction=size(train_input_sequence,1)/9961;    config.val_fraction=(size(testInputSequence,1)/9961)*0.1;    config.test_fraction=(size(testInputSequence,1)/9961)*0.9;
         
         %        t =  randperm(dataset_length,dataset_length);
         
         %% signal recovery
-    case 'non_chan_eq_rodan' % (1:in, 1:out) error 0.999 Good task, requires memory
-        err_type = 'NMSE';
-        %input alone error = 0.091
-        sequence_length = 2000;
-        config.train_fraction=0.25;    config.val_fraction=0.375;    config.test_fraction=0.375;
+    case 'non_chan_eq' % (1:in, 1:out) error 0.999 Good task, requires memory. Ref: Rodan Minimum complexity and % setup used in Optoelectronic Reservoir Computing
         
+        err_type = 'SER';
+        %input alone error = 0.091
+        wash_out = 200;
+        sequence_length= 8000;
+        config.train_fraction=0.25;    config.val_fraction=0.375;    config.test_fraction=0.375;
+      
         [input_sequence, output_sequence] = NonLinear_ChanEQ_data(sequence_length);
-        input_sequence =input_sequence';
-        output_sequence =output_sequence';
+        
+        input_sequence = input_sequence' + 30; % shift by 30 as decribed in paper
+        output_sequence = [0 0 output_sequence(1:end-4)]'; % output should be d(t-2) when s(t) is presented to network       
         
         %% classification
     case 'signal_classification'
