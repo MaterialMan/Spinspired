@@ -705,7 +705,6 @@ switch config.dataset
         % breast cancer
         err_type = 'softmax';
         
-        
         config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         %[input_sequence, output_sequence] =  cancer_dataset;
         
@@ -723,8 +722,6 @@ switch config.dataset
         t =  randperm(size(input_sequence,1),size(input_sequence,1));
         input_sequence = input_sequence(t,:);
         output_sequence = output_sequence(t,:);
-        
-        
         
         %% Multi-timescale
     case {'MSO1','MSO2','MSO3','MSO4','MSO5','MSO6','MSO7','MSO8','MSO9','MSO10','MSO11','MSO12'}  %MSO'

@@ -317,10 +317,10 @@ case {'MM','MM_new'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
-	config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 1; % otherwise evolve a rectangle
+        config.evolve_geometry = 0;                    % manipulate geomtry
+        config.evolve_poly = 0; % otherwise evolve a rectangle
         config.poly_num = 4; 
-        config.geometry_file =  'custom.geo';                    %add specific geometry file
+        config.geometry_file =  '';                    %add specific geometry file
 
         
         %defaults
