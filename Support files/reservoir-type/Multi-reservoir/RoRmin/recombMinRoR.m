@@ -62,7 +62,7 @@ if config.multi_activ
     L = loser.activ_Fcn_indx;
     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
     L(pos) = W(pos);
-    loser.activ_Fcn_indx = reshape(L,size(loser.activ_Fcn));
+    loser.activ_Fcn_indx = reshape(L,size(loser.activ_Fcn_indx));
 end
 
 

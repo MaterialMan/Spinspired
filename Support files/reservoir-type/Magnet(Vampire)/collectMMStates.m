@@ -1,30 +1,10 @@
 function[final_states,individual] = collectMMStates(individual,input_sequence,config,target_output)
 
-%% check batch path - for multiple sessions of vampire using multiple cores (stops interference)
-% add batch to path
-current_batch = strcat('batch',num2str(individual.batch_num),'.txt');
-batch_path = which(current_batch);
-batch_path = batch_path(1:end-length(current_batch)-1);
-
-if isempty(batch_path) %&&  individual.core_indx == 1 % create new batch directory
-    default_batch = 'batch0.txt'; % default batch
-    default_batch_path = which(default_batch);
-    path_to_copy = default_batch_path(1:end-length(default_batch)-1);
-    new_dest_path = strcat(path_to_copy(1:end-length('batch0')),current_batch(1:end-4));
+% %% check batch path - for multiple sessions of vampire using multiple cores (stops interference)
+if ~isempty(individual.batch_path)
     
-    % make new directory
-    copyfile(path_to_copy,new_dest_path);
-    % copy over files
-    movefile(strcat(new_dest_path,'/',default_batch),strcat(new_dest_path,'/',current_batch))
-    % add to path
-    addpath(genpath(batch_path));
-    
-    % assign new path
-    batch_path = new_dest_path;
-end
-
-
-if ~isempty(batch_path)
+     % assign path
+    batch_path = individual.batch_path;
     
     %if single input entry, add previous state
     if size(input_sequence,1) == 1
@@ -42,8 +22,26 @@ if ~isempty(batch_path)
     % collect states of system - depending on architecture type
     switch(config.architecture)
         case 'ensemble'
-            parfor i = 1:config.num_reservoirs
+            parfor i = 1:config.num_reservoirs % cyclce through all subres - all independent from eachother
                 states{i} = getStates(batch_path,individual,input_sequence,states{i},i,config)
+            end
+        case 'pipeline' % need to finish
+            % cycle through layers of pipeline
+            for i = 1:config.num_layers
+                if i == 1 % use iniital input for first reservoir
+                    previous_states = states{i};
+                else
+                    previous_states = states{i-1}; %use previous states as input for current layer... 
+                    % need to add weighting mechanism
+                end
+                % collect states of current layer
+                parfor j = 1:individual.num_reservoirs_in_layer(i)
+                        layer_states{j} = getStates(batch_path,individual(i),input_sequence,previous_states,j,config);
+                end
+                % concat states for layer to be used for next layer
+                for j = 1:config.num_reservoirs
+                    states{i} = [states{i} layer_states{j}];
+                end
             end
             
         otherwise
@@ -56,7 +54,7 @@ end
 
 % get leak states
 if config.leak_on
-    states = getLeakStates(states,individual);
+    states = getLeakStates(states,individual,input_sequence,config);
 end
 
 % concat all states for output weights
@@ -105,10 +103,10 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             
             % make new directory
             copyfile(path_to_copy,new_dest_path);
-            % copy over files
-            movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
             % add to path
             addpath(genpath(new_dest_path));
+            % copy over files
+            movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
             % assign new path
             file_path = new_dest_path;
         end
@@ -141,6 +139,9 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             tmp_states(isnan(tmp_states)) = 0;
             tmp_states(isinf(tmp_states)) = 0;
             
+            % rescale
+            tmp_states = tmp_states .*1e20;
+
             % separate 3 directional states
             x_states = tmp_states(1:size(input_sequence,1),:);
             y_states = tmp_states(size(input_sequence,1)+1:size(input_sequence,1)*2,:);
@@ -150,11 +151,11 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             states = [];
             
             % use only the desired direction(s)
-            config.preprocess = 'rescale_diff';
-            config.preprocess_shift = [0 1];
-            x_states = featureNormailse(x_states,config);
-            y_states = featureNormailse(y_states,config);
-            z_states = featureNormailse(z_states,config);
+            %config.preprocess = 'rescale_diff';
+            %config.preprocess_shift = [0 1];
+            %x_states = featureNormailse(x_states,config);
+            %y_states = featureNormailse(y_states,config);
+            %z_states = featureNormailse(z_states,config);
 %             
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
@@ -167,6 +168,8 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
                 end
             end
             
+            
+            
             % plot states as surface plot
             if config.plot_states
                 subplot(2,2,2)
@@ -175,7 +178,8 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
                 
                 subplot(2,2,3)
                 plot(states)
-                title('Scaled states')
+                num_states = nnz(sum(states,1));
+                title(strcat('Scaled states. In use:',num2str(num_states)))
                 drawnow
                 
                 if ~config.parallel% surf plot of magnetisation direction
@@ -219,12 +223,12 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
         
         if individual.core_indx(i) ~= 0 && config.num_reservoirs == 1
             % clean up files
-            rmpath(file_path);
+           rmpath(file_path);
             
             try rmdir(file_path,'s');
                 
             catch
-               % warning('Error: Did not remove folder but contiued.\n')
+               warning('Error: Did not remove folder but contiued.\n')
             end
         end
     %end
@@ -593,8 +597,11 @@ switch(individual.material_type{indx})
                         % add new coordinates
                         fprintf(geo_file,'4 \n'); % add number of lines
                         coord = createRect(individual.geo_width,individual.geo_height); % get coords
+%                         rectangle('Position',[0 0 individual.geo_width individual.geo_height])
+%                         axis([0 1 0 1])
+%                         drawnow
                     end
-                    fprintf(geo_file,'%.2f %.2f \n',coord');
+                    fprintf(geo_file,'%.5f %.5f \n',coord');
                     fclose(geo_file);
                 else
                     % copy the known geo file to core directory

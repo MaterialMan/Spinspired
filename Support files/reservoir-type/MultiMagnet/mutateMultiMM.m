@@ -2,7 +2,7 @@
 
 function offspring = mutateMultiMM(offspring,config)
 
-for layer = 1: config.num_layers
+for layer = 1:config.num_layers
     
     input_scaling = offspring.layer(layer).input_scaling(:);
     pos = randperm(length(input_scaling),sum(rand(length(input_scaling),1) < config.mut_rate));
@@ -62,43 +62,75 @@ for layer = 1: config.num_layers
         offspring.layer(layer).material_density = reshape(material_density,size(offspring.layer(layer).material_density));
     end
     
-    % not in use - yet
+    % geometry
     if config.evolve_geometry
         if config.evolve_poly
             poly_coord = offspring.layer(layer).poly_coord(:);
             pos = randperm(length(poly_coord),sum(rand(length(poly_coord),1) < config.mut_rate));
-            poly_coord(pos) = mutateWeight(poly_coord(pos),[0 1],config);
+            poly_coord(pos) = mutateWeight(poly_coord(pos),[config.lb 1],config);
             offspring.layer(layer).poly_coord = reshape(poly_coord,size(offspring.layer(layer).poly_coord));
         else
             geo_width = offspring.layer(layer).geo_width(:);
             pos = randperm(length(geo_width),sum(rand(length(geo_width),1) < config.mut_rate));
-            geo_width(pos) = mutateWeight(geo_width(pos),[0 1],config);
+            geo_width(pos) = mutateWeight(geo_width(pos),[config.lb 1],config);
             offspring.layer(layer).geo_width = reshape(geo_width,size(offspring.layer(layer).geo_width));
             
             geo_height = offspring.layer(layer).geo_height(:);
             pos = randperm(length(geo_height),sum(rand(length(geo_height),1) < config.mut_rate));
-            geo_height(pos) = mutateWeight(geo_height(pos),[0 1],config);
+            geo_height(pos) = mutateWeight(geo_height(pos),[config.lb 1],config);
             offspring.layer(layer).geo_height = reshape(geo_height,size(offspring.layer(layer).geo_height));
         end
     end
     
     minimum_weight = 0.01; % anything less than this will be set to zero
-    prob_2_del = 0.25;
-
+    prob_2_del = 0.25*~config.single_input;% if sigle input, set to zero
+    
+    
     %% cycle through all sub-reservoirs
     for i = 1:config.num_res_in_layer(layer)
         
         % input weights
-        input_weights = offspring.layer(layer).input_weights{i}(:);
-        indices = find(input_weights); % find outputs in use
-        pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
-        if rand < prob_2_del
-            input_weights(indices(pos)) = 0; % delete weight
+        input_weights = offspring.layer(layer).input_weights{i};
+        
+        for n = 1:size(input_weights,1)
+            indices = find(input_weights(n,:)); % find inputs in use
+            pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
+            
+            if config.single_input
+                % make rectangle
+                xy = createRect(offspring.layer(layer).geo_height,offspring.layer(layer).geo_width);
+                
+                % % reset input weights
+                square_film_dimensions = sqrt(offspring.layer(layer).nodes(i));
+                [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
+                [in,on] = inpolygon(xq,yq,xy(:,1),xy(:,2));
+                inputs_in_use = find(in | on);
+                
+                if ~ismember(indices(pos),inputs_in_use)
+                    input_weights(n,indices(pos)) = 0; % remove weight and reassign
+                    input_loc = randperm(length(inputs_in_use),1);
+                    pos = inputs_in_use(input_loc); % only single input to change
+                else
+                    pos = indices(pos);
+                end
+            else
+                if rand < prob_2_del
+                    input_weights(n,indices(pos)) = 0; % delete weight
+                end
+                pos = randperm(size(input_weights,2),length(pos)); % find new positions to change
+            end
+            input_weights(n,pos) = mutateWeight(input_weights(n,pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
+        
+        input_weights(n,input_weights(n,:)<minimum_weight & input_weights(n,:)~=0 & input_weights(n,:)>-minimum_weight) = 0;
+        
         end
-        new_pos = randperm(length(input_weights),length(pos)); % find new positions to change
-        input_weights(new_pos) = mutateWeight(input_weights(new_pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
-        input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0;
-        offspring.layer(layer).input_weights{i} = reshape(input_weights,size(offspring.layer(layer).input_weights{i}));
+        
+        
+%         if nnz(input_weights) > offspring.n_input_units + 1
+%             error('Error: More than one input.\n')
+%         end
+        
+        offspring.layer(layer).input_weights{i} = input_weights; %reshape(input_weights,size(offspring.layer(layer).input_weights{i}));
         
         % width of inputs
         if config.input_widths
@@ -133,9 +165,7 @@ for layer = 1: config.num_layers
         periodic_boundary = offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary));
         pos = randperm(length(periodic_boundary),sum(rand(length(periodic_boundary),1) < config.mut_rate));
         periodic_boundary(pos) = round(mutateWeight(periodic_boundary(pos),[0 1],config));
-        offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary)) = reshape(periodic_boundary,size(offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary))));
-        
-        
+        offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary)) = reshape(periodic_boundary,size(offspring.layer(layer).periodic_boundary(i,logical(config.periodic_boundary))));      
     end
     
     % mutate output weights

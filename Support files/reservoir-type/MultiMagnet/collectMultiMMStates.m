@@ -1,54 +1,44 @@
 function[final_states,individual] = collectMultiMMStates(individual,input_sequence,config,target_output)
 
 %% check batch path - for multiple sessions of vampire using multiple cores (stops interference)
-% add batch to path
-current_batch = strcat('batch',num2str(individual.batch_num),'.txt');
-batch_path = which(current_batch);
-batch_path = batch_path(1:end-length(current_batch)-1);
-
-if isempty(batch_path) %&&  individual.core_indx == 1 % create new batch directory
-    default_batch = 'batch0.txt'; % default batch
-    default_batch_path = which(default_batch);
-    path_to_copy = default_batch_path(1:end-length(default_batch)-1);
-    new_dest_path = strcat(path_to_copy(1:end-length('batch0')),current_batch(1:end-4));
+if ~isempty(individual.batch_path)
     
-    % make new directory
-    copyfile(path_to_copy,new_dest_path);
-    % copy over files
-    movefile(strcat(new_dest_path,'/',default_batch),strcat(new_dest_path,'/',current_batch))
-    % add to path
-    addpath(genpath(batch_path));
-    
-    % assign new path
-    batch_path = new_dest_path;
-end
-
-
-if ~isempty(batch_path)
+     % assign path
+    batch_path = individual.batch_path;
     
     %if single input entry, add previous state
     if size(input_sequence,1) == 1
         input_sequence = [zeros(size(input_sequence)); input_sequence];
     end
     
-    % add bia node to input
+%     for i= 1:config.num_reservoirs
+%         if size(input_sequence,1) == 2
+%             states{i} = individual.last_state{i};
+%         else
+%             states{i} = zeros(size(input_sequence,1),individual.nodes(i));
+%         end
+%     end
+    
+    % add bias node to input
     input_sequence = [input_sequence repmat(config.bias,size(input_sequence,1),1)]; % add bias node to input
     
     % collect states of system - depending on architecture type
     switch(config.architecture)
         case 'ensemble'
             parfor num_res = 1:config.num_res_in_layer(1)
-                states{num_res} = getStates(batch_path,individual.layer(1),input_sequence,num_res,config);
+                states{num_res} = getStates(batch_path,individual.layer(1),input_sequence,num_res,num_res,config);
             end
 
         case {'pipeline','pipeline_IA'} % need to finish
             % cycle through layers of pipeline
             for layer = 1:config.num_layers
-                if layer > 1 % use inital input for first reservoir
+                if layer > 1 % use initial input for first reservoir
+                    previous_states = [zeros(1,size(states{layer-1},2)); states{layer-1}(1:end-1,:)]; %use previous states as input for current layer...
+                    
                     if strcmp(config.architecture,'pipeline_IA')
-                        layer_input = [layer_input states{layer-1}];
+                        layer_input = [layer_input previous_states];
                     else
-                        layer_input = states{layer-1}; %use previous states as input for current layer...
+                        layer_input = previous_states; 
                     end
                 else
                     layer_input = input_sequence; 
@@ -57,8 +47,9 @@ if ~isempty(batch_path)
                 % collect states of current layer
                 parfor num_res = 1:config.num_res_in_layer(layer)
                     %individual.layer(layer).core_indx = num_res
-                    layer_states{num_res} = getStates(batch_path,individual.layer(layer),layer_input,num_res,config);
+                    layer_states{num_res} = getStates(batch_path,individual.layer(layer),layer_input,num_res,num_res,config);
                 end
+                
                 % concat states for layer to be used for next layer
                 states{layer} = [];
                 for j = 1:config.num_res_in_layer(layer)
@@ -68,12 +59,18 @@ if ~isempty(batch_path)
             end
             
         otherwise
-            states{1} = getStates(batch_path,individual,input_sequence,1,config);
+            states{1} = getStates(batch_path,individual.layer(1),input_sequence,individual.core_indx,1,config);
     end
 
 else
     states{1} = zeros(size(input_sequence,1), config.total_units + individual.n_input_units);
 end
+
+
+% get leak states - output filter leak 
+% % if config.leak_on
+% %     states = getLeakStates(states,individual,input_sequence,config);
+% % end
 
 % concat all states for output weights
 final_states = [];
@@ -95,26 +92,17 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
-% if wanting to tidy directories as the algorithm runs
-% if individual.core_indx(i) ~= 0 
-%     % clean up files
-%     rmpath(batch_path);
-%     
-%     try rmdir(batch_path,'s');
-%         
-%     catch
-%         % warning('Error: Did not remove folder but contiued.\n')
-%     end
-% end
 
 end
 
 
 %% assess ensemble reservoirs
-function states = getStates(batch_path,individual,input_sequence,indx,config)     
-        % find or assign new cores
+function states = getStates(batch_path,individual,input_sequence,core_indx,indx,config)     
+        
+
+        %% find or assign new cores
         % check cores on path
-        current_core = strcat('core',num2str(individual.core_indx(indx)));
+        current_core = strcat('core',num2str(core_indx));
         core_path = strcat(batch_path,'/Cores/',current_core,'/',current_core,'.txt');
         core_check = exist(core_path,'file'); % will be 7 if folder exists
         
@@ -129,10 +117,10 @@ function states = getStates(batch_path,individual,input_sequence,indx,config)
             
             % make new directory
             copyfile(path_to_copy,new_dest_path);
-            % copy over files
-            movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
             % add to path
             addpath(genpath(new_dest_path));
+            % copy over files
+            movefile(strcat(new_dest_path,'/',default_core,'.txt'),strcat(new_dest_path,'/',current_core,'.txt'))
             % assign new path
             file_path = new_dest_path;
         end
@@ -165,6 +153,9 @@ function states = getStates(batch_path,individual,input_sequence,indx,config)
             tmp_states(isnan(tmp_states)) = 0;
             tmp_states(isinf(tmp_states)) = 0;
             
+            % rescale
+            tmp_states = tmp_states .*1e20;
+            
             % separate 3 directional states
             x_states = tmp_states(1:size(input_sequence,1),:);
             y_states = tmp_states(size(input_sequence,1)+1:size(input_sequence,1)*2,:);
@@ -173,12 +164,12 @@ function states = getStates(batch_path,individual,input_sequence,indx,config)
             tmp_states = []; % release
             states = [];
             
-            % use only the desired direction(s)
-            config.preprocess = 'rescale_diff';
-            config.preprocess_shift = [0 1];
-            x_states = featureNormailse(x_states,config);
-            y_states = featureNormailse(y_states,config);
-            z_states = featureNormailse(z_states,config);
+%             % use only the desired direction(s)
+%             config.preprocess = 'rescale_diff';
+%             config.preprocess_shift = [0 1];
+%             x_states = featureNormailse(x_states,config);
+%             y_states = featureNormailse(y_states,config);
+%             z_states = featureNormailse(z_states,config);
              
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
@@ -240,10 +231,22 @@ function states = getStates(batch_path,individual,input_sequence,indx,config)
             fprintf('simulation failed\n')
             cmdout
         end    
-                          
+                
+        % adding leaks between subreservoirs
         if config.leak_on
             states = getLeakStates(states,individual,indx);
         end
+        
+%         if indx ~= 0 && config.num_reservoirs == 1
+%             % clean up files
+%             rmpath(file_path);
+%             
+%             try rmdir(file_path,'s');
+%                 
+%             catch
+%                 warning('Error: Did not remove folder but contiued.\n')
+%             end
+%         end
 end
 
 %% change input signal to vampire simulator
@@ -569,6 +572,7 @@ switch(individual.material_type{indx})
             
             if contains(l,'material[1]:geometry-file') && ~isempty(config.geometry_file)
                 l = sprintf('material[1]:geometry-file=%s',config.geometry_file);
+                
                 % find file and add to core
                 try
                     geo_path = which('geometry_files.txt');
@@ -576,8 +580,28 @@ switch(individual.material_type{indx})
                     error('Error: Could not find the .geo file provided')
                 end
                 geo_path = geo_path(1:end-18);
-                % copy geo file to core directory
-                copyfile(strcat(geo_path,config.geometry_file),strcat(file_path,config.geometry_file));
+                
+                if config.evolve_geometry
+                    % create new geo file
+                    geo_file=fopen(strcat(file_path,config.geometry_file),'w');
+                    
+                    if config.evolve_poly
+                        fprintf(geo_file,'%d \n',config.poly_num); % add number of lines
+                        coord = individual.poly_coord;
+                    else
+                        % add new coordinates
+                        fprintf(geo_file,'4 \n'); % add number of lines
+                        coord = createRect(individual.geo_width,individual.geo_height); % get coords
+%                         rectangle('Position',[0 0 individual.geo_width individual.geo_height])
+%                         axis([0 1 0 1])
+%                         drawnow
+                    end
+                    fprintf(geo_file,'%.4f %.4f \n',coord');
+                    fclose(geo_file);
+                else
+                    % copy the known geo file to core directory
+                    copyfile(strcat(geo_path,config.geometry_file),strcat(file_path,config.geometry_file));
+                end
             end
             fprintf(mat_file,'%s \n',l);  % print line to file
         end

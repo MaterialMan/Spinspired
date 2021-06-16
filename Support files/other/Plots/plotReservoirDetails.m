@@ -161,6 +161,25 @@ switch(config.dataset)
 %         test_sequence = test_states*best_individual.output_weights;
 %         plotresponse(num2cell(config.train_output_sequence(config.wash_out+1:end,:)'),num2cell(test_sequence'))
 %         
+
+    case 'henon_map'
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+        
+        subplot(1,2,1)
+        scatter(config.test_input_sequence,config.test_output_sequence,15,'k','filled')
+        hold on
+        scatter(config.test_input_sequence,test_sequence,15,'r','filled')
+        hold off
+        legend('Target','Output')
+        
+        subplot(1,2,2)
+        plot(config.test_output_sequence(1:200,:),'k')
+        hold on
+        plot(test_sequence(1:200,:),'r')
+        hold off
+        legend('Target','Output')
+        
     case 'lorenz'
         test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
         test_sequence = test_states*best_individual.output_weights;

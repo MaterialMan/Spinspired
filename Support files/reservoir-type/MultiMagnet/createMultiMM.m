@@ -1,5 +1,5 @@
 %% This new version of the MM function allows the construction of archiectures of magnets. 
-% To build layers of magnetics makes sure:
+% To build layers of magnets makes sure:
 %       layer1 = [res1_nodes, res2_nodes,... ];
 %       config.num_nodes = {layer1;layer2; ... etc};
 % Or,
@@ -11,11 +11,15 @@
 
 function population = createMultiMM(config)
 
+%set up the new batch path
+config.batch_path = getMMPath(config.test);
+
 %% Reservoir Parameters
 for pop_indx = 1:config.pop_size
     
     % assign details for vampire directories
     population(pop_indx).batch_num = config.test;
+    population(pop_indx).batch_path = config.batch_path;
     
     % add performance records
     population(pop_indx).train_error = 1;
@@ -46,7 +50,8 @@ for pop_indx = 1:config.pop_size
         % iterate through subreservoirs in layer
         for res_indx = 1:config.num_res_in_layer(layer_indx)
             
-             population(pop_indx).layer(layer_indx).core_indx(res_indx) = res_indx;
+            % add core indx
+            population(pop_indx).core_indx = pop_indx;
 
             % material details
             population(pop_indx).layer(layer_indx).material_type{res_indx} = config.material_type{randi([1 length(config.material_type)])};
@@ -67,7 +72,7 @@ for pop_indx = 1:config.pop_size
             else
                 population(pop_indx).layer(layer_indx).macro_cell_size(res_indx) = config.macro_cell_size;
             end
-            if (config.system_size_z) > 1
+            if length(config.system_size_z) > 1
                 system_size_z = config.system_size_z(res_indx);
             else
                 system_size_z = config.system_size_z;
@@ -82,6 +87,16 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).layer(layer_indx).minimum_height(res_indx,:) = [0 population(pop_indx).layer(layer_indx).thickness(res_indx)];
             population(pop_indx).layer(layer_indx).maximum_height(res_indx,:) = [population(pop_indx).layer(layer_indx).thickness(res_indx) 1];
             
+            % geometry details
+            if config.evolve_geometry               
+                if config.evolve_poly
+                    population(pop_indx).layer(layer_indx).poly_coord = config.lb + (1-config.lb)*rand(config.poly_num,2);
+                else
+                    population(pop_indx).layer(layer_indx).geo_width = config.lb + (1-config.lb)*rand;
+                    population(pop_indx).layer(layer_indx).geo_height = config.lb + (1-config.lb)*rand;
+                end
+            end
+        
             % simulation details
             % Input time-period
             population(pop_indx).layer(layer_indx).time_steps_increment = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);%config.time_steps_increment(1);%
@@ -100,11 +115,33 @@ for pop_indx = 1:config.pop_size
             
             % input weights
             if layer_indx == 1
-                population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
-                    getWeights(config.input_weight_initialisation,...
-                    population(pop_indx).n_input_units + config.bias,...
-                    population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                    config.sparsity);
+                
+                % single reservoir input example
+                if config.single_input && config.evolve_geometry
+                    input_weights = zeros(population(pop_indx).n_input_units + 1, population(pop_indx).layer(layer_indx).nodes(res_indx));
+                    
+                    % make rectangle
+                    xy = createRect(population(pop_indx).layer(layer_indx).geo_height,population(pop_indx).layer(layer_indx).geo_width);
+                    
+                    % % reset input weights
+                    square_film_dimensions = sqrt(population(pop_indx).layer(layer_indx).nodes(res_indx));
+                    [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
+                    [in,on] = inpolygon(xq,yq,xy(:,1),xy(:,2));
+                    inputs_in_use = find(in | on);
+
+                    input_loc = randperm(length(inputs_in_use),1);
+                    weight_value = 2*rand(population(pop_indx).n_input_units + 1,1)-1;
+                    
+                    input_weights(:,inputs_in_use(input_loc)) = weight_value;
+                    population(pop_indx).layer(layer_indx).input_weights{res_indx} = input_weights;
+                else
+                    population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
+                        getWeights(config.input_weight_initialisation,...
+                        population(pop_indx).n_input_units + 1,...
+                        population(pop_indx).layer(layer_indx).nodes(res_indx),...
+                        config.sparsity); 
+                end
+           
             else
                 switch(population(pop_indx).architecture)
                     case 'pipeline'
@@ -113,13 +150,12 @@ for pop_indx = 1:config.pop_size
                             config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction),...
                             population(pop_indx).layer(layer_indx).nodes(res_indx),...
                             config.connecting_sparsity);
-                    case 'pipline_IA'
+                    case 'pipeline_IA'
                         population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
                             getWeights(config.input_weight_initialisation,...
                             config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction) + population(pop_indx).n_input_units + config.bias,...
                             population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                            config.connecting_sparsity);
-                        
+                            config.connecting_sparsity);     
                 end
             end
             
@@ -131,6 +167,7 @@ for pop_indx = 1:config.pop_size
             else
                 widths = ones(length(population(pop_indx).layer(layer_indx).input_weights{res_indx}),1);
             end
+            
             population(pop_indx).layer(layer_indx).input_widths{res_indx} = widths; %size of the inputs; pin-point or broad
             
             population(pop_indx).layer(layer_indx).last_state{res_indx} = zeros(1,population(pop_indx).layer(layer_indx).nodes(res_indx));
@@ -167,8 +204,8 @@ for pop_indx = 1:config.pop_size
             end
             
             % boundary params
-            population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,:) = zeros(1,3);
-            population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,logical(config.periodic_boundary)) = round(rand(1,sum(config.periodic_boundary)));
+            population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,:) = config.periodic_boundary;%zeros(1,3);
+            %population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,logical(config.periodic_boundary)) = round(rand(1,sum(config.periodic_boundary)));
             
             
             % apply material densities

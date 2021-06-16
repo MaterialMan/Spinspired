@@ -5,7 +5,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 1;                        % use parallel toolbox
+config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel %
@@ -14,7 +14,7 @@ end
 
 % type of network to evolve
 config.res_type = 'MM';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [100];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
+config.num_nodes = [196];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
 config = selectReservoirType(config);   % collect function pointers for the selected reservoir type
 
 %% Task parameters
@@ -35,18 +35,18 @@ config = selectDataset(config);
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 5;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.pop_size = 1;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 
 %% sweep film sizes
 config.test = 1;
 
 % create population of reservoirs
 population = config.createFcn(config);
-default_pop = population(5);
+default_pop = population(1);
 
 
 %% damping effect
-damping = linspace(0,1,20);
+damping = linspace(0.1,1,4);
 
 ppm = ParforProgMon('Initial population: ', length(damping));
 parfor pop_indx = 1:length(damping)
@@ -55,19 +55,79 @@ parfor pop_indx = 1:length(damping)
     population(pop_indx) = default_pop;
     population(pop_indx).input_scaling = 1;
     population(pop_indx).leak_rate = 1;
-    population(pop_indx).input_weights{1} = zeros(100,2);
-    population(pop_indx).input_weights{1}(50,1) = 1;
+    population(pop_indx).input_weights{1} = zeros(config.num_nodes,2);
+    population(pop_indx).input_weights{1}(config.num_nodes/2 - floor(sqrt(config.num_nodes)/2),1) = 1;
     
     population(pop_indx).core_indx = pop_indx;
     population(pop_indx).damping = damping(pop_indx);
 
     states{pop_indx} = config.assessFcn(population(pop_indx),config.test_input_sequence,config,config.test_output_sequence);
-    MC(pop_indx) = getMetrics(population(pop_indx),config);
+    %MC(pop_indx) = getMetrics(population(pop_indx),config);
     
     ppm.increment();
 end
 
-% thickness vs time
+
+% figure
+% set(gcf,'color','w')
+d = 1;
+[X,Y] = meshgrid(1:sqrt(config.num_nodes),1:sqrt(config.num_nodes));
+% for t = 1:size(states{d},1)
+% subplot(1,2,1)
+% surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+%     ,'FaceAlpha',0.5,'FaceColor','interp');
+% set(gca,'visible','off')
+% %view([2 2 2])
+% zlim([min(min(states{1})) max(max(states{1}))])
+% caxis([-1 1])
+% xlabel('Side view')
+% 
+% subplot(1,2,2)
+% surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+%     ,'FaceAlpha',0.5,'FaceColor','interp');
+% view(2)
+% caxis([-1 1])
+% set(gca,'visible','off')
+% xlabel('Top down view')
+% colorbar
+% colormap(bluewhitered)
+% 
+% drawnow;
+% end
+
+figure
+set(gcf,'color','w')
+d = 1;
+list = 11:2:15;
+for t = 1:3
+subplot(3,2,(t-1)*2+1)
+surf(X,Y,reshape(states{d}(list(t),1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+set(gca,'visible','off')
+%view([2 2 2])
+zlim([-1 1])
+caxis([-1 1])
+if t ==1
+    title('Side view')
+end
+xlabel(strcat('t = ',num2str(list(t))))
+set(findall(gca,'type','text'),'visible','on')
+
+subplot(3,2,t*2)
+surf(X,Y,reshape(states{d}(list(t),1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+view(2)
+caxis([-1 1])
+set(gca,'visible','off')
+if t ==1
+    title('Top down view')
+end
+set(findall(gca,'type','text'),'visible','on')
+colorbar
+colormap(bluewhitered)
+end
+
+%% thickness vs time
 colors = distinguishable_colors(length(damping));
 figure
 hold on

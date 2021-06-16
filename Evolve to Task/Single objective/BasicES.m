@@ -15,7 +15,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 0;                        % use parallel toolbox
+config.parallel = 1;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -24,7 +24,7 @@ end
 
 % type of network to evolve
 config.res_type = 'multiMM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = {[49]};                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.num_nodes = {[196]};                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
@@ -33,13 +33,13 @@ config.num_parents = 1;
 config.num_children = 3;
 config.pop_size = config.num_parents+config.num_children;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 
-config.total_gens = 1000;                    % number of generations to evolve
+config.total_gens = 75;                    % number of generations to evolve
 config.mut_rate = 0.05;                       % mutation rate
 %config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'MC';          % Task to evolve for
+config.dataset = 'narma_10';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -50,7 +50,7 @@ config = getAdditionalParameters(config);
 config = selectDataset(config);
 
 %% general params
-config.gen_print = 10;                       % after 'gen_print' generations print task performance and show any plots
+config.gen_print = 1;                       % after 'gen_print' generations print task performance and show any plots
 config.start_time = datestr(now, 'HH:MM:SS');
 config.save_gen = inf;                       % save data at generation = save_gen
 
@@ -134,9 +134,9 @@ for test = 1:config.num_tests
             % if no recombination
             pop_temp(child) = config.mutFcn(population(winner),config);
             
-%             if strcmp(config.res_type,'MM') || strcmp(config.res_type,'multiMM')
-%                 pop_temp(child).core_indx = child;
-%             end
+            if strcmp(config.res_type,'MM') || strcmp(config.res_type,'multiMM')
+                pop_temp(child).core_indx = child;
+            end
             
             pop_temp(child) = config.testFcn(pop_temp(child),config);
         end

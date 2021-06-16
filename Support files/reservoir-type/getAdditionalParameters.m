@@ -78,7 +78,7 @@ switch(res_type)
         config.mut_rate_connecting = 0.001;
         config.prune_rate = 0.00;
         
-        config.RoR_structure = 'Graph';
+        config.RoR_structure = '';
         config.graph_type = {'fullLattice'}; % if using 'Graph' as RoR_structure
         config.total_units = sum(config.num_nodes);
         config.mulit_leak_rate = 0;
@@ -290,6 +290,7 @@ case {'MM','multiMM'}
         % reservoir params
         config.leak_on = 1;                         % add a leak rate filter
         config.add_input_states = 1;                % add input to states
+        config.single_input = 0;
         config.bias = 1;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
         config.sparse_input_weights = 1;            % use a sparse input encoding
         config.sparsity = 0.1;                    % 0 to 1 sparsity of input weights
@@ -314,11 +315,17 @@ case {'MM','multiMM'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
-        config.evolve_geometry = 0;                    % manipulate geomtry
-        config.evolve_poly = 0; % otherwise evolve a rectangle
-        config.poly_num = 4; 
-        config.geometry_file =  '';                    %add specific geometry file
+        % define geometry
+        config.evolve_geometry = 1;                    % manipulate geomtry
+        config.shape_list = {'traingle'};                              % set of shapes to evolve with 
+        config.rotate_angle = [];
+        config.ref_point = [];
 
+        config.poly_num = 4; 
+        config.geometry_file =  'custom.geo';                    %add specific geometry file, e.g. custom.geo
+        config.lb = 0.1;                                %lower bound on dimension
+        
+        
         %defaults for different material types - may conflict with multiMM
         for i = 1:length(config.num_nodes)
             config.random_alloy(i) = false;
@@ -354,7 +361,7 @@ case {'MM','multiMM'}
         config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
         config.temperature_rescaling_exponent = [2.369 2.369]; % for more acurate temperature measures. [Co=2.369,FE=2.876,Ni=2.322]
         config.temperature_rescaling_curie_temperature = [1395 1395]; % [Co=1395,FE=1049,Ni=635]
-        config.damping_parameter = [0.001, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
+        config.damping_parameter = [0.01, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [6.69e-24, 6.69e-24];   % 1e-26 to 1e-22 OR 'dynamic' | typical value 1e-24
         config.exchange_parameter = [6.064e-21, 6.064e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
         config.magmoment_parameter = [1.72, 1.72];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
@@ -364,10 +371,10 @@ case {'MM','multiMM'}
         config.interfacial_exchange = [-25e-21, 25e-21];
         
         %simulation params
-        config.time_step = 10;                    % simulation/itegrator time-step
+        config.time_step = 100;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
-        config.time_steps_increment = [1000 1000];    % time step to apply input; e.g. 100 or 1000
-        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
+        config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
+        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
@@ -376,8 +383,12 @@ case {'MM','multiMM'}
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-
+        config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        % To create an ensemble: nx1 cell array, e.g. {49;49;49} would be 3
+        % equal reservoirs. 
+        % To create a pipline: 
+        config.mono_architecture = 1;               % if all layers are just copies of the first
+        
         % calculate number of reservoirs in total if multilayered system (signified by cell type)
         if iscell(config.num_nodes)
             config.num_layers = length(config.num_nodes);

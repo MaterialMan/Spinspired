@@ -1,5 +1,8 @@
 function population = createMM(config)
 
+%set up the new batch path
+config.batch_path = getMMPath(config.test);
+
 %% Reservoir Parameters
 for pop_indx = 1:config.pop_size
     
@@ -7,6 +10,7 @@ for pop_indx = 1:config.pop_size
     
     % assign details for vampire directories
     population(pop_indx).batch_num = config.test;
+    population(pop_indx).batch_path = config.batch_path;
     
     % add performance records
     population(pop_indx).train_error = 1;

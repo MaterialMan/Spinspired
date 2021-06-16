@@ -105,7 +105,7 @@ for i = 1:config.num_reservoirs
     new_pos = randperm(length(input_weights),length(pos)); % find new positions to change
     input_weights(new_pos) = mutateWeight(input_weights(new_pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
     input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0;
-    offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights));
+    offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
 
 
     % width of inputs

@@ -43,6 +43,29 @@ switch config.dataset
         output_sequence = input_sequence(1:end-ahead);
         input_sequence = input_sequence(ahead+1:end);
         
+    case 'test_sine'
+        err_type = 'NMSE';
+        wash_out = 10;
+        config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
+        
+        sequence_length = 4000;
+        
+        config.freq = 1000;
+        %T = 100*(1/freq);
+        fprintf('Freq: %d Hz\n',config.freq);
+        config.Fs = 10e3; %per channel
+        
+        T = 1/config.Fs;
+        %t = 0:step:T-step;
+        t = (0:1:sequence_length)*T;
+        amplitude = 1;
+        %t = t(:,1:sequence_length);
+        
+        % sinewave input
+        input_sequence=[];
+        input_sequence(:,1) = [zeros(1,10) amplitude*sin(2*pi*config.freq*t)];
+        output_sequence = input_sequence;
+        
         %% system modelling and chaotic systems
     case 'secondorder_task' %best 3.61e-3
         
@@ -125,8 +148,8 @@ switch config.dataset
 %         config.train_fraction=0.375;    config.val_fraction=0.375;    config.test_fraction=0.25;
 %         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
 
-        wash_out = 200;
-        err_type = 'NRMSE_zhong';
+        wash_out = 0;
+        err_type = 'NMSE'; %_zhong
         sequence_length= 2000;
         stdev = 0.05;
         config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;

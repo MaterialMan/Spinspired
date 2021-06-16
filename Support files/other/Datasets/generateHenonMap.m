@@ -8,20 +8,26 @@ while(1)
     noise = stdev*randn(dataLength,1);
     %noise = stdev*rand(dataLength,1);% taken from "A Comparative Study of Reservoir Computing...
     ...for Temporal Signal Processing (Goudarzi,2015)"
-        
-y = zeros(dataLength,1);
+ 
+y = zeros(dataLength+3,1);
+x = zeros(dataLength+3,1);
 
 
-for i = 3:dataLength-1
+for i = 3:dataLength+3
     %y(i) = 1-(1.4*(y(i-1).^2)) + (0.3*y(i-2));
     
-    y(i) = 1-((1.4)*(y(i-1).^2)) + (0.3*y(i-2));% + (stdev*randn);
+    y(i+1) = 0.3*x(i);
+    
+    x(i+1) = 1 - 1.4*(x(i).^2) + 0.3*x(i-1);% + (stdev*randn);
+    
+    
+    %x(i+1) = (0.3*x(i-1) + (stdev*randn)) - 1.4*(x(i).^2);
     
     % x(i+1)= 1-1.4*x(i).^2 + y(i);
     % y(i+1)=0.3*x(i);%+ noise(i+1);
     %y(i+1)= (y(i+1)-0.5)*2;
     
-    %x(i+1)= y(i) - 1.4*x(i).^2;
+    %x(i+1)= y(i) - 1.4*(x(i).^2);
     %y(i+1)= 0.3*x(i) + stdev*randn;
     
 end
@@ -31,9 +37,11 @@ end
 %input = [0; y(1:dataLength-1)];
 %output = y;
 
+x = x(4:end);
+
 ahead = 1;
-input = y(1:dataLength-ahead);
-output = y(ahead+1:dataLength);
+input = x(1:end-ahead);
+output = x(ahead+1:end);
         
 if isinf(output(end-1))
     i = i+1;
