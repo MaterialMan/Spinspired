@@ -17,11 +17,11 @@ switch config.dataset
         err_type = 'NMSE';
         wash_out =100;
         sequence_length = 900;
-        config.train_fraction= 1/3;    config.val_fraction= 1/3;    config.test_fraction= 1/3;
+        config.train_fraction= 1;    config.val_fraction= 0;    config.test_fraction= 0;
         
         input_sequence = zeros(sequence_length,1);
         
-        input_sequence([200,400,600]) = 1;
+        input_sequence([210,410,610]) = 1;
         %         for i=1:sequence_length
         %             if mod(i,30) == 0
         %                 input_sequence(i) = 1;
@@ -51,7 +51,7 @@ switch config.dataset
         
         sequence_length = 500;
         
-        freq = 1000;
+        freq = 2000;
         T = 100*(1/freq);
         fprintf('Freq: %d Hz\n',freq);
         config.Fs = 20000; %per channel

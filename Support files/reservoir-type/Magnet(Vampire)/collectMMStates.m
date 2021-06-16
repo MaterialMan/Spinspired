@@ -168,14 +168,7 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
             
             tmp_states = []; % release
             states = [];
-            
-            % use only the desired direction(s)
-%            config.preprocess = 'rescale_diff';
-%             config.preprocess_shift = [0 1];
-%             x_states = featureNormailse(x_states,config);
-%             y_states = featureNormailse(y_states,config);
-%             z_states = featureNormailse(z_states,config);
-%             
+                  
             for m = 1:length(config.read_mag_direction)
                 switch(config.read_mag_direction{m})
                     case 'x'
@@ -195,6 +188,13 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
                 
                 subplot(2,2,3)
                 plot(states)
+                title('Scaled states')
+               
+                subplot(2,2,4)
+                imagesc(reshape(mean(states,1),sqrt(size(x_states,2)),sqrt(size(x_states,2))));
+                colorbar
+                caxis([-1 1])
+                colormap(gca,bluewhitered)
                 title('Scaled states')
                 drawnow
                 
@@ -234,7 +234,7 @@ function states = getStates(batch_path,individual,input_sequence,previous_states
         else
             states = zeros(length(input_sequence),config.num_nodes(i)*length(config.read_mag_direction));
             fprintf('simulation failed\n')
-            cmdout
+            %cmdout
         end
         
         if individual.core_indx(i) ~= 0 && config.num_reservoirs == 1
@@ -307,7 +307,7 @@ if config.plot_states
     subplot(2,2,1)
     imagesc(rot90(reshape((max(abs(input))),node_grid_size,node_grid_size),3)')
     title('Input location')
-    colormap(bluewhitered)
+    colormap(gca,bluewhitered)
     colorbar
     drawnow
 end
@@ -606,18 +606,9 @@ switch(individual.material_type{indx})
                     % create new geo file
                     geo_file=fopen(strcat(file_path,config.geometry_file),'w');
                     
-                    if config.evolve_poly
-                        fprintf(geo_file,'%d \n',config.poly_num); % add number of lines
-                        coord = individual.poly_coord;
-                    else
-                        % add new coordinates
-                        fprintf(geo_file,'4 \n'); % add number of lines
-                        coord = createRect(individual.geo_width,individual.geo_height); % get coords
-%                         rectangle('Position',[0 0 individual.geo_width individual.geo_height])
-%                         axis([0 1 0 1])
-%                         drawnow
-                    end
-                    fprintf(geo_file,'%.4f %.4f \n',coord');
+                    fprintf(geo_file,'%d \n',size(individual.poly_coord,1)); % add number of lines
+
+                    fprintf(geo_file,'%.4f %.4f \n',individual.poly_coord');
                     fclose(geo_file);
                 else
                     % copy the known geo file to core directory

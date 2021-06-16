@@ -345,7 +345,7 @@ switch(config.err_type)
         end
         
         MC_k(isnan(MC_k)) = 0;
-        err = size(desired_output,2)-sum(MC_k);
+        err = config.total_units-sum(MC_k);
         
     otherwise
         

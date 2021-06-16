@@ -733,16 +733,45 @@ if ~iscell(config.res_type)
             
         case 'MM'
             
-            config.parallel = 0;
-            config.plot_states = 1;
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
-            states = states(:,1:end-best_individual.n_input_units);
+
+            ax1 = subplot(2,2,1);
+            input_space = zeros(sqrt(best_individual.nodes));
+            input_space(best_individual.inputs_mask) = 1;
+            imagesc(input_space);
+            colormap(ax1,bluewhitered)
+            colorbar
+            xlabel('Input shape')
             
-            for i = 1:size(states,1)
-               imagesc(reshape(states(i,config.num_nodes*2+1:end),sqrt(config.num_nodes),sqrt(config.num_nodes)))
-               caxis([-1 1])
-               drawnow
-            end
+            ax2 = subplot(2,2,2);
+            imagesc(reshape(sum(states(:,1:end-1)),sqrt(best_individual.nodes),sqrt(best_individual.nodes)));
+            colormap(ax2,bluewhitered)
+            colorbar
+            xlabel('States')
+            
+            ax3 = subplot(2,2,3);
+            imagesc((best_individual.input_weights{1}.*best_individual.input_scaling)');
+            colormap(ax3,bluewhitered)
+            colorbar
+            xlabel('Input mapping')
+
+            ax4 = subplot(2,2,4);
+            imagesc(best_individual.output_weights);
+            colormap(ax4,bluewhitered)
+            colorbar
+            xlabel('Output mapping')
+            
+%             config.parallel = 0;
+%             config.plot_states = 1;
+%             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
+%             states = states(:,1:end-best_individual.n_input_units);
+%             
+%             for i = 1:size(states,1)
+%                imagesc(reshape(states(i,1:end),sqrt(config.num_nodes),sqrt(config.num_nodes)))
+%                caxis([-1 1])
+%                drawnow
+%             end
+            
         case 'Oregonator'
             config.plot_states = 1;
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);

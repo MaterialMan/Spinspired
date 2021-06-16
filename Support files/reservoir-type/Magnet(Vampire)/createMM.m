@@ -50,21 +50,44 @@ for pop_indx = 1:config.pop_size
                 population(pop_indx).num_materials(res_indx) = 1;
         end
         
-        %define num of units
-        population(pop_indx).nodes(res_indx) = config.num_nodes(res_indx);
+        %% geometry of film
+        if config.evolve_geometry
+            
+            s = randi([1 length(config.shape_list)]);
+            
+            [x,y,num_points, area_ratio] = getPolyShape(config.shape_list{s},[],config.rotate_angle,config.ref_point);
+            
+            % update params
+            total_cells_needed = (config.num_nodes(res_indx)/area_ratio);
+            square_film_dimensions = round(sqrt(total_cells_needed));
+            population(pop_indx).nodes(res_indx) = square_film_dimensions.^2;
+            config.poly_num = num_points;
+            
+            population(pop_indx).poly_coord = [x; y]';
+            
+            
+            % % define inputs to sweep through
+            [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
+            [in,on] = inpolygon(xq,yq,x,y);
+            population(pop_indx).inputs_mask = find(in | on);
+            
+        else
+            %define num of units
+            population(pop_indx).nodes(res_indx) = config.num_nodes(res_indx);
+        end
         
         % check length of params
         if length(config.macro_cell_size) > 1
-            population(pop_indx).macro_cell_size(res_indx) = config.macro_cell_size(res_indx); 
-        else 
-            population(pop_indx).macro_cell_size(res_indx) = config.macro_cell_size; 
+            population(pop_indx).macro_cell_size(res_indx) = config.macro_cell_size(res_indx);
+        else
+            population(pop_indx).macro_cell_size(res_indx) = config.macro_cell_size;
         end
-        if (config.system_size_z) > 1 
+        if (config.system_size_z) > 1
             system_size_z = config.system_size_z(res_indx);
-        else 
-            system_size_z = config.system_size_z; 
+        else
+            system_size_z = config.system_size_z;
         end
-            
+        
         population(pop_indx).system_size(res_indx,1) = (sqrt(population(pop_indx).nodes(res_indx)) * population(pop_indx).macro_cell_size(res_indx))-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
         population(pop_indx).system_size(res_indx,2) = (sqrt(population(pop_indx).nodes(res_indx)) * population(pop_indx).macro_cell_size(res_indx))-1;%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
         population(pop_indx).system_size(res_indx,3) = system_size_z;
@@ -74,54 +97,44 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).minimum_height(res_indx,:) = [0 population(pop_indx).thickness(res_indx)];
         population(pop_indx).maximum_height(res_indx,:) = [population(pop_indx).thickness(res_indx) 1];
         
-    	if config.evolve_geometry
-         if config.evolve_poly
-            population(pop_indx).poly_coord = rand(config.poly_num,2);
-         else
-            population(pop_indx).geo_width = rand;
-            population(pop_indx).geo_height = rand;
-         end
-    	end
-
-
+        
+        %% global params
         % simulation details
         % Input time-period
         population(pop_indx).time_steps_increment = randi([config.time_steps_increment(1) config.time_steps_increment(2)]);%config.time_steps_increment(1);%
         
-        %% global params
-        population(pop_indx).input_scaling(res_indx)= 2*rand-1;%*(2*rand-1); % not sure about range?
+        population(pop_indx).input_scaling(res_indx)= 2*rand-1;
         population(pop_indx).leak_rate(res_indx) = rand;
         
         %% Input params
         
         % set positions of magnetic sources. Need maxpos > minpos
         [config.cell_grid_x, config.cell_grid_y] = meshgrid(1:1:(population(pop_indx).system_size(res_indx,1)+1)/population(pop_indx).macro_cell_size(res_indx),1:1:(population(pop_indx).system_size(res_indx,2)+1)/population(pop_indx).macro_cell_size(res_indx));
-        population(pop_indx).num_input_loc = population(pop_indx).nodes(res_indx); %population(pop_indx).n_input_units;
-        
+        population(pop_indx).num_input_loc = sum(population(pop_indx).inputs_mask);%population(pop_indx).nodes(res_indx);
         population(pop_indx).xy{res_indx} = [config.cell_grid_x(:) config.cell_grid_y(:)];
         
         
-       % inputweights       
-       switch(config.input_weight_initialisation)
-           case 'norm' % normal distribution
-               if config.sparse_input_weights
-                   input_weights = sprandn(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias, config.sparsity);
-               else
-                   input_weights = randn(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias);
-               end
-           case 'uniform' % uniform dist between -1 and 1
-               if config.sparse_input_weights
-                   input_weights = sprand(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias, config.sparsity);
-                   input_weights(input_weights ~= 0) = ...
-                       2*input_weights(input_weights ~= 0)  - 1;
-               else
-                   input_weights = 2*rand(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias)-1;
-               end
-           case 'orth'
-               input_weights = ones(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias);
-       end
-       population(pop_indx).input_weights{res_indx} = input_weights;%.*config.input_scaler;
-       
+        % inputweights
+        population(pop_indx).input_weights{res_indx} = zeros(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias);
+        switch(config.input_weight_initialisation)
+            case 'norm' % normal distribution
+                if config.sparse_input_weights
+                    input_weights = sprandn(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias, config.sparsity);
+                else
+                    input_weights = randn(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias);
+                end
+            case 'uniform' % uniform dist between -1 and 1
+                if config.sparse_input_weights
+                    input_weights = sprand(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias, config.sparsity);
+                    input_weights(input_weights ~= 0) = ...
+                        2*input_weights(input_weights ~= 0)  - 1;
+                else
+                    input_weights = 2*rand(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias)-1;
+                end
+            case 'orth'
+                input_weights = ones(population(pop_indx).nodes(res_indx),  population(pop_indx).n_input_units + config.bias);
+        end
+        population(pop_indx).input_weights{res_indx}(population(pop_indx).inputs_mask,:) = input_weights(population(pop_indx).inputs_mask,:);%.*config.input_scaler;
         
         % input widths
         if config.input_widths
@@ -148,11 +161,11 @@ for pop_indx = 1:config.pop_size
             
             population(pop_indx).exchange(res_indx,m) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
             
-            population(pop_indx).magmoment(res_indx,m) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;    
+            population(pop_indx).magmoment(res_indx,m) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;
         end
         population(pop_indx).applied_field_strength(res_indx) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
         
-                
+        
         % random alloy params
         if config.random_alloy(res_indx)
             population(pop_indx).interfacial_exchange(res_indx) = config.interfacial_exchange(1) + (config.interfacial_exchange(2)-config.interfacial_exchange(1))*rand;
@@ -161,14 +174,14 @@ for pop_indx = 1:config.pop_size
         % core shell params
         if config.core_shell(res_indx)
             population(pop_indx).interfacial_exchange(res_indx) = config.interfacial_exchange(1) + (config.interfacial_exchange(2)-config.interfacial_exchange(1))*rand;
-            population(pop_indx).shell_size(res_indx,:) = [1 rand];  
+            population(pop_indx).shell_size(res_indx,:) = [1 rand];
             population(pop_indx).particle_size(res_indx) = population(pop_indx).system_size(res_indx,1);
         end
         
-         % boundary params
+        % boundary params
         population(pop_indx).periodic_boundary(res_indx,:) = zeros(1,3);
         population(pop_indx).periodic_boundary(res_indx,logical(config.periodic_boundary)) = round(rand(1,sum(config.periodic_boundary)));
-
+        
         
         % apply material densities
         if config.evolve_material_density(res_indx)
@@ -176,7 +189,7 @@ for pop_indx = 1:config.pop_size
         else
             population(pop_indx).material_density(res_indx) = config.material_density;
         end
-            
+        
         population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(res_indx);
     end
     
@@ -221,12 +234,12 @@ for pop_indx = 1:config.pop_size
                         population(pop_indx).W_scaling(res_indx,j) = 0;
                         population(pop_indx).W{res_indx,j} = zeros(population(pop_indx).nodes(res_indx), population(pop_indx).nodes(j));
                     end
-                   
+                    
                 otherwise
                     % no connectivity
                     population(pop_indx).connectivity(res_indx,j) = 0;
                     population(pop_indx).W_scaling(res_indx,j) = 0;
-%                    population(pop_indx).W{res_indx,j} = zeros(population(pop_indx).nodes(res_indx), population(pop_indx).nodes(j));
+                    %                    population(pop_indx).W{res_indx,j} = zeros(population(pop_indx).nodes(res_indx), population(pop_indx).nodes(j));
             end
         end
         

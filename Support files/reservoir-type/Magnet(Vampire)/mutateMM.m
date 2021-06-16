@@ -60,37 +60,29 @@ if config.evolve_material_density
     offspring.material_density = reshape(material_density,size(offspring.material_density));
 end
 
-if config.evolve_geometry
-    if config.evolve_poly
-        poly_coord = offspring.poly_coord(:);
-        pos = randperm(length(poly_coord),sum(rand(length(poly_coord),1) < config.mut_rate));
-        poly_coord(pos) = mutateWeight(poly_coord(pos),[0 1],config);
-        offspring.poly_coord = reshape(poly_coord,size(offspring.poly_coord)); 
-    else
-        geo_width = offspring.geo_width(:);
-        pos = randperm(length(geo_width),sum(rand(length(geo_width),1) < config.mut_rate));
-        geo_width(pos) = mutateWeight(geo_width(pos),[0 1],config);
-        offspring.geo_width = reshape(geo_width,size(offspring.geo_width));
-        
-        geo_height = offspring.geo_height(:);
-        pos = randperm(length(geo_height),sum(rand(length(geo_height),1) < config.mut_rate));
-        geo_height(pos) = mutateWeight(geo_height(pos),[0 1],config);
-        offspring.geo_height = reshape(geo_height,size(offspring.geo_height));
-    end
-end
 
 %% cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
     
+    % mutate shape
+    if config.evolve_geometry && rand < config.mut_rate
+        offspring = mutateShape(offspring,i,config);
+    end
+
     % input weights
-    input_weights = offspring.input_weights{i}(:);
-    pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
-    input_weights(pos) = mutateWeight(input_weights(pos),[-1, 1],config);
+    input_weights = offspring.input_weights{i};
+        
+    for n = 1:size(input_weights,2)
+        indices = offspring.inputs_mask; % find inputs in use
+               
+        pos =  randperm(length(indices),ceil(config.mut_rate*length(indices)));
+        input_weights(indices(pos),n) = mutateWeight(input_weights(indices(pos),n),[-1, 1],config);
+    end
+       % input weight check
+        input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
     offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
     
-    % input weight check
-    input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
-     
+
     % width of inputs
     if config.input_widths
         input_widths = offspring.input_widths{i}(:);
@@ -154,6 +146,57 @@ if config.evolve_output_weights
     output_weights(pos) =  mutateWeight(output_weights(pos),[-config.output_weight_scaler,config.output_weight_scaler],config);
     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
 end
+
+end
+
+function offspring = mutateShape(offspring,res_indx,config)
+
+s = randi([1 length(config.shape_list)]);
+
+[x,y,num_points, area_ratio] = getPolyShape(config.shape_list{s},[],config.rotate_angle,config.ref_point);
+
+% update params
+total_cells_needed = (config.num_nodes(res_indx)/area_ratio);
+square_film_dimensions = round(sqrt(total_cells_needed));
+% recalibrate system size
+offspring.nodes(res_indx) = square_film_dimensions.^2;
+offspring.system_size(res_indx,1:2) = [(sqrt(offspring.nodes(res_indx)) * offspring.macro_cell_size(res_indx))-1,... 
+(sqrt(offspring.nodes(res_indx)) * offspring.macro_cell_size(res_indx))-1];%floor(sqrt(population(pop_indx).nodes(i)* config.macro_cell_size.^3/config.macro_cell_size))-1;
+
+offspring.total_units = sum(offspring.nodes);
+
+config.poly_num = num_points;
+
+offspring.poly_coord = [x; y]';
+
+% % define inputs to sweep through
+[xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
+[in,on] = inpolygon(xq,yq,x,y);
+offspring.inputs_mask = find(in | on);
+
+% transfer weights
+input_weights = zeros(offspring.nodes(res_indx),offspring.n_input_units + config.bias);
+
+for n = 1:size(input_weights,2)
+    indices = offspring.inputs_mask; % find inputs in use
+    
+    pos =  randperm(length(indices),ceil(config.mut_rate*length(indices)));
+    input_weights(indices(pos),n) = mutateWeight(input_weights(indices(pos),n),[-1, 1],config);
+    
+end
+    % input weight check
+    input_weights(input_weights<0.1 & input_weights~=0 & input_weights>-0.1) = 0;
+    offspring.input_weights{res_indx} = reshape(input_weights,offspring.nodes(res_indx),offspring.n_input_units + config.bias);
+
+% input widths
+if config.input_widths
+    widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
+    widths(widths > round(sqrt(offspring.nodes(res_indx))/4)) = round(sqrt(offspring.nodes(res_indx))/4);% cap at 1/6 size of space
+else
+    widths = ones(length(input_weights),1);
+end
+offspring.input_widths{res_indx} = widths;
+
 
 end
 

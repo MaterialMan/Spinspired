@@ -313,7 +313,7 @@ case {'MM','MM_new'}
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. Check createMM.m for options
         
         % system settings
-        config.material_type = {''};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
+        config.material_type = {'toy'};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
         config.crystal_structure = {'sc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
         config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
@@ -329,11 +329,15 @@ case {'MM','MM_new'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
+        % define geometry
         config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 0;                         % otherwise evolve a rectangle
-        config.poly_num = 4; 
-        config.geometry_file = 'custom.geo';                    %add specific geometry file
+        config.shape_list = {'triangle','circle','square','rectangle','trapezoid'};                              % set of shapes to evolve with 
+        config.rotate_angle = [];
+        config.ref_point = [];
 
+        config.poly_num = 4; 
+        config.geometry_file =  'custom.geo';                    %add specific geometry file, e.g. custom.geo
+        config.lb = 0.1;     
         
         %defaults
         for i = 1:length(config.num_nodes)
@@ -382,7 +386,7 @@ case {'MM','MM_new'}
         config.time_step = 100;                    % simulation/itegrator time-step
         config.time_units = '!fs';                  % must have '!' before unit
         config.time_steps_increment = [100 100];    % time step to apply input; e.g. 100 or 1000
-        config.read_mag_direction = {'x','y','z'};  % list of directions to read; can be 1, 2  or all
+        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
         config.applied_field_unit_vector = {'0,0,1'}; % where the applied field will be directed; x,y,z
         
         % plot output
