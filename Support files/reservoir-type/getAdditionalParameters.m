@@ -402,6 +402,70 @@ case {'MM','MM_new'}
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
 
+  case 'STO'
+    % default STO data scaling
+        config.preprocess = 'rescale_diff';
+        config.preprocess_shift = [0 1]; % range for data
+        
+        % reservoir params
+        config.leak_on = 1;                         % add a leak rate filter
+        config.add_input_states = 1;                % add input to states
+        config.bias = 0;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
+        % 
+        config.sparse_input_weights = 1;            % use a sparse input encoding
+        config.sparsity = 0.1;                    % 0 to 1 sparsity of input weights
+        config.input_widths = 0;                    % inputs can apply to a single cell (when '0') or multiple cells with a disspating radius of 'r' (r>0)
+        config.input_scaler = 0.5;                    % input weight multiplier, e.g.x2
+        config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. Check createMM.m for options
+        
+        config.interpolation_length = 10;
+        
+        % run properties
+        config.mat_file='Co.mat';
+        config.unit_cell_file='STO-array-file-36.ucf';
+%         config.unit_cell_file='next-nearest-backup.ucf';
+       
+        % system properties in input
+        config.system_size = [39,39,39];
+%         config.system_size = [159,159,159];
+        config.size_units = {'!nm','!nm','!nm'};
+
+        % material properties
+%         config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
+%         config.damping_parameter = [0.005, 0.02];             % 0 to 10 OR 'dynamic' | typical value 0.1
+        config.exchange_parameter = [11.2e-27, 11.2e-25];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
+%         config.magmoment_parameter = [1.0, 2.5];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
+%         config.anisotropy_parameter = [-1.0e-25, -1.0e-23];
+        config.applied_field_strength = [0.03,0.25]; 
+        
+        % material properties
+        config.temperature_parameter = [0,0];           
+        config.damping_parameter = [0.01, 0.01];             
+%         config.exchange_parameter = [2.757e-24, 2.757e-24];    
+        config.magmoment_parameter = [1.72, 1.72];            
+        config.anisotropy_parameter = [-1.0e-24, -1.0e-24];
+%         config.applied_field_strength = [0.03,0.03];
+
+        config.spin_transfer_unit_vector = {'1,0,0'};     
+
+        config.spin_transfer_relaxation_torque = [-0.05, -0.05];
+        config.spin_transfer_precession_torque = [0.001, 0.001];
+        config.spin_transfer_torque_asymmetry  = [0.6, 0.6];
+        
+        %simulation params
+        config.time_step = 50;                     % simulation/itegrator time-step
+        config.time_units = '!fs';                  % must have '!' before unit
+        config.time_steps_increment = [150 150];           % time step to apply input; e.g. 100 or 1000
+        config.read_mag_direction = {'z'};  % list of directions to read; can be 1, 2  or all
+        
+        % plot output
+        config.plt_system = 0;                      % to create plot files from vampire simulation
+        config.plot_rate =0;                        % rate to build plot files
+        config.plot_states = 0;                     % plot every state in matlab figure; for debugging
+        
+        % multi-reservoir type
+        config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        
     otherwise
         
 end
