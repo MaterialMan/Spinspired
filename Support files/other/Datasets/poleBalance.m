@@ -70,30 +70,33 @@ for  tests = 1:config.pole_tests
     
     for n = 2:size(input_sequence,1)
         
+        delay = 1;
+        
+        % define input
         if config.velocity
             if config.simple_task ~= 3
                 % limit theta to [-2*pi 2*pi] 
                 if theta(n-1,:) < 0
-                    th = -mod(abs(theta(n-1,:)),2*pi);
+                    th = -mod(abs(theta(n-delay,:)),2*pi);
                 else
-                    th = mod(theta(n-1,:),2*pi);
+                    th = mod(theta(n-delay,:),2*pi);
                 end
                 
                 %inputSequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,:); 0; theta_dot(n-1,:); 0]; % scale input between -1 and 1
-                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); th; 0; theta_dot(n-1,:); 0]; % scale input between -1 and 1
+                input_sequence(n,:) = [x_pole(n-delay); x_dot(n-delay); th; 0; theta_dot(n-delay,:); 0]; % scale input between -1 and 1
             else
-                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,1); theta(n-1,2); theta_dot(n-1,1); theta_dot(n-1,2)]; % scale input between -1 and 1
+                input_sequence(n,:) = [x_pole(n-delay); x_dot(n-delay); theta(n-delay,1); theta(n-delay,2); theta_dot(n-delay,1); theta_dot(n-delay,2)]; % scale input between -1 and 1
             end
         else
             if config.simple_task ~= 3
-                input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1); 0; 0; 0]; % scale input between -1 and 1
+                input_sequence(n,:) = [x_pole(n-delay); 0; theta(n-delay); 0; 0; 0]; % scale input between -1 and 1
             else
-                input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1,1); theta(n-1,2); 0; 0];
+                input_sequence(n,:) = [x_pole(n-delay); 0; theta(n-delay,1); theta(n-delay,2); 0; 0];
             end
         end
         
         % rescale inputs
-        input_sequence(n,:) = ((input_sequence(n,:)--10)./(10--10)-0.5)*2;
+        %input_sequence(n,:) = ((input_sequence(n,:)--10)./(10--10)-0.5)*2;
 %            
         if sum(isnan(input_sequence(n,:))) > 1
             fitness(tests) = 1;
@@ -208,11 +211,16 @@ for  tests = 1:config.pole_tests
                 plot([x_pole(n) x_pole(n)-cos(theta(n,1)+pi/2)*LENGTH(1)], [0 -sin(theta(n,1)+pi/2)*LENGTH(1)],'k','LineWidth',3)
                 plot([0 0], [0.1 -0.1], 'k')
                 
+                %marker
+                plot([x_pole(n) x_pole(n)-cos((pi + pi/5)+ pi/2)*LENGTH(1)], [0 -sin((pi + pi/5) + pi/2)*LENGTH(1)],'r','LineWidth',3)
+                
+                plot([x_pole(n) x_pole(n)-cos((pi - pi/5)+ pi/2)*LENGTH(1)], [0 -sin((pi - pi/5) + pi/2)*LENGTH(1)],'g','LineWidth',3)
+                
                 hold off
                 grid on
                 xlabel(num2str(x_pole(n)))
                 ylabel(num2str(summation))
-                title(strcat('Time = ',num2str(n)))
+                title(strcat('Time = ',num2str(n), ', Time balanced = ',num2str(longest_balance)))
                 
                 axis([x_pole(n)-1 x_pole(n)+1 -1 1])
                 
@@ -292,7 +300,6 @@ for  tests = 1:config.pole_tests
             for p = 101:exited
                 F2_bottom = F2_bottom + abs(x_pole(p)) + abs(x_dot(p)) + abs(theta(p,1)) +abs(theta_dot(p,1));
             end
-            
             F2 = 0.75/F2_bottom;
         end
         
@@ -304,8 +311,8 @@ end
 
 %individual.train_error = mean(fitness);
 individual.train_error = median(fitness);
-% individual.val_error = mean(fitness);
-% individual.test_error = mean(fitness);
+individual.val_error = mean(fitness);
+individual.test_error = mean(fitness);
 
 % Go back to old seed
 rng(temp_seed,'twister');

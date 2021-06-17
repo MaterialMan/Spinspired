@@ -62,11 +62,11 @@ if isfield(EXP,'Map')&& isfield(EXP.Map,'Obstacle_distance')
                     t=X(1);
                     fi=X(2);
                     
-                    if (0<=t)&&(t<=range)&&(0<=fi)&&(fi<=1)
+                    if (0<=t)&(t<=range)&(0<=fi)&(fi<=1)
                         distanza=t;
                         
                         %-- controllo se aggiornare la distanza
-                        if (distanza<=range)&&((EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)>distanza)||(EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)==-1))
+                        if (distanza<=range)&((EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)>distanza)|(EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)==-1))
                             EXP.Agent(n_robot).Sensor(n_sensor).Presence=true;  % segnalo presenza di qualcosa nel campo visivo
                             EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)=distanza;
                             EXP.Agent(n_robot).Sensor(n_sensor).Detected_obstacles = 1;
@@ -98,11 +98,11 @@ for s=1:1  % ciclo sugli ostacoli
             t=X(1);
             fi=X(2);
             
-            if (0<=t)&&(t<=range)&&(0<=fi)&&(fi<=1)
+            if (0<=t)&(t<=range)&(0<=fi)&(fi<=1)
                 distanza=t;
                 
                 %-- controllo se aggiornare la distanza
-                if (distanza<=range)&&((EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)>distanza)||(EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)==-1))
+                if (distanza<=range)&((EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)>distanza)|(EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)==-1))
                     EXP.Agent(n_robot).Sensor(n_sensor).Presence=true;  % segnalo presenza di qualcosa nel campo visivo
                     EXP.Agent(n_robot).Sensor(n_sensor).Measured_distance(j)=distanza;
                     EXP.Agent(n_robot).Sensor(n_sensor).Detected_wall = 1;

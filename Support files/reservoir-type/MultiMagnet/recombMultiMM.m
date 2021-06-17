@@ -3,16 +3,17 @@ function loser = recombMultiMM(winner,loser,config)
 
 for layer = 1: config.num_layers
     
-    %if rand > 0.5
-     %   from_layer = randi([1 config.num_layers]);
-     %   to_layer = layer;
-    %else
+    if rand > 0.5
+        from_layer = randi([1 config.num_layers]);
+        to_layer = layer;
+    else
         from_layer = layer;
         to_layer = layer;
-    %end
+    end
     
     W= winner.layer(from_layer).input_scaling(:);
     L = loser.layer(from_layer).input_scaling(:);
+
     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
     L(pos) = W(pos);
     loser.layer(to_layer).input_scaling = reshape(L,size(loser.layer(to_layer).input_scaling));

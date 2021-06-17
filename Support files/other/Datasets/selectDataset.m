@@ -43,6 +43,7 @@ switch config.dataset
         output_sequence = input_sequence(1:end-ahead);
         input_sequence = input_sequence(ahead+1:end);
         
+
     case 'test_sine'
         err_type = 'NMSE';
         wash_out = 10;
@@ -66,6 +67,7 @@ switch config.dataset
         input_sequence(:,1) = [zeros(1,10) amplitude*sin(2*pi*config.freq*t)];
         output_sequence = input_sequence;
         
+
         %% system modelling and chaotic systems
     case 'secondorder_task' %best 3.61e-3
         
@@ -89,6 +91,7 @@ switch config.dataset
         [input_sequence,output_sequence] = generate_new_NARMA_sequence(sequence_length,10);
         input_sequence = 2*input_sequence-0.5;
         output_sequence = 2*output_sequence-0.5;
+        
         %fprintf('NARMA 10 task: %s \n',datestr(now, 'HH:MM:SS'))
         %config.preprocess = '';
         
@@ -142,19 +145,20 @@ switch config.dataset
         
     case 'henon_map' % input error > 1 - good task
 %         
-       % err_type = 'NMSE';
-%         sequence_length= 8000;
-%         stdev = 0.05;
-%         config.train_fraction=0.375;    config.val_fraction=0.375;    config.test_fraction=0.25;
-%         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
+       %err_type = 'NMSE';
+        %sequence_length= 8000;
+        %stdev = 0.05;
+        %config.train_fraction=0.375;    config.val_fraction=0.375;    config.test_fraction=0.25;
+        %[input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
 
         wash_out = 0;
         err_type = 'NMSE'; %_zhong
+
         sequence_length= 2000;
         stdev = 0.05;
         config.train_fraction=0.5;    config.val_fraction=0;    config.test_fraction=0.5;
         [input_sequence,output_sequence] = generateHenonMap(sequence_length,stdev);
-        
+                
     case 'multi_signal'
         
         err_type = 'NMSE';
@@ -1084,10 +1088,17 @@ switch config.dataset
         end              
 end
 
+% adjust prediction data for real-time processing
+if config.real_time_delay > 0
+    %output_sequence = [ones(config.real_time_delay); output_sequence(1:end-config.real_time_delay,:)];
+    
+    input_sequence = input_sequence(1:size(input_sequence,1)-config.real_time_delay);
+    output_sequence = output_sequence(config.real_time_delay+1:size(output_sequence,1));
+end
+
 if classification_data
     
     wash_out = 0;
-    
     % make sure distribution is even
     indx = [];
     num_classes = size(output_sequence,2);

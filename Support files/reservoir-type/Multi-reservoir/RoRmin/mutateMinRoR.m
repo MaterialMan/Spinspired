@@ -44,6 +44,7 @@ minimum_weight = 0.01; % anything less than this will be set to zero
 prob_2_del = 0.25;
 
 % mutate all input weights
+if config.CPPN_on
 input_weights = offspring.input_weights(:);
 indices = find(input_weights); % find outputs in use
 pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
@@ -56,6 +57,7 @@ input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-m
 offspring.input_weights = reshape(input_weights,size(offspring.input_weights));
 
 % mutate subres internal weights
+if isempty(config.weight_fcn) % only evolve if not given some rigid structure
 W = offspring.W(:);
 % find all intenal units
 indices = find(~offspring.test_mask{1});
@@ -67,8 +69,9 @@ end
 W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
 W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
 offspring.W = reshape(W,size(offspring.W));
-
+end
 % mutate subres connecting weights
+
 W = offspring.W(:);
 % find all intenal units
 indices = find(offspring.test_mask{2});
@@ -80,6 +83,7 @@ end
 W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
 W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
 offspring.W = reshape(W,size(offspring.W));
+end
 
 % random prune
 offspring = pruneParams(offspring,config);
