@@ -65,7 +65,7 @@ switch(config.err_type)
         pre_defined = [-3 -1 1 3];
         for i=1:length(system_output)
             [Y,I] = min(abs(system_output(i)-pre_defined));
-            new_system_output(i,1) =pre_defined(I);
+            new_system_output(i,1) = pre_defined(I);
         end
         [~,err] = symerr(new_system_output,desired_output);
         

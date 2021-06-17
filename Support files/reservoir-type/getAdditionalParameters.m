@@ -84,21 +84,25 @@ switch(res_type)
         
     case {'RoR','RoRmin'}
         
-        config.noise_level = 10e-6;
+        config.noise_level = 10e-6 ;
         config.mut_rate_connecting = 0.001;
         config.prune_rate = 0.00;
         
-        config.RoR_structure = 0;
-        if config.RoR_structure
-            config.graph_type = {'Ring'};
-            % Define substrate. Add graph type to cell array for multi-reservoirs
-            % Examples: 'Hypercube','Cube'
-            % 'Torus','L-shape','Bucky','Barbell','Ring',
-            % 'basicLattice','partialLattice','fullLattice','basicCube','partialCube','fullCube',ensembleLattice,ensembleCube,ensembleShape
-            config.self_loop = [0];               % give node a loop to self. Must be defined as array.
-            % node details and connectivity
-            [config,config.num_nodes] = getShape(config);
-        end
+        config.RoR_structure = 'feedback_only';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
+        config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
+
+        config.total_units = sum(config.num_nodes);
+        config.mulit_leak_rate = 0;
+        
+        % define custom weight function
+        % create graph
+        config.num_nodes = sqrt(config.num_nodes);
+        config.graph_type= {'fullLattice'};
+        config.self_loop = [1];
+        [config,config.num_nodes] = getShape(config);
+        config.weight_fcn = @(x,y) x.^2 + y.^2;%sin(x) + cos(y);
+        %config.internal_weight_initialisation = 'weight_fcn';
+        
         
     case 'ELM'
         config.leak_on = 0;                           % add leak states
@@ -298,7 +302,7 @@ switch(res_type)
             error('Number of graph types does not match number of reservoirs. Add more.')
         end
         
-case {'MM','MM_new'}
+case {'MM','multiMM'}
         % default MM data scaling
         config.preprocess = 'rescale_diff';
         config.preprocess_shift = [0 1]; % range for data
@@ -306,6 +310,7 @@ case {'MM','MM_new'}
         % reservoir params
         config.leak_on = 1;                         % add a leak rate filter
         config.add_input_states = 1;                % add input to states
+        config.single_input = 0;
         config.bias = 1;                            % whether to apply a bias to cells as an additional input; bias = value given, weights then alter this for different cells
         config.sparse_input_weights = 1;            % use a sparse input encoding
         config.sparsity = 0.1;                    % 0 to 1 sparsity of input weights
@@ -315,7 +320,7 @@ case {'MM','MM_new'}
         
         % system settings
         config.material_type = {'toy'};   % options: 'toy', 'multilayer','core_shell', 'random_alloy', '' (if specific config)
-        config.crystal_structure = {'sc'};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
+        config.crystal_structure = {''};            % typical crystal structures: 'sc', 'fcc', 'bcc' | 'sc' significantly faster
         config.unit_cell_size = [3.47];               % depends on crystal structure; typical value 3.47 Armstrongs fo 'sc'
         config.unit_cell_units = {'!A'};              % range = 0.1 � to 10 � m
         config.macro_cell_size = [5];                % size of macro cell; an averaging cell over all spins inside
@@ -330,19 +335,25 @@ case {'MM','MM_new'}
         config.periodic_boundary = [0,0,0];         % vector represents x,y,z; '1' means there is a periodic boundary
         config.material_shape = {'film'};             % type shape to cut out of film; check shape is possible,e.g. film is default
         
+        % define geometry
         config.evolve_geometry = 1;                    % manipulate geomtry
-        config.evolve_poly = 0;                         % otherwise evolve a rectangle
-        config.poly_num = 4; 
-        config.geometry_file =  'custom.geo';                    %add specific geometry file
+        config.shape_list = {'traingle'};                              % set of shapes to evolve with 
+        config.rotate_angle = [];
+        config.ref_point = [];
 
+        config.poly_num = 4; 
+        config.geometry_file =  'custom.geo';                    %add specific geometry file, e.g. custom.geo
+        config.lb = 0.1;                                %lower bound on dimension
         
-        %defaults
+        
+        %defaults for different material types - may conflict with multiMM
         for i = 1:length(config.num_nodes)
             config.random_alloy(i) = false;
             config.core_shell(i) = false;
             config.user_structure_file{i} = '';            % if wanting to load a specific strucutre, write file name
             config.evolve_material_density(i) = false;     % whether density can be changed: 'static' or 'dynamic'
             
+            % set params for specific material types
             switch(config.material_type{1})
                 case 'toy'
                     config.unit_cell_size = 3.47;
@@ -370,7 +381,7 @@ case {'MM','MM_new'}
         config.temperature_parameter = [0,0];           % positive integer OR 'dynamic'
         config.temperature_rescaling_exponent = [2.369 2.369]; % for more acurate temperature measures. [Co=2.369,FE=2.876,Ni=2.322]
         config.temperature_rescaling_curie_temperature = [1395 1395]; % [Co=1395,FE=1049,Ni=635]
-        config.damping_parameter = [0.001, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
+        config.damping_parameter = [0.01, 1];             % 0 to 10 OR 'dynamic' | typical value 0.1
         config.anisotropy_parameter = [6.69e-24, 6.69e-24];   % 1e-26 to 1e-22 OR 'dynamic' | typical value 1e-24
         config.exchange_parameter = [6.064e-21, 6.064e-21];    % 1e-21 to 10e-21 OR 'dynamic' | typical value 5e-21
         config.magmoment_parameter = [1.72, 1.72];            % 1 (<1muB can have intergration problems) to 10 OR 'dynamic' | typical value 1.4
@@ -388,29 +399,38 @@ case {'MM','MM_new'}
         
         % plot output
         config.plt_system = 0;                      % to create plot files from vampire simulation
-        config.plot_rate = 100;                        % rate to build plot files
+        config.plot_rate =100;                        % rate to build plot files
         config.plot_states = 0;                     % plot every state in matlab figure; for debugging
         
         % multi-reservoir type
-        config.architecture = 'ensemble';
-        %         if length(config.num_nodes) < 2
-        %             config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         else
-        %             config.architecture = 'ensemble';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
-        %         end
+        config.architecture = '';           % architecture to apply; can evolve multipl materials connecting to eachother. Options: 'blank' = single material system; 'ensemble' = multiple material systems - not connected; 'pipeline'/'pipeline_IA' = multiple connected in a pipeline, either with inputs only at beginning or inputs-to-all (IA)
+        % To create an ensemble: nx1 cell array, e.g. {49;49;49} would be 3
+        % equal reservoirs. 
+        % To create a pipline: 
+        config.mono_architecture = 1;               % if all layers are just copies of the first
         
+        % calculate number of reservoirs in total if multilayered system (signified by cell type)
         if iscell(config.num_nodes)
-            for i = 1:length(config.num_nodes) % cycle through layers
-                config.num_reservoirs(i) =   length(config.num_nodes{i});
-                %(i) = sum(config.num_nodes{i});
+            config.num_layers = length(config.num_nodes);
+            for i = 1:config.num_layers 
+                len(i) = length(config.num_nodes{i});
             end
+            config.dummy_node_list = zeros(config.num_layers,max(len));
+            
+            for i = 1:config.num_layers  % cycle through layers
+                config.dummy_node_list(i,1:length(config.num_nodes{i})) = config.num_nodes{i};
+                config.num_res_in_layer(i) = length(config.num_nodes{i});
+                config.total_units_per_layer(i) = sum(config.num_nodes{i});
+            end
+            config.total_units = sum(config.total_units_per_layer);
         end
         
+        % params for multilayered system
         config.add_pipeline_input = 0;
-        config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
-        config.internal_sparsity = 0.1;
+        %config.num_layers = size(config.num_nodes,1); % calculates layers from cell structure in num_nodes
+        config.sparsity = 0.1; % input sparsity
         config.input_weight_initialisation = 'norm';     % e.g.,  'norm', 'uniform', 'orth', etc. must be same length as number of subreservoirs
-        config.connecting_sparsity = 0;
+        config.connecting_sparsity = 0.001; % connecting sparsity
         config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 
     otherwise
