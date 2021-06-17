@@ -56,6 +56,9 @@ config.film = 0;                            %record simulation
 config.iir_filter_on = 0;                       % add iir filters to states **not in use yet
 config.iir_filter_order = 2 + 1;
 
+% Default off - on if reservoir is substrate for CPPN
+config.CPPN_on = 0;
+
 %% Change/add parameters depending on reservoir type
 % This section is for additional parameters needed for different reservoir
 % types. If something is not here, it is most likely in the
@@ -81,23 +84,45 @@ switch(res_type)
         config.sparse_input_weights = 0;              % use sparse inputs
         config.sparsity = 1;                          % sparsity of input weights
 
-    case {'RoR','RoRmin'}
+     case {'RoR','RoRmin'}
         
-        config.noise_level = 10e-6;
+        config.noise_level = 10e-6 ;
         config.mut_rate_connecting = 0.001;
         config.prune_rate = 0.00;
         
-        config.RoR_structure = 0;
-        if config.RoR_structure
-            config.graph_type = {'Ring'};
-            % Define substrate. Add graph type to cell array for multi-reservoirs
-            % Examples: 'Hypercube','Cube'
-            % 'Torus','L-shape','Bucky','Barbell','Ring',
-            % 'basicLattice','partialLattice','fullLattice','basicCube','partialCube','fullCube',ensembleLattice,ensembleCube,ensembleShape
-            config.self_loop = [0];               % give node a loop to self. Must be defined as array.
-            % node details and connectivity
-            [config,config.num_nodes] = getShape(config);
-        end
+        config.RoR_structure = 'feedback_only';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
+        config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
+        config.total_units = sum(config.num_nodes);
+        config.mulit_leak_rate = 0;
+        
+        % define custom weight function - moved to customGraph
+        % create graph
+%         config.num_nodes = sqrt(config.num_nodes);
+%         config.graph_type= {'fullLattice'};
+%         config.self_loop = [1];
+%         [config,config.num_nodes] = getShape(config);
+         config.weight_fcn = [];%@(x,y) x.^2 + y.^2;%sin(x) + cos(y);
+%         %config.internal_weight_initialisation = ''; % set to blank if not wanting gradient network ('weight_fcn')
+
+    case 'customGraph'
+        
+        config.noise_level = 10e-6 ;
+        config.mut_rate_connecting = 0.001;
+        config.prune_rate = 0.00;
+        
+        config.RoR_structure = 'RoR';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
+        config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
+        config.total_units = sum(config.num_nodes);
+       
+        % define custom weight function
+        % create graph
+        config.num_nodes = sqrt(config.num_nodes);
+        config.graph_type= {'fullLattice'};
+        config.self_loop = [0];
+        [config,config.num_nodes] = getShape(config);
+        config.weight_fcn = @(x,y) sin(x) + cos(y); %x.^2 + y.^2;%
+        config.internal_weight_initialisation = 'weight_fcn'; % set to blank if not wanting gradient network ('weight_fcn')
+        config.mulit_leak_rate = 0;
         
     case 'ELM'
         config.leak_on = 0;                           % add leak states

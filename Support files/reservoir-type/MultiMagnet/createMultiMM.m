@@ -117,22 +117,11 @@ for pop_indx = 1:config.pop_size
             if layer_indx == 1
                 
                 % single reservoir input example
-                if config.single_input && config.evolve_geometry
+                if config.single_input
                     input_weights = zeros(population(pop_indx).n_input_units + 1, population(pop_indx).layer(layer_indx).nodes(res_indx));
-                    
-                    % make rectangle
-                    xy = createRect(population(pop_indx).layer(layer_indx).geo_height,population(pop_indx).layer(layer_indx).geo_width);
-                    
-                    % % reset input weights
-                    square_film_dimensions = sqrt(population(pop_indx).layer(layer_indx).nodes(res_indx));
-                    [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
-                    [in,on] = inpolygon(xq,yq,xy(:,1),xy(:,2));
-                    inputs_in_use = find(in | on);
-
-                    input_loc = randperm(length(inputs_in_use),1);
+                    input_loc = randi([1 population(pop_indx).layer(layer_indx).nodes(res_indx)]);
                     weight_value = 2*rand(population(pop_indx).n_input_units + 1,1)-1;
-                    
-                    input_weights(:,inputs_in_use(input_loc)) = weight_value;
+                    input_weights(:,input_loc) = weight_value;
                     population(pop_indx).layer(layer_indx).input_weights{res_indx} = input_weights;
                 else
                     population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
@@ -155,7 +144,8 @@ for pop_indx = 1:config.pop_size
                             getWeights(config.input_weight_initialisation,...
                             config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction) + population(pop_indx).n_input_units + config.bias,...
                             population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                            config.connecting_sparsity);     
+                            config.connecting_sparsity);
+                        
                 end
             end
             

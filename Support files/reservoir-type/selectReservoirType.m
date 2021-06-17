@@ -30,7 +30,13 @@ switch(res_type)
         config.createFcn = @createMinRoR;
         config.assessFcn = @collectMinRoRStates;
         config.mutFcn = @mutateMinRoR;
-        config.recFcn = @recombRoR;
+        config.recFcn = @recombMinRoR;
+        
+   case 'customGraph'
+         config.createFcn = @createCustomGraph;
+        config.assessFcn = @collectMinRoRStates;
+        config.mutFcn = @mutateCustomGraph;
+        config.recFcn = @recombCustomGraph;
         
    case 'restrictedRoR'
         config.createFcn = @createRestrictedRoR;

@@ -20,7 +20,7 @@ config = selectReservoirType(config);   % collect function pointers for the sele
 %% Task parameters
 config.discrete = 0;               % select '1' for binary input for discrete systems
 config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
-config.dataset = 'narma_10';          % Task to evolve for
+config.dataset = 'test_pulse';          % Task to evolve for
 config.figure_array = [figure figure figure];
 config.preprocess ='';
 
@@ -45,8 +45,8 @@ quad_list = [1 3 34 36;...
 input_list = {'c','lu','ld','ru','rd'};
 
 input_idx = 1;
-width  = 20;
-height = 5;
+width  = 14;
+height = 14;
 
 config.num_nodes{1} = width.^2;
 
@@ -151,19 +151,22 @@ parfor pop_indx = 1:length(damping)
     
     states{pop_indx} = config.assessFcn(population(pop_indx),config.test_input_sequence,config,config.test_output_sequence);
 end
-%save('example_rect_plot')
 
 %% input pulse
+%[X,Y] = meshgrid(1:sqrt(config.num_nodes{1}),1:sqrt(config.num_nodes{1}));
 [X,Y] = meshgrid(1:width,1:height);
-figure(config.figure_array(2))
+figure
 set(gcf,'color','w')
 d = 1;
 list = 11:3:20;
 max_scaler = max(max(states{d}));
 min_scaler = min(min(states{d}));
+tl = tiledlayout(2,4);
+tl.TileSpacing = 'compact';
+tl.Padding = 'compact';
 for t = 1:4
-    subplot(2,4,t)
-    %nexttile(t)
+    %subplot(2,4,t)
+    h(t) = nexttile(t);
     surf(X,Y,flip(reshape(states{d}(list(t),inputs_in_use),height,width))...
         ,'FaceAlpha',0.5,'FaceColor','interp');
     set(gca,'visible','off')
@@ -173,12 +176,11 @@ for t = 1:4
     if t ==2
         %sgtitle('Side view')
     end
-    
     set(findall(gca,'type','text'),'visible','on')
     set(gca, 'FontSize',16,'FontName','Arial')
     
-    subplot(2,4,t+4)
-    %nexttile(t+4)
+    %subplot(2,4,t+4)
+    h(t+4) = nexttile(t+4);
     surf(X,Y,flip(reshape(states{d}(list(t),inputs_in_use),height,width))...
         ,'FaceAlpha',0.5,'FaceColor','interp');
     view(2)
@@ -193,38 +195,15 @@ for t = 1:4
     %colorbar
     colormap(jet)
 end
+title(tl,'')
+colorbar(tl)
 
+if strcmp(config.dataset,'test_pulse')
+    print(strcat('input_response_',num2str(width),'_by_',num2str(height),'_pulse_',input_list{input_idx}),'-dpdf','-bestfit')   
+else
+    print(strcat('input_response_',num2str(width),'_by_',num2str(height),'_',num2str(config.freq),'Hz_',input_list{input_idx}),'-dpdf','-bestfit')
+end
 
-% if strcmp(config.dataset,'test_pulse')
-%     print(strcat('input_response_',num2str(width),'_by_',num2str(height),'_pulse_',input_list{input_idx}),'-dpdf','-bestfit')   
-% else
-%     print(strcat('input_response_',num2str(width),'_by_',num2str(height),'_',num2str(config.freq),'Hz_',input_list{input_idx}),'-dpdf','-bestfit')
-% end
-
-
-%% suum of states
-figure(config.figure_array(3))
-z = sum(abs(states{1}(:,inputs_in_use)));
-z = reshape(z,height,width);
-%z = reshape(z,width,height);
-subplot(1,2,1)
-surf(X,Y,flip(z)...
-    ,'FaceAlpha',0.5,'FaceColor','interp');
-view(-10.5,67.3)
-colormap(jet)
-set(gca,'visible','off')
-
-subplot(1,2,2)
-surf(X,Y,flip(z)...
-    ,'FaceAlpha',0.5,'FaceColor','interp');
-view(2)
-%imagesc(z)
-colormap(jet)
-set(gca,'visible','off')
-set(gcf,'PaperOrientation','portrait');
-print(strcat('jet_3Dexample_sine_',num2str(width),'_by_',num2str(height),'_',num2str(config.freq),'Hz_',input_list{input_idx}),'-dpdf','-bestfit')
-
-%% frequ plots
 figure
 for i = 1:length(inputs_in_use)
     %if sum(states{1}(:,i)) > 0
@@ -248,6 +227,26 @@ input_list2 = {'c','Q1','Q2','Q3','Q4'};
 title(strcat('Periodogram: cells=',num2str(width),'x',num2str(height),', input=',input_list2{input_idx}))
 set(gca, 'FontSize',16,'FontName','Arial')
 
+figure(config.figure_array(3))
+z = sum(abs(states{1}(:,inputs_in_use)));
+z = reshape(z,height,width);
+%z = reshape(z,width,height);
+subplot(1,2,1)
+surf(X,Y,flip(z)...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+view(-10.5,67.3)
+colormap(jet)
+set(gca,'visible','off')
+
+subplot(1,2,2)
+surf(X,Y,flip(z)...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+view(2)
+%imagesc(z)
+colormap(jet)
+set(gca,'visible','off')
+set(gcf,'PaperOrientation','portrait');
+print(strcat('jet_3Dexample_sine_',num2str(width),'_by_',num2str(height),'_',num2str(config.freq),'Hz_',input_list{input_idx}),'-dpdf','-bestfit')
 
 figure(config.figure_array(1))
 for i = 1:length(damping)

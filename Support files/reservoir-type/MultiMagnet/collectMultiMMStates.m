@@ -68,9 +68,9 @@ end
 
 
 % get leak states - output filter leak 
-% % if config.leak_on
-% %     states = getLeakStates(states,individual,input_sequence,config);
-% % end
+% if config.leak_on
+%     states = getLeakStates(states,individual,input_sequence,config);
+% end
 
 % concat all states for output weights
 final_states = [];
@@ -233,9 +233,9 @@ function states = getStates(batch_path,individual,input_sequence,core_indx,indx,
         end    
                 
         % adding leaks between subreservoirs
-        if config.leak_on
-            states = getLeakStates(states,individual,indx);
-        end
+%         if config.leak_on
+%             states = getLeakStates(states,individual,indx);
+%         end
         
 %         if indx ~= 0 && config.num_reservoirs == 1
 %             % clean up files
