@@ -394,6 +394,7 @@ switch config.dataset
                 [x] = attractorSwitch(data_length,num_attractors,plot_on);
                 input_sequence= x;
                 slice = [1 1 1];
+                
             case 'multi_attractor'
                 err_type = 'NMSE';
                 %multiple attractor dataset
@@ -490,6 +491,32 @@ switch config.dataset
         
         input_sequence = input_sequence([train_id val_id test_id],:);
         output_sequence = output_sequence([train_id val_id test_id],:);
+        
+        
+    case 'speckle_fibre' %Paper: Reservoir-based techniques for speech recognition
+        
+        err_type = 'NMSE';
+        wash_out = 0;
+        config.train_fraction=0.7;    config.val_fraction=0.15;    config.test_fraction=0.15;
+        config.preprocess = 'rescale';
+        config.preprocess_shift = [-1 1]; % range for data
+
+        % get data
+        fileLoc = "C:\Users\Matt Dale\Downloads\Data_751\Data_751\Data_1m.h5";
+        speckle_image = h5read(fileLoc,'/Testing/Speckle_images/Earth_B');
+        original_image = h5read(fileLoc,'/Testing/Original_images/Earth_B');
+
+        %original_image_resized = reshape(original_image(1,:,:,:),8464,1388);
+
+        for i = 1:size(speckle_image,2)
+            tmp_orig = imresize(reshape(original_image(1,:,:,i),92,92),1);
+            original_image_resized(i,:) = tmp_orig(:);
+             tmp_spkl = imresize(reshape(speckle_image(:,i),120,120),0.76);
+             speckle_image_resized(i,:) = tmp_spkl(:);
+        end
+        
+        input_sequence = speckle_image_resized(1:end,:);
+        output_sequence = original_image_resized(1:end,:);
         
     case 'NIST-64' %Paper: Reservoir-based techniques for speech recognition
         err_type = 'OneVsAll_NIST';

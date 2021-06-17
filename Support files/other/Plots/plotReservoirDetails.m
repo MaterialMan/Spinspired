@@ -220,6 +220,26 @@ switch(config.dataset)
             end
         end
         
+    case {'image_painting','speckle_fibre'}
+        
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+        
+        for i = 1:size(test_sequence,1)
+            subplot(1,3,1)
+            imshow(reshape(config.test_output_sequence(i,:),sqrt(size(config.test_output_sequence,2)),sqrt(size(config.test_output_sequence,2))));
+            title('Actual')
+            
+            subplot(1,3,2)
+            imshow(reshape(config.test_input_sequence(i,:),sqrt(size(config.test_output_sequence,2)),sqrt(size(config.test_output_sequence,2))));
+            title('Input (speckle)')
+            
+            subplot(1,3,3)
+            imshow(reshape(test_sequence(i,:),sqrt(size(test_sequence,2)),sqrt(size(test_sequence,2))));
+            title('Predicted')
+            drawnow
+        end
+        
     case 'image_painting'
         
         test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
@@ -297,30 +317,39 @@ switch(config.dataset)
         
     case 'CPPN'
         
-        subplot(1,3,1)
-        G1 = digraph(best_individual.W{1});
-        [X_grid,Y_grid] = ndgrid(linspace(-1,1,sqrt(size(G1.Nodes,1))));
-        
-        p = plot(G1,'XData',X_grid(:),'YData',Y_grid(:));
-        p.EdgeCData = G1.Edges.Weight;
-        colormap(gca,bluewhitered);
+        ax1 = subplot(2,3,1);
+        imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+        colormap(ax1,bluewhitered)
         colorbar
+        xlabel('Input mapping')
+        ax2 = subplot(2,3,2);
+        imagesc(best_individual.W.*best_individual.W_scaling);
+        colormap(ax2,bluewhitered)
+        colorbar
+        xlabel('Internal weights')
         title('Best')
-        
-        subplot(1,3,2)
-        G2 = digraph(loser_individual.W{1});
-        [X_grid,Y_grid] = ndgrid(linspace(-1,1,sqrt(size(G2.Nodes,1))));
-        
-        p = plot(G2,'XData',X_grid(:),'YData',Y_grid(:));
-        p.EdgeCData = G2.Edges.Weight;
-        colormap(gca,bluewhitered);
+        ax3 = subplot(2,3,3);
+        imagesc(best_individual.output_weights);
+        colormap(ax3,bluewhitered)
         colorbar
-        title('loser')
+        xlabel('Output mapping')
         
-        subplot(1,3,3)
-        imagesc(best_individual.W{1})
-        colormap(gca,bluewhitered);
-        set(gca,'YDir','normal')
+        ax1 = subplot(2,3,4);
+        imagesc((loser_individual.input_weights.*loser_individual.input_scaling)');
+        colormap(ax1,bluewhitered)
+        colorbar
+        xlabel('Input mapping')
+        ax2 = subplot(2,3,5);
+        imagesc(loser_individual.W.*loser_individual.W_scaling);
+        colormap(ax2,bluewhitered)
+        colorbar
+        xlabel('Internal weights')
+        title('loser')
+        ax3 = subplot(2,3,6);
+        imagesc(loser_individual.output_weights);
+        colormap(ax3,bluewhitered)
+        colorbar
+        xlabel('Output mapping')
         
         drawnow
         %return;
@@ -584,6 +613,35 @@ if ~iscell(config.res_type)
                 drawnow
             end
             
+            
+            case 'customGraph'
+                
+                ax1 = subplot(1,4,1);
+                imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+                colormap(ax1,bluewhitered)
+                colorbar
+                xlabel('Input mapping')
+                ax2 = subplot(1,4,2);
+                imagesc(best_individual.W.*best_individual.W_scaling);
+                colormap(ax2,bluewhitered)
+                colorbar
+                xlabel('Internal weights')
+                ax3 = subplot(1,4,4);
+                imagesc(best_individual.output_weights);
+                colormap(ax3,bluewhitered)
+                colorbar
+                xlabel('Output mapping')
+                
+                ax4 = subplot(1,4,3);
+                g = digraph(best_individual.W.*best_individual.W_scaling);
+                p = plot(g);
+                
+                %g.Nodes.NodeColors = g.Nodes.value;
+                g.Edges.EdgeColors = g.Edges.Weight;
+                %p.NodeCData = g.Nodes.NodeColors;
+                p.EdgeCData = g.Edges.EdgeColors;
+                colormap(ax4,jet)
+                
         case 'RoRmin'
             
             ax1 = subplot(1,3,1);

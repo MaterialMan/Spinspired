@@ -68,10 +68,10 @@ for i = 1:config.num_reservoirs
     
     % mutate activ fcns
     if config.multi_activ
-        activFcn = offspring.activ_Fcn(i,:);
+        activFcn = offspring.activ_Fcn(i,1:offspring.nodes(i));
         pos =  randperm(length(activFcn),sum(rand(length(activFcn),1) < config.mut_rate));
         activFcn(pos) = {config.activ_list{randi([1 length(config.activ_list)],length(pos),1)}};
-        offspring.activ_Fcn(i,:) = reshape(activFcn,size(offspring.activ_Fcn(i,:)));
+        offspring.activ_Fcn(i,1:offspring.nodes(i)) = reshape(activFcn,size(offspring.activ_Fcn(i,1:offspring.nodes(i))));
     else
         activFcn = offspring.activ_Fcn;
         pos =  randperm(length(activFcn),sum(rand(length(activFcn),1) < config.mut_rate));

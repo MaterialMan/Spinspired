@@ -65,11 +65,11 @@ for i = 1:config.num_reservoirs
     
     % mutate activ fcns
     if config.multi_activ
-        W= winner.activ_Fcn(i,:);
-        L = loser.activ_Fcn(i,:);
+        W= winner.activ_Fcn(i,1:winner.nodes(i));
+        L = loser.activ_Fcn(i,1:loser.nodes(i));
         pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));          
         L(pos) = W(pos);
-        loser.activ_Fcn(i,:) = reshape(L,size(loser.activ_Fcn(i,:)));
+        loser.activ_Fcn(i,1:loser.nodes(i)) = reshape(L,size(loser.activ_Fcn(i,1:loser.nodes(i))));
     else
         W= winner.activ_Fcn;
         L = loser.activ_Fcn;

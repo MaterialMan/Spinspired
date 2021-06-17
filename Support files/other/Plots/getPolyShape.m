@@ -1,5 +1,5 @@
 
-function [x,y, num_points, area_ratio] = getPolyShape(shape, num_sides, rotate_angle, ref_point, width,height)
+function [x,y, num_points, area_ratio] = getPolyShape(shape, num_sides, rotate_angle, ref_point)
 
 start_pos = 0;
 
@@ -51,13 +51,7 @@ switch(shape)
         y = [start_pos 1 1 0];
     case 'rectangle'
         x = [start_pos 0    1    1];
-        y = [start_pos 0.5  0.5  0];
-        
-    case 'custom_rectangle'
-        coord = createRect(width,height);
-        x = coord(:,1);
-        y = coord(:,2);
-        
+        y = [start_pos 0.25  0.25  0];
     case 'triangle'
         x = [start_pos 0 1 0.5];
         y = [start_pos 0 0 1];
@@ -115,7 +109,7 @@ end
 
 
 % rotate shape
-if nargin > 2 && ~isempty(rotate_angle) && ~isempty(ref_point)
+if nargin > 2
     % create poly struct
     pgon = polyshape(x,y);
     rot_pgon = rotate(pgon,rotate_angle,ref_point);

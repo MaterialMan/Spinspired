@@ -37,8 +37,10 @@ for n = 2:size(input_sequence,1)
         end
         
         if size(individual.activ_Fcn,2) > 1
-            for p = 1:length(config.activ_list)           
-               states{i}(n,index{i,p}) = config.activ_list{p}(input(index{i,p},:));
+            for p = 1:length(config.activ_list) 
+                if ~isempty(index{i,p})
+                    states{i}(n,index{i,p}) = config.activ_list{p}(input(index{i,p},:));
+                end
             end
         else
             states{i}(n,:) = individual.activ_Fcn{1}(input); 

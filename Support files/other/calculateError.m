@@ -108,6 +108,10 @@ switch(config.err_type)
         desired_output =desired_output(config.wash_out+1:end,:);
         [err,cm,ind,per] = confusion(temp_systemOutput',desired_output');
         
+    case 'SSIM'
+        ssimval = ssim(system_output,desired_output);
+        err = 1-ssimval;
+        
     case 'MultiObjective'
         
     case 'OneVsAll__medianValue'
