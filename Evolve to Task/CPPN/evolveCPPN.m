@@ -15,7 +15,7 @@ warning('off','all')
 rng(1,'twister');
 
 %% Setup
-config.parallel = 1;                        % use parallel toolbox
+config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -24,52 +24,54 @@ end
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
-config.pop_size = 50;                       % large pop better
+config.pop_size = 100;                       % large pop better
 config.total_gens = 2000;                    % num of gens
-config.mut_rate = 0.1;                       % mutation rate
-config.deme_percent = 0.2;                  % speciation percentage
+config.mut_rate = 0.05;                       % mutation rate
+config.deme_percent = 0.1;                  % speciation percentage
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
 
 %% substrate details
+config_sub = config;
 config_sub.pop_size = config.pop_size;
-config_sub.num_nodes = [49];                 % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
-config_sub.res_type ='Graph';               % currently only works with lattice as CPPN configured substrate
-
+config_sub.num_nodes = [100];                 % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
+config_sub.res_type ='RoRmin';               % currently only works with lattice as CPPN configured substrate
 config_sub = selectReservoirType(config_sub);       % get correct functions for type of reservoir
-config_sub.parallel = config.parallel;                        % use parallel toolbox
 
 %% CPPN details
-config.res_type = 'RoR';                      % can use different hierarchical reservoirs. RoR_IA is default ESN.
-config.num_nodes = [50];                  % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
+config.res_type = 'RoRmin';                      % can use different hierarchical reservoirs. RoR_IA is default ESN.
+config.num_nodes = [10];                  % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
-config.CPPN_inputs = 6;                     % coord of node A(x,y) and node B(x,y)
+config.CPPN_inputs = 3;                     % coord of node A(x,y) and node B(x,y)
 config.CPPN_outputs = length(config_sub.num_nodes)*2 +1; % Output 1: input layer, 2: hidden layer, 3: outputlayer
+config.CPPN_list = {'internal'};
 
 %config.preprocess = 1;                   % basic preprocessing, e.g. scaling and mean variance
 config.dataset = 'CPPN';                 % Task to evolve for
-
 % get any additional params
-[config] = getAdditionalParameters(config);
-
-[config] = selectDataset(config);
+config = getAdditionalParameters(config);
+config = selectDataset(config);
 
 % add CPPN params
-config.multi_activ = 0;                      % use different activation funcs
-config.activ_list = {@tanh}; 
-config.evolve_output_weights = 1;             % evolve rather than train
+config.sparse_input_weights = 0;
+config.sparsity = 1; 
+config.add_input_states = 0;
+config.multi_activ = 1;                      % use different activation funcs
+config.activ_list = {@sin,@cos,@tan,@tanh,@biSigmoid,@gauss,@ramp,@step,@spike,@Inverse}; 
+config.evolve_output_weights = 0;             % evolve rather than train
 config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
+config.evolve_output_weights = 1;
 config.output_connectivity = 1;
-config.output_weight_scaler = 100;              % defines maximum/minimum weight value when evolving output weights
+%config.output_weight_scaler = 100;              % defines maximum/minimum weight value when evolving output weights
 
 %% Task parameters
-%config_sub.preprocess = 1;                   % basic preprocessing, e.g. scaling and mean variance
 config_sub.dataset = 'narma_10';                 % Task to evolve for
-
 % get dataset
-[config_sub] = getAdditionalParameters(config_sub);
-
-[config_sub] = selectDataset(config_sub);
+config_sub = getAdditionalParameters(config_sub);
+config_sub = selectDataset(config_sub);
+% turn off certain parameters
+config_sub.add_input_states = 1;
+config_sub.CPPN_on = 1; % turn off weight mutation
 
 %% general params
 config.gen_print = 5;                       % gens to display achive and database
@@ -115,9 +117,9 @@ for test = 1:config.num_tests
     else
         for pop_indx = 1:config.pop_size
             % assign weights through CPPN
+            tic
             [substrate(pop_indx),~,CPPN(pop_indx),~] = assessCPPNonSubstrate(substrate(pop_indx),config_sub,CPPN(pop_indx),config);
-            fprintf('\n i = %d, error = %.4f, took: %.4f\n',pop_indx,getError(config.error_to_check,substrate(pop_indx)),toc);
-            
+            fprintf('\n i = %d, error = %.4f, took: %.4f\n',pop_indx,getError(config.error_to_check,substrate(pop_indx)),toc);  
         end
     end
         
@@ -158,9 +160,13 @@ for test = 1:config.num_tests
             winner=indv2; loser = indv1;
         end
         
-        % Infection and mutation to get offspring
+        % Manipulate CPPN
         CPPN(loser) = config.recFcn(CPPN(winner),CPPN(loser),config);
         CPPN(loser) = config.mutFcn(CPPN(loser),config);
+        
+        % Manipulate substrate
+        substrate(loser) = config.recFcn(substrate(winner),substrate(loser),config_sub);
+        substrate(loser) = config.mutFcn(substrate(loser),config_sub);
         
         %% Evaluate and update fitness
         [substrate(loser),~,CPPN(loser),~] = assessCPPNonSubstrate(substrate(loser),config_sub,CPPN(loser),config);
@@ -175,12 +181,12 @@ for test = 1:config.num_tests
         % print info
         if (mod(gen,config.gen_print) == 0)
             [best(gen),best_indv(gen)] = min(store_error(test,gen,:));
-            fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4f, Loser: %.4f, Best Error: %.4f \n',gen,toc/config.gen_print,getError(config.error_to_check,substrate(winner)),getError(config.error_to_check,substrate(loser)),best(gen));
+            fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4f, Loser: %.4f, Best Error: %.4f \n',gen,toc/config.gen_print,getError(config.error_to_check,substrate(winner)),getError(config.error_to_check,substrate(loser)),getError('test',substrate(best_indv(gen))));
             tic;
             if best_indv(test,gen) ~= last_best
             % plot reservoir structure, task simulations etc.
-            plotReservoirDetails(substrate,best_indv(test,:),gen,best_indv(test,gen),config_sub); 
-            plotReservoirDetails(substrate,best_indv(test,:),gen,best_indv(test,gen),config); 
+            plotReservoirDetails(substrate,best_indv(test,:),gen,loser,config_sub); 
+            plotReservoirDetails(CPPN,best_indv(test,:),gen,loser,config); 
             end
             last_best = best_indv(gen);    
         end
