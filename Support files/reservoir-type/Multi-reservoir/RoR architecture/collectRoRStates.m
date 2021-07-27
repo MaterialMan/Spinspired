@@ -33,7 +33,7 @@ for n = 2:size(input_sequence,1)-1
         % this part controls the effect of different reservoirs
         for k= 1:config.num_reservoirs
             % x{i}(n,:) = x{i}(n,:) + individual.W_switch(i,k)*((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')';  % (n-1)
-            x{i}(n,:) = x{i}(n,:) + individual.W_switch(i,k)*((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n,:)')'; % (n)turn on/off sub-reservoirs, i.e. adds/removes forwards/feedback connectivity between sub-reservoirs
+            x{i}(n,:) = x{i}(n,:) + individual.W_switch(i,k)*((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')'; % (n)turn on/off sub-reservoirs, i.e. adds/removes forwards/feedback connectivity between sub-reservoirs
         end
         
         if config.multi_activ
@@ -78,7 +78,7 @@ for n = 2:size(input_sequence,1)-1
                     states{i}(n,:) = individual.activ_Fcn{i}(input + x{i}(n,:)' + W_fb*y_out');
                 else % normal operating reservoir - if RoR, first reservoir is the only one to take an input
                     %if i ==1 || config.add_input_states
-                        states{i}(n+1,:) = individual.activ_Fcn{i}(((individual.input_weights{i}*individual.input_scaling(i))*([individual.bias_node input_sequence(n,:)])')+ x{i}(n,:)');
+                        states{i}(n,:) = individual.activ_Fcn{i}(((individual.input_weights{i}*individual.input_scaling(i))*([individual.bias_node input_sequence(n,:)])')+ x{i}(n,:)');
                         % states{i}(n,:) = individual.activ_Fcn{i}(((individual.input_weights{i}*individual.input_scaling(i))*([individual.bias_node input_sequence(n,:)])')+ x{i}(n,:)');
                  
 %                     else

@@ -2,24 +2,24 @@
 function loser = recombMinRoR(winner,loser,config)
 
 % params - input_scaling, leak_rate,
-W= winner.input_scaling(:);
-L = loser.input_scaling(:);
+W= winner.init_input_scaling(:);
+L = loser.init_input_scaling(:);
 pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
-loser.input_scaling = reshape(L,size(loser.input_scaling));
+loser.init_input_scaling = reshape(L,size(loser.init_input_scaling));
 
-W= winner.leak_rate(:);
-L = loser.leak_rate(:);
+W= winner.init_leak_rate(:);
+L = loser.init_leak_rate(:);
 pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
-loser.leak_rate = reshape(L,size(loser.leak_rate));
+loser.init_leak_rate = reshape(L,size(loser.init_leak_rate));
 
 % params - W_scaling
-W= winner.W_scaling(:);
-L = loser.W_scaling(:);
+W= winner.init_W_scaling(:);
+L = loser.init_W_scaling(:);
 pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
-loser.W_scaling = reshape(L,size(loser.W_scaling));
+loser.init_W_scaling = reshape(L,size(loser.init_W_scaling));
 
 % W switch
 if isfield(winner,'W_switch')
@@ -43,7 +43,7 @@ loser.input_weights = reshape(L,size(loser.input_weights));
 % subres internal weights
 W = winner.W(:);
 L = loser.W(:);
-indices = find(~loser.test_mask);
+indices = find(~loser.test_mask{1});
 pos = randperm(length(indices),sum(rand(length(indices),1) < config.rec_rate)); 
 L(indices(pos)) = W(indices(pos));
 loser.W = reshape(L,size(loser.W));
@@ -51,7 +51,7 @@ loser.W = reshape(L,size(loser.W));
 % subres connecting weights
 W = winner.W(:);
 L = loser.W(:);
-indices = find(loser.test_mask);
+indices = find(loser.test_mask{2});
 pos = randperm(length(indices),sum(rand(length(indices),1) < config.rec_rate)); 
 L(indices(pos)) = W(indices(pos));
 loser.W = reshape(L,size(loser.W));
@@ -89,4 +89,44 @@ if config.evolve_feedback_weights
     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
     L(pos) = W(pos);
     loser.feedback_weights = reshape(L,size(loser.feedback_weights));
+end
+
+%update params
+loser = updateParams(loser,config);
+
+end
+
+function individual = updateParams(individual,config)
+
+% end of first subres
+end_pos = individual.nodes(1);
+
+% intialise W and W_scale
+individual.W_scaling(1:end_pos,1:end_pos) = individual.init_W_scaling(1);
+individual.input_scaling(:,1:end_pos) = individual.init_input_scaling(:,1);
+
+if config.mulit_leak_rate % assign leak rates for each node, if used
+    individual.leak_rate = individual.init_leak_rate;
+else
+    individual.leak_rate(1:end_pos) = individual.init_leak_rate(1);
+end
+
+% update subres scaling
+for i = 2:length(individual.nodes)
+    % set subres positions
+    start_pos = end_pos+1;
+    end_pos = start_pos + individual.nodes(i)-1;
+    
+    if ~config.mulit_leak_rate
+        individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
+    end
+    individual.W_scaling(start_pos:end_pos,start_pos:end_pos) = individual.init_W_scaling(i);
+    individual.leak_rate(start_pos:end_pos) = individual.init_leak_rate(i);        
+end
+
+% indentify any W that are new connections and put W_scaling as identity
+individual.W_scaling((individual.W.*individual.test_mask{1}) ~= 0) = 1;
+% check zero connections do not have a scaling
+individual.W_scaling(logical(individual.test_mask{1}.*((individual.W.*individual.test_mask{1}) == 0))) = 0;
+
 end

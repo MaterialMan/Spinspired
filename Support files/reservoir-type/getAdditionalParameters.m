@@ -42,7 +42,7 @@ config.discrete = 0;                        % select '1' for binary input for di
 config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
 
 % input mechanism to use
-config.input_mechanism = 'continuous';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
+config.input_mechanism = '';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
 
 % default preprocessing performed on input data
 config.preprocess = 'scaling';
