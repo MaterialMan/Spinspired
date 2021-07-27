@@ -56,6 +56,9 @@ config.film = 0;                            %record simulation
 config.iir_filter_on = 0;                       % add iir filters to states **not in use yet
 config.iir_filter_order = 2 + 1;
 
+% CPPN settings
+config.CPPN_on = 0;
+
 %% Change/add parameters depending on reservoir type
 % This section is for additional parameters needed for different reservoir
 % types. If something is not here, it is most likely in the
@@ -84,24 +87,26 @@ switch(res_type)
         
     case {'RoR','RoRmin'}
         
-        config.noise_level = 10e-6 ;
-        config.mut_rate_connecting = 0.001;
-        config.prune_rate = 0.00;
+        config.noise_level = 10e-5 ;
+        config.mut_rate_connecting = 0.01;
+        config.prune_rate = 0.01;
         
-        config.RoR_structure = 'feedback_only';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
-        config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
+        config.RoR_structure = 'forward_only';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
+        %config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
 
         config.total_units = sum(config.num_nodes);
         config.mulit_leak_rate = 0;
         
         % define custom weight function
         % create graph
-        config.num_nodes = sqrt(config.num_nodes);
-        config.graph_type= {'fullLattice'};
-        config.self_loop = [1];
-        [config,config.num_nodes] = getShape(config);
-        config.weight_fcn = @(x,y) x.^2 + y.^2;%sin(x) + cos(y);
-        %config.internal_weight_initialisation = 'weight_fcn';
+        config.weight_fcn = [];%@(x,y) sin(x) + cos(y); %x.^2 + y.^2;%
+        if ~isempty(config.weight_fcn)
+            %config.internal_weight_initialisation = 'weight_fcn';
+            config.num_nodes = sqrt(config.num_nodes);
+            config.graph_type= {'fullLattice'};
+            config.self_loop = [1];
+            [config,config.num_nodes] = getShape(config);
+        end
         
         
     case 'ELM'

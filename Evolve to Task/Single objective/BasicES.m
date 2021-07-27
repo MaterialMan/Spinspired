@@ -15,7 +15,7 @@ close all
 rng(1,'twister');
 
 %% Setup
-config.parallel = 1;                        % use parallel toolbox
+config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
 if isempty(gcp) && config.parallel
@@ -23,8 +23,9 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'MM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [49];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+
+config.res_type = 'RoRmin';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
+config.num_nodes = [50];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
@@ -35,11 +36,11 @@ config.pop_size = config.num_parents+config.num_children;                       
 
 config.total_gens = 500;                    % number of generations to evolve
 config.mut_rate = 0.01;                       % mutation rate
-%config.rec_rate = 0.5;                       % recombination rate
+config.rec_rate = 1;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'henon_map';          % Task to evolve for
+config.dataset = 'narma_10';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -142,11 +143,11 @@ for test = 1:config.num_tests
         else
             for child = 2:config.pop_size
                 % Infection and mutation. Place offspring in loser position
-                %pop_temp(child) = config.recFcn(population(winner),population(loser),config);
-                %pop_temp(child) = config.mutFcn(pop_temp(child),config);
+                pop_temp(child) = config.recFcn(population(winner),population(child),config);
+                pop_temp(child) = config.mutFcn(pop_temp(child),config);
                 
                 % if no recombination
-                pop_temp(child) = config.mutFcn(population(winner),config);
+                %pop_temp(child) = config.mutFcn(population(winner),config);
                 
                 %pop_temp(child).core_indx = child;
                 pop_temp(child) = config.testFcn(pop_temp(child),config);
@@ -166,7 +167,7 @@ for test = 1:config.num_tests
             tic;
             if best_indv(test,gen) ~= last_best
                 % plot reservoir structure, task simulations etc.
-                %plotReservoirDetails(population,best_indv(test,:),gen,best_indv(test,gen-1),config);
+                plotReservoirDetails(population,best_indv(test,:),gen,best_indv(test,gen-1),config);
             end
             
             last_best = best_indv(gen);

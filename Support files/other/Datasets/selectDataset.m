@@ -937,7 +937,7 @@ switch config.dataset
         %% Regression
     case 'boston_housing'
         %     The modified Boston housing dataset consists of 489 data points, with each datapoint having 3 features. This dataset is a modified version of the Boston Housing dataset found on the UCI Machine Learning Repository.
-        err_type = 'RMSE';
+        err_type = 'adjusted_R_squared';
         wash_out = 0;
         config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
         

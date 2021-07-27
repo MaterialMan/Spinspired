@@ -11,6 +11,18 @@ end
 % final measured error type
 switch(config.err_type)
     
+     case 'adjusted_R_squared'
+        
+        SSres=sum( (desired_output-system_output).^2 );
+        SStot=sum( (desired_output-mean(desired_output)).^2 );
+    
+        r2= 1-SSres/SStot;
+        %r2adj = 1 - SSres/SStot * (length(desired_output)-1)/(length(desired_output)-nparam);   
+        
+        r2adj = 1-((1 - r2)*(size(desired_output,1)-1))/(size(desired_output,1)-size(desired_output,2)-1);
+        
+        err = 1 - r2;
+        
     case 'mae'
         err = desired_output-system_output;
         
