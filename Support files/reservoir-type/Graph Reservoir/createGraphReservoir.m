@@ -77,7 +77,7 @@ for pop_indx = 1:config.pop_size
                 
                 % assign directed weights
                 internal_weights(graph_indx) = rand(1,length(nonzeros(graph_indx)))-0.5;
-                
+                getInternalWeights(weight_initialisation,x_dim,y_dim,sparsity)
                 % remove directed weights, make symmetrical
                 if config.undirected
                     internal_weights = triu(internal_weights)+triu(internal_weights,1)';
@@ -100,41 +100,57 @@ for pop_indx = 1:config.pop_size
                     internal_weights = zeros(population(pop_indx).nodes(i), population(pop_indx).nodes(j));
                 end
             end
-            % assign scaling for inner weights
-            population(pop_indx).W_scaling(i,j) = 2*rand;
-            population(pop_indx).W{i,j} = internal_weights;
-            
-        end
-        population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
-    end
-    
-    
-    % add rand output weights
-    if config.add_input_states
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units + population(pop_indx).n_input_units, population(pop_indx).n_output_units)-1;
-    else
-        population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units, population(pop_indx).n_output_units)-1;
-    end
-    
-    % add rand feedback weights
-    if config.evolve_feedback_weights
-        population(pop_indx).feedback_scaling = 2*rand;
-        switch(config.feedback_weight_initialisation)
-            case 'norm' % normal distribution
-                feedback_weights = sprandn(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
+                % assign scaling for inner weights
+                population(pop_indx).W_scaling(i,j) = 2*rand;
+                population(pop_indx).W{i,j} = internal_weights;
                 
-            case 'uniform' % uniform dist between -1 and 1
-                feedback_weights = sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
-                feedback_weights(feedback_weights ~= 0) = ...
-                    2*feedback_weights(feedback_weights ~= 0)  - 1;
-            case 'orth'
-                feedback_weights = orth(rand(population(pop_indx).total_units, population(pop_indx).n_input_units));
-            case 'sparse_orth'
-                feedback_weights = orth(full(sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity)));
-                
+            end
+            population(pop_indx).total_units = population(pop_indx).total_units + population(pop_indx).nodes(i);
         end
-        population(pop_indx).feedback_weights = feedback_weights; 
+        
+        
+        % add rand output weights
+        if config.add_input_states
+            population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units + population(pop_indx).n_input_units, population(pop_indx).n_output_units)-1;
+        else
+            population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units, population(pop_indx).n_output_units)-1;
+        end
+        
+        % add rand feedback weights
+        if config.evolve_feedback_weights
+            population(pop_indx).feedback_scaling = 2*rand;
+            switch(config.feedback_weight_initialisation)
+                case 'norm' % normal distribution
+                    feedback_weights = sprandn(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
+                    
+                case 'uniform' % uniform dist between -1 and 1
+                    feedback_weights = sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity);
+                    feedback_weights(feedback_weights ~= 0) = ...
+                        2*feedback_weights(feedback_weights ~= 0)  - 1;
+                case 'orth'
+                    feedback_weights = orth(rand(population(pop_indx).total_units, population(pop_indx).n_input_units));
+                case 'sparse_orth'
+                    feedback_weights = orth(full(sprand(population(pop_indx).total_units, population(pop_indx).n_input_units, config.feedback_connectivity)));
+                    
+            end
+            population(pop_indx).feedback_weights = feedback_weights;
+        end
+        
+        population(pop_indx).behaviours = [];
     end
-    
-    population(pop_indx).behaviours = [];
 end
+    function weights = getInternalWeights(weight_initialisation,x_dim,y_dim,sparsity)
+        
+        switch(weight_initialisation)
+            case 'norm' % normal distribution
+                weights = sprandn(x_dim, y_dim, sparsity);
+            case 'uniform' % uniform dist between -1 and 1
+                weights = sprand(x_dim, y_dim, sparsity);
+                weights(weights ~= 0) = ...
+                    2*weights(weights ~= 0)  - 1;
+            case 'orth'
+                weights = orth(rand(x_dim, y_dim));
+            case 'sparse_orth'
+                weights = orth(full(sprand(x_dim, y_dim, sparsity)));
+        end
+    end

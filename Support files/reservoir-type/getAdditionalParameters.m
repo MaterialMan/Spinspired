@@ -20,7 +20,7 @@ config.internal_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'or
 config.evolve_output_weights = 0;             % evolve rather than train
 config.output_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 config.output_connectivity = 0.1;
-config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
+config.output_weight_scaler = 10;              % defines maximum/minimum weight value when evolving output weights
 
 config.evolve_feedback_weights = 0;             % find suitable feedback weights
 config.feedback_weight_initialisation = 'norm';
@@ -94,6 +94,7 @@ switch(res_type)
         config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
         config.total_units = sum(config.num_nodes);
         config.mulit_leak_rate = 0;
+        config.bias = 1;
         
         % define custom weight function - moved to customGraph
         % create graph
@@ -462,17 +463,21 @@ switch(config.dataset)
         config.preprocess_shift = '';
         
     case 'pole_balance'
-        config.time_steps = 1000;                        % length of task simulation
-        config.simple_task = 2;                         % tasks: 1) balancing pole from up-right position , 2) swinging pole from downward position , 3)
-        config.pole_tests = 3;                          % how many tasks to average over
-        config.velocity = 1;                            % add velocity as an input to task (usually easier)
+        config.time_steps = 300;                        % length of task simulation
+        config.simple_task = 3;                         % tasks: 1) balancing pole from up-right position , 2) swinging pole from downward position , 3) double pole up-right
+        config.pole_tests = 5;                          % how many tasks to average over
+        config.velocity = 0;                            % add velocity as an input to task (usually easier)
         config.run_sim = 0;                             % whether to run simulation as it is calculated
         config.testFcn = @poleBalance;
         config.evolve_output_weights = 1;               % must evolve outputs as its an unsupervised problem
+        config.output_connectivity = 0.1;
+        config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
+
         config.evolve_feedback_weights = 0;
         config.leak_on = 1;
         config.add_input_states = 0;                    % add input to states
         config.error_to_check = 'train';
+        config.bias = 1;
         
     case 'robot'
         % type of task

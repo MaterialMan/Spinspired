@@ -10,7 +10,7 @@ for pop_indx = 1:config.pop_size
     population(pop_indx).test_error = 1;
     
     % add single bias node
-    population(pop_indx).bias_node = 1;
+    population(pop_indx).bias_node = config.bias;
     
     % assign input/output count
     if isempty(config.train_input_sequence)

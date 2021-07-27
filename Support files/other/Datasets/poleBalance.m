@@ -26,7 +26,7 @@ for  tests = 1:config.pole_tests
             x_pole = zeros(length(input_sequence(:,1))+1,1);
             x_dot = zeros(length(input_sequence(:,1))+1,1);
             theta = zeros(length(input_sequence(:,1))+1,1);
-            theta(1) = (2*rand-1)*(pi/5);%rand*2*pi;%pi*1.5 + rand*pi; % start anywhere
+            theta(1) = rand*2*pi;%(2*rand-1)*(pi/5);%%pi*1.5 + rand*pi; % start anywhere
             theta_dot = zeros(length(input_sequence(:,1))+1,1);
             LENGTH          = 0.5;         % half length of pole
             MASS_P          = 0.1;         % mass pole
@@ -59,7 +59,7 @@ for  tests = 1:config.pole_tests
     summation = 0;
     longest_balance = 0;
     exited = size(input_sequence,1);
-    F2 = 0;
+    %F2 = 0;
     
     %equation: x(n) = f(Win*u(n) + S)
     %each time step
@@ -80,20 +80,21 @@ for  tests = 1:config.pole_tests
                 end
                 
                 %inputSequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,:); 0; theta_dot(n-1,:); 0]; % scale input between -1 and 1
-                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); th; 0; theta_dot(n-1,:); 0]; % scale input between -1 and 1
+                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); th; 0; theta_dot(n-1,:); 0]; 
             else
-                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,1); theta(n-1,2); theta_dot(n-1,1); theta_dot(n-1,2)]; % scale input between -1 and 1
+                input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,1); theta(n-1,2); theta_dot(n-1,1); theta_dot(n-1,2)]; %
             end
         else
-            if config.simple_task ~= 3
-                input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1); 0; 0; 0]; % scale input between -1 and 1
-            else
-                input_sequence(n,:) = [x_pole(n-1); 0; theta(n-1,1); theta(n-1,2); 0; 0];
-            end
+            
+                if config.simple_task ~= 3
+                    input_sequence(n,:) = [x_pole(n-1); x_dot(n-1); theta(n-1,1); theta_dot(n-1,:); 0; 0];
+                else
+                    input_sequence(n,:) = [x_pole(n-1) x_dot(n-1) theta(n-1,:) theta_dot(n-1,:)];   
+                end
         end
         
         % rescale inputs
-        input_sequence(n,:) = ((input_sequence(n,:)--10)./(10--10)-0.5)*2;
+        %input_sequence(n,:) = ((input_sequence(n,:)--10)./(10--10)-0.5)*2;
 %            
         if sum(isnan(input_sequence(n,:))) > 1
             fitness(tests) = 1;
@@ -105,15 +106,18 @@ for  tests = 1:config.pole_tests
         force = test_states(n,:)*individual.output_weights;
         
         %% STEP on system
-        if mod(n,2) == 0 % output every 0.02 secs
-            if config.velocity
-                f = FORCE*sign(force);
-            else
-                f = force*100;
-            end
-        else
-            f = 0;
-        end
+%         if mod(n,2) == 0 % output every 0.02 secs
+%             if config.velocity
+%                 f = FORCE*sign(force);
+%             else
+%                 f = force*100;
+%             end
+%         else
+%             f = 0;
+%         end
+        
+        % apply force
+        f = FORCE*sign(force);
         
         force_record(n,:) = [force f];
         
@@ -138,7 +142,7 @@ for  tests = 1:config.pole_tests
             case 2
                 th = theta(n-1);
                 th_dot = theta_dot(n-1);
-                top = GRAV*sin(th) + (cos(th)*(-f - (MASS_P*LENGTH*th_dot*th_dot*sin(th)) + MU_C*sign(x_dot(n-1)))/(MASS_C + MASS_P)) - ((MU_P * th_dot)/(MASS_P*LENGTH));
+                top = GRAV*sin(th) + (cos(th)*(-f - (MASS_P*LENGTH*th_dot*th_dot*sin(th)) + MU_C*sign(x_dot(n-1)))/(MASS_C + MASS_P)) - ((MU_P * th_dot)/(MASS_P*LENGTH));     
                 bottom = LENGTH*((4/3) - (MASS_P*cos(th)*cos(th))/(MASS_C + MASS_P));
                 th_dotdot = top/bottom;
                 x_dotdot = (f + MASS_P*LENGTH*(th_dot*th_dot*sin(th) - th_dotdot*cos(th)) - MU_C*sign(x_dot(n-1)))/(MASS_C +MASS_P);
@@ -182,15 +186,25 @@ for  tests = 1:config.pole_tests
         % Fitness function: Check longest balancing time within an pi/5 angle
         % deviation and within -5,+5 meters on the track
         %        score(n) = abs(pi-theta(n));
-        if theta(n) < pi + pi/5 && theta(n) > pi - pi/5
+%         if theta(n) < pi + pi/5 && theta(n) > pi - pi/5
+%             summation = summation + 1;
+%             if summation > longest_balance
+%                 longest_balance = summation;
+%             end
+%         else
+%             summation = 0;
+%         end
+        
+        % from original file
+        if (abs(mod(theta(n),2*pi)-pi) < pi/5 && abs(x_pole(n)) < 5)
             summation = summation + 1;
             if summation > longest_balance
                 longest_balance = summation;
             end
+            fitness(n) = 1/(abs(mod(theta(n),2*pi)-pi));% + abs(x_dot) + abs(theta_dot));
         else
             summation = 0;
         end
-        
     end
     
 
@@ -280,26 +294,40 @@ for  tests = 1:config.pole_tests
     end
     
     
-    F1 = longest_balance/config.time_steps;
-    
     % Reward F2
-    F2_bottom = 0;
-    if config.velocity
-        if longest_balance < 100
+%    F1 = longest_balance/config.time_steps;
+%     F2_bottom = 0;
+%     if config.velocity
+%         if longest_balance < 100
+%             F2 = 0;
+%         else
+%             %F2_bottom = sum(abs(x_pole(exited-100:exited)) + abs(x_dot(exited-100:exited)) + abs(theta(exited-100:exited,1)) +abs(theta_dot(exited-100:exited,1)));
+%             for p = 101:exited
+%                 F2_bottom = F2_bottom + abs(x_pole(p)) + abs(x_dot(p)) + abs(theta(p,1)) +abs(theta_dot(p,1));
+%             end
+%             
+%             F2 = 0.75/F2_bottom;
+%         end
+%         
+%         fitness(tests) = 1-(F1*0.1 +0.9*F2);
+%     else
+%         fitness(tests) = 1-F1;
+%    end
+
+    % Reward is longest balancing streak through all timesteps
+        F1 = longest_balance/config.time_steps;
+        
+        bound = config.time_steps*0.1;
+        if summation < bound
             F2 = 0;
         else
-            %F2_bottom = sum(abs(x_pole(exited-100:exited)) + abs(x_dot(exited-100:exited)) + abs(theta(exited-100:exited,1)) +abs(theta_dot(exited-100:exited,1)));
-            for p = 101:exited
-                F2_bottom = F2_bottom + abs(x_pole(p)) + abs(x_dot(p)) + abs(theta(p,1)) +abs(theta_dot(p,1));
+            if exited < config.time_steps && exited > bound
+                F2 = 0.75/sum(abs(x_dot(exited-bound))+abs(x_pole(exited-bound))+abs(theta(exited-bound))+abs(theta_dot(exited-bound)));
+            else
+                F2 = 0.75/sum(abs(x_dot(end-bound))+abs(x_pole(end-bound))+abs(theta(end-bound))+abs(theta_dot(end-bound)));
             end
-            
-            F2 = 0.75/F2_bottom;
         end
-        
-        fitness(tests) = 1-(F1*0.1 +0.9*F2);
-    else
-        fitness(tests) = 1-F1;
-   end
+        fitness = 1-(F1*0.1 +0.9*F2);
 end
 
 %individual.train_error = mean(fitness);
