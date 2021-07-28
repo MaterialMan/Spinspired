@@ -32,6 +32,12 @@ switch(res_type)
         config.mutFcn = @mutateMinRoR;
         config.recFcn = @recombMinRoR;
         
+   case 'RoRminMTS'
+        config.createFcn = @createMinRoRMTS;
+        config.assessFcn = @collectMinRoRMTSStates;
+        config.mutFcn = @mutateMinRoRMTS;
+        config.recFcn = @recombMinRoRMTS;
+        
     case 'restrictedRoR'
         config.createFcn = @createRestrictedRoR;
         config.assessFcn = @collectRestrictedRoRStates;

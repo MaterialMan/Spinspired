@@ -584,23 +584,47 @@ if ~iscell(config.res_type)
                 drawnow
             end
             
-        case 'RoRmin'
+        case {'RoRmin','RoRminMTS'}
             
-            ax1 = subplot(1,3,1);
+            if strcmp(config.res_type,'RoRminMTS')
+                num_x = 2;
+                num_y = 3;
+            else
+                num_x = 1;
+                num_y = 3;
+            end
+            
+            ax1 = subplot(num_x,num_y,1);
              imagesc((best_individual.input_weights.*best_individual.input_scaling)');
             colormap(ax1,bluewhitered)
             colorbar
             xlabel('Input mapping')
-            ax2 = subplot(1,3,2);
+            ax2 = subplot(num_x,num_y,2);
             imagesc(best_individual.W.*best_individual.W_scaling);
             colormap(ax2,bluewhitered)
             colorbar
             xlabel('Internal weights')
-            ax3 = subplot(1,3,3);
+            ax3 = subplot(num_x,num_y,3);
             imagesc(best_individual.output_weights);
             colormap(ax3,bluewhitered)
             colorbar
             xlabel('Output mapping')
+            
+            if strcmp(config.res_type,'RoRminMTS')
+                ax4 = subplot(num_x,num_y,[4:5]);
+                imagesc(best_individual.update_cycle);
+                colormap(ax4,'jet')
+                colorbar
+                xlabel('Update cycle')
+                
+                states = config.assessFcn(best_individual,config.test_input_sequence,config);
+                ax5 = subplot(num_x,num_y,6);
+                imagesc(states);
+                colormap(ax5,bluewhitered)
+                colorbar
+                xlabel('States')
+            end
+            
             
         case {'RBN','elementary_CA'}
             plotRBN(best_individual,config)

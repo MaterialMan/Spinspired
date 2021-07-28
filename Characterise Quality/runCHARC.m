@@ -32,8 +32,8 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'MM';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [49];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
+config.res_type = 'RoRminMTS';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = [100];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
 config = selectReservoirType(config);   % collect function pointers for the selected reservoir type
 
 % Network details
@@ -52,9 +52,9 @@ config.dataset = 'blank';
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 2000;                    % number of generations to evolve
-config.mut_rate = 0.05;                       % mutation rate
+config.pop_size = 150;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 5000;                    % number of generations to evolve
+config.mut_rate = 0.01;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
@@ -65,7 +65,7 @@ config.p_min_start = sqrt(sum(config.num_nodes));%sum(config.num_nodes)/10;     
 config.p_min_check = 100;                   % change novelty threshold dynamically after "p_min_check" generations.
 
 % general params
-config.gen_print = 1;                       % after 'gen_print' generations display archive and database
+config.gen_print = 50;                       % after 'gen_print' generations display archive and database
 config.start_time = datestr(now, 'HH:MM:SS');
 config.figure_array = [figure figure figure];
 config.save_gen = inf;                       % save data at generation = save_gen
@@ -76,7 +76,7 @@ config.get_prediction_data = 0;             % collect task performances after ex
 config.task_list = {'NARMA10','NARMA30','Laser','NonChanEqRodan'}; % tasks to assess
 %config.discrete = 0;                        % binary or continious input to system
 %config.nbits = 16;                          % set bit conversion if using binary/discrete systems
-config.preprocess = 1;                      % apply basic preprocessing, e.g. scaling and mean variance
+config.preprocess = 0;                      % apply basic preprocessing, e.g. scaling and mean variance
 
 %% Run experiments
 for tests = 1:config.num_tests

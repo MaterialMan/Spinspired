@@ -15,7 +15,7 @@ if isempty(gcp) && config.parallel
 end
 
 %% type of network to evolve
-config.res_type = 'RoRmin';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
+config.res_type = 'RoRminMTS';                 % can use different hierarchical reservoirs. RoR_IA is default ESN.
 config.num_nodes = [50];                      % num of nodes in subreservoirs, e.g. config.num_nodes = {10,5,15}, would be 3 subreservoirs with n-nodes each
 config = selectReservoirType(config);       % get correct functions for type of reservoir
 
@@ -25,12 +25,12 @@ config.metrics = {'KR','linearMC'}; % metrics to use (and order of metrics)
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of runs
 config.initial_population = 100;             % large pop better
-config.total_iter = 400;                    % num of gens
-config.mut_rate = 0.05;                       % mutation rate
+config.total_iter = 500;                    % num of gens
+config.mut_rate = 0.01;                       % mutation rate
 config.rec_rate = 0.5;                       % recombination rate
 
 %% Task parameters
-config.dataset = 'narma_10';                                                  % Task to evolve for
+config.dataset = 'narma_30';                                                  % Task to evolve for
 
 % get any additional params. This might include:
 % details on reservoir structure, extra task variables, etc.
@@ -42,7 +42,7 @@ config = selectDataset(config);
 config.error_to_check = 'train&val&test';
 
 %% MAP of elites parameters
-config.batch_size = 5;                                                     % how many offspring to create in one iteration
+config.batch_size = 4;                                                     % how many offspring to create in one iteration
 config.local_breeding = 1;                                                  % if interbreeding is local or global
 config.k_neighbours = 10;
 if strcmp(config.res_type,'MM')% select second parent from neighbouring behaviours
