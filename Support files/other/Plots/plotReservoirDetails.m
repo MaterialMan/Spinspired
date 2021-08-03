@@ -584,9 +584,9 @@ if ~iscell(config.res_type)
                 drawnow
             end
             
-        case {'RoRmin','RoRminMTS'}
+        case {'RoRmin','RoRminMTS','RoRminMTSplus'}
             
-            if strcmp(config.res_type,'RoRminMTS')
+            if contains(config.res_type,'RoRminMTS') %strcmp(config.res_type,'RoRminMTS')
                 num_x = 2;
                 num_y = 3;
             else
@@ -610,7 +610,7 @@ if ~iscell(config.res_type)
             colorbar
             xlabel('Output mapping')
             
-            if strcmp(config.res_type,'RoRminMTS')
+            if contains(config.res_type,'RoRminMTS')%strcmp(config.res_type,'RoRminMTS')
                 ax4 = subplot(num_x,num_y,[4:5]);
                 imagesc(best_individual.update_cycle);
                 colormap(ax4,'jet')

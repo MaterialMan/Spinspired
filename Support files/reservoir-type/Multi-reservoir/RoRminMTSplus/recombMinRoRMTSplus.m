@@ -1,5 +1,5 @@
 %% Infection phase
-function loser = recombMinRoR(winner,loser,config)
+function loser = recombMinRoRMTSplus(winner,loser,config)
 
 % params - input_scaling, leak_rate,
 W= winner.init_input_scaling(:);
@@ -13,6 +13,12 @@ L = loser.init_leak_rate(:);
 pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
 loser.init_leak_rate = reshape(L,size(loser.init_leak_rate));
+
+W= winner.init_update_cycle(:);
+L = loser.init_update_cycle(:);
+pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+L(pos) = W(pos);
+loser.init_update_cycle = reshape(L,size(loser.init_update_cycle));
 
 % params - W_scaling
 W= winner.init_W_scaling(:);
@@ -31,7 +37,6 @@ if isfield(winner,'W_switch')
         loser.W_switch = reshape(L,size(loser.W_switch));
     end
 end
-
 
 % input weights
 W= winner.input_weights(:);
@@ -113,6 +118,14 @@ else
     individual.leak_rate(1:end_pos) = individual.init_leak_rate(1);
 end
 
+% MTS
+if config.per_node_time_scale % each sub reservoir has the same time update
+    individual.update_cycle = individual.init_update_cycle;
+else    
+    individual.update_cycle(:,1:end_pos) = individual.init_update_cycle(1);
+    individual.update_cycle(1:end_pos,:) = individual.init_update_cycle(1);
+end
+
 % update subres scaling
 for i = 2:length(individual.nodes)
     % set subres positions
@@ -120,10 +133,19 @@ for i = 2:length(individual.nodes)
     end_pos = start_pos + individual.nodes(i)-1;
     
     if ~config.multi_leak_rate
-        individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
+        %individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
+        individual.leak_rate(start_pos:end_pos) = individual.init_leak_rate(i); 
     end
+    
+    individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
     individual.W_scaling(start_pos:end_pos,start_pos:end_pos) = individual.init_W_scaling(i);
-    individual.leak_rate(start_pos:end_pos) = individual.init_leak_rate(i);        
+     
+    % MTS
+    if ~config.per_node_time_scale % each sub reservoir has the same time update
+        individual.update_cycle(:,start_pos:end_pos) = individual.init_update_cycle(i); 
+        individual.update_cycle(start_pos:end_pos,:) = individual.init_update_cycle(i); 
+    end
+    
 end
 
 % indentify any W that are new connections and put W_scaling as identity

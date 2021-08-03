@@ -6,7 +6,7 @@
 
 % Author: M. Dale
 % Date: 03/07/19
-function MicrobialGAFcn(num_cores,batch_num)
+function [best_indv_err] = MicrobialGAFcn(res_type,num_nodes,num_cores,batch_num,dataset)
 
 close all
 
@@ -22,15 +22,15 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'MM';             % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [100];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = res_type;             % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = num_nodes;                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 200;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 1000;                    % number of generations to evolve
-config.mut_rate = 0.02;                       % mutation rate
+config.pop_size = 150;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 200;                    % number of generations to evolve
+config.mut_rate = 0.01;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
@@ -39,7 +39,7 @@ config.error_to_check = 'train&val&test';    % printed error includes all three 
 %% Task parameters
 config.discrete = 0;               % select '1' for binary input for discrete systems
 config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
-config.dataset = 'narma_10';          % Task to evolve for
+config.dataset = dataset;          % Task to evolve for
 
 % get any additional params. This might include:
 % details on reservoir structure, extra task variables, etc.
@@ -49,13 +49,13 @@ config = getAdditionalParameters(config);
 config = selectDataset(config);
 
 %% general params
-config.gen_print = 2;                       % after 'gen_print' generations print task performance and show any plots
+config.gen_print = 25;                       % after 'gen_print' generations print task performance and show any plots
 config.start_time = datestr(now, 'HH:MM:SS');
-config.save_gen = inf;                       % save data at generation = save_gen
+config.save_gen = 100;                       % save data at generation = save_gen
 config.figure_array = [figure figure];
 
 % Only necessary if wanting to parallelise the microGA algorithm
-config.multi_offspring = 1;                 % multiple tournament selection and offspring in one cycle
+config.multi_offspring = 0;                 % multiple tournament selection and offspring in one cycle
 config.num_sync_offspring = num_cores;%config.deme;    % length of cycle/synchronisation step
 
 % type of metrics to apply; if necessary
@@ -267,6 +267,9 @@ for test = batch_num
         % plotReservoirDetails(population,best_indv,gen,loser,config)
     end
 end
+
+best_indv_err = population(best_indv(end));
+
 end
 
 function saveData(population,store_error,config)

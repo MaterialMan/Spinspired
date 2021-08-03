@@ -1,4 +1,4 @@
-function population = createMinRoR(config)
+function population = createMinRoRMTSplus(config)
 
 
 %% Reservoir Parameters
@@ -31,6 +31,9 @@ for pop_indx = 1:config.pop_size
     population(pop_indx).init_W_scaling = 2*rand(1,length(config.num_nodes))-1;
     population(pop_indx).init_leak_rate = rand(1,sum(config.num_nodes));
     
+    % update cycle per node
+    population(pop_indx).init_update_cycle = randi([1 config.max_update_cycle],1,size(config.num_nodes,2));
+    
     %inputweights
     population(pop_indx).input_weights = getInternalWeights(config.input_weight_initialisation...
         ,population(pop_indx).n_input_units+1, population(pop_indx).total_units,config.sparsity,config);
@@ -40,7 +43,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).activ_Fcn_indx = randi(length(config.activ_list),1,population(pop_indx).total_units);
     end
     
-    population(pop_indx).last_state = zeros(1,population(pop_indx).total_units);
+    population(pop_indx).last_state = zeros(config.max_update_cycle,population(pop_indx).total_units);
     
     %% weights and connectivity of all reservoirs
     % end of first subres
@@ -56,6 +59,17 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).leak_rate(1:end_pos) = population(pop_indx).init_leak_rate(1);
     end
     
+    % initialise update cycles
+    population(pop_indx).update_cycle = ones(sum(config.num_nodes));
+    
+    if config.per_node_time_scale
+        %population(pop_indx).init_update_cycle = ones(sum(config.num_nodes));%randi([1 config.max_update_cycle],1,sum(config.num_nodes));% assign indvidual update rates per node
+        population(pop_indx).init_update_cycle = population(pop_indx).update_cycle;
+    else
+        population(pop_indx).update_cycle(:,1:end_pos) = population(pop_indx).init_update_cycle(1);
+        population(pop_indx).update_cycle(1:end_pos,:) = population(pop_indx).init_update_cycle(1);
+    end
+        
     % assign first internal weights
     population(pop_indx).W = getInternalWeights(config.internal_weight_initialisation,...
         population(pop_indx).nodes(1),population(pop_indx).nodes(1),config.internal_sparsity,config);
@@ -68,8 +82,13 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).input_scaling(:,start_pos:end_pos) = population(pop_indx).init_input_scaling(:,i);
         population(pop_indx).W_scaling(start_pos:end_pos,start_pos:end_pos) = population(pop_indx).init_W_scaling(i);
         
-        if ~config.mulit_leak_rate
+        if ~config.multi_leak_rate
             population(pop_indx).leak_rate(start_pos:end_pos) = population(pop_indx).init_leak_rate(i);
+        end
+        
+        if ~config.per_node_time_scale
+            population(pop_indx).update_cycle(:,start_pos:end_pos) = population(pop_indx).init_update_cycle(i);
+            population(pop_indx).update_cycle(start_pos:end_pos,:) = population(pop_indx).init_update_cycle(i);
         end
         
         % assign new subres weights

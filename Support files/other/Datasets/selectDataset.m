@@ -92,9 +92,9 @@ switch config.dataset
         err_type = 'NMSE';
         sequence_length = 5000;
         config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
-        [input_sequence(:,1),output_sequence(:,1)] = generate_new_NARMA_sequence(sequence_length,5);
-        [input_sequence(:,2),output_sequence(:,2)] = generate_new_NARMA_sequence(sequence_length,10);
-        [input_sequence(:,3),output_sequence(:,3)] = generate_new_NARMA_sequence(sequence_length,30);
+        [input_sequence,output_sequence] = generate_new_NARMA_sequence(sequence_length,[5 10 30]);
+        %[input_sequence(:,2),output_sequence(:,2)] = generate_new_NARMA_sequence(sequence_length,10);
+        %[input_sequence(:,3),output_sequence(:,3)] = generate_new_NARMA_sequence(sequence_length,30);
         
         input_sequence = 2*input_sequence-0.5;
         output_sequence = 2*output_sequence-0.5;

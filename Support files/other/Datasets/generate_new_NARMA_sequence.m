@@ -12,7 +12,7 @@ function [inputSequence, outputSequence] = generate_new_NARMA_sequence(sequenceL
 % InputSequence: array of size sequenceLength x 2. First column contains
 %                uniform noise in [0,1] range, second column contains bias
 %                input (all 1's)
-% OutputSequence: array of size sequenceLength x 1 with the NARMA output
+% tmp_outputSequence: array of size sequenceLength x 1 with the NARMA output
 %
 % usage example:
 % [a b] = generate_linear_sequence(1000,10) ;
@@ -27,84 +27,87 @@ if (nargin<3)
     upperDist = 0.5;
 end
 
-%previously used to initiate random seed 
+%previously used to initiate random seed
 %rng(1,'twister');
-washout =1000;
+washout =0;
 
 %%%% create input (set to between a distribution given by default or user
 % use the input sequence to drive a NARMA equation
-inputSequence = (upperDist-lowerDist)*rand(sequenceLength+memoryLength+washout,1)+lowerDist;
-outputSequence = zeros(sequenceLength+memoryLength+washout,1);
+inputSequence = (upperDist-lowerDist)*rand(sequenceLength+washout,1)+lowerDist;
 
-switch(memoryLength)
-    %% Settings according to: A Comparative Study of Reservoir Computing for Temporal Signal Processing
-    case 20
-        for i = memoryLength+1 : sequenceLength+memoryLength+washout
-            
-            middleSum(i) = sum(outputSequence(i-(memoryLength-1):i));
-            
-            %10th order NARMA variables
-            outputSequence(i) = tanh(0.3*outputSequence(i-1) + ...
-                0.05*outputSequence(i-1)*middleSum(i-1) + ...
-                1.5*inputSequence(i-(memoryLength))*inputSequence(i-1)+...
-                0.01);%+ noise(i+1);
-            %outputSequence(i+1) = outputSequence(i+1) ;
-            
-        end
-        
-    case {10,5} %[0,0.5]
-        %% NRMSE = 0.173 to 0.14 in Atiya's first experiment (NARMA 10)
-        %% NRMSE = 0.4 eqivil to shift regesiter. Thus, lower requires non-linearity (NARMA 10)...
-        %NRMSE ~0.15. Results of simulated system. Information processing using a single dynamical node as complex system
-        
-        for i = memoryLength+1 : sequenceLength+memoryLength+washout
-            
-            middleSum(i) = sum(outputSequence(i-(memoryLength-1):i));
-            
-            %10th order NARMA variables
-            outputSequence(i) = 0.3*outputSequence(i-1) + ...
-                0.05*outputSequence(i-1)*middleSum(i-1) + ...
-                1.5*inputSequence(i-(memoryLength))*inputSequence(i-1)+...
-                0.1 ;%+ noise(i+1);
-            %outputSequence(i+1) = outputSequence(i+1) ;
-            
-        end
-        
-    case {30,40}
-         for i = memoryLength+1 : sequenceLength+memoryLength+washout
-            
-            middleSum(i) = sum(outputSequence(i-(memoryLength-1):i));
-            
-            %10th order NARMA variables
-            outputSequence(i) = 0.2*outputSequence(i-1) + ...
-                0.004*outputSequence(i-1)*middleSum(i-1) + ...
-                1.5*inputSequence(i-(memoryLength))*inputSequence(i-1)+...
-                0.001 ;%+ noise(i+1);
-            %outputSequence(i+1) = outputSequence(i+1) ;
-            
-        end
-        
-    otherwise
-        
-%         inputSequence = (upperDist-lowerDist)*rand(sequenceLength+memoryLength,1)+lowerDist;
-%         outputSequence = zeros(sequenceLength+memoryLength,1);
-        
-        for i = memoryLength+1 : sequenceLength+memoryLength-1+washout
-            
-            %collect delay
-            for n = 1:memoryLength-1
-                outputSequence(i+1)= outputSequence(i+1)+ outputSequence(i-n);
-            end
+for n = 1:length(memoryLength)
+    
+    tmp_outputSequence = zeros(sequenceLength+washout,1);
+    
+    switch(memoryLength(n))
+        %% Settings according to: A Comparative Study of Reservoir Computing for Temporal Signal Processing
+        case 20
+            for i = memoryLength(n)+1 : sequenceLength+washout
                 
-            outputSequence(i+1) = (outputSequence(i+1)*(0.05*outputSequence(i)));
-            outputSequence(i+1) = outputSequence(i+1)+(0.3*outputSequence(i))...
-                + 1.5*inputSequence(i-(memoryLength-1))*inputSequence(i) + 0.1;
-               
+                middleSum(i) = sum(tmp_outputSequence(i-(memoryLength(n)-1):i));
+                
+                %10th order NARMA variables
+                tmp_outputSequence(i) = tanh(0.3*tmp_outputSequence(i-1) + ...
+                    0.05*tmp_outputSequence(i-1)*middleSum(i-1) + ...
+                    1.5*inputSequence(i-(memoryLength(n)))*inputSequence(i-1)+...
+                    0.01);%+ noise(i+1);
+                %tmp_outputSequence(i+1) = tmp_outputSequence(i+1) ;
+                
+            end
             
-        end
-
-        
+        case {10,5} %[0,0.5]
+            %% NRMSE = 0.173 to 0.14 in Atiya's first experiment (NARMA 10)
+            %% NRMSE = 0.4 eqivil to shift regesiter. Thus, lower requires non-linearity (NARMA 10)...
+            %NRMSE ~0.15. Results of simulated system. Information processing using a single dynamical node as complex system
+            
+            for i = memoryLength(n)+1 : sequenceLength+washout
+                
+                middleSum(i) = sum(tmp_outputSequence(i-(memoryLength(n)-1):i));
+                
+                %10th order NARMA variables
+                tmp_outputSequence(i) = 0.3*tmp_outputSequence(i-1) + ...
+                    0.05*tmp_outputSequence(i-1)*middleSum(i-1) + ...
+                    1.5*inputSequence(i-(memoryLength(n)))*inputSequence(i-1)+...
+                    0.1 ;%+ noise(i+1);
+                %tmp_outputSequence(i+1) = tmp_outputSequence(i+1) ;
+                
+            end
+            
+        case {30,40}
+            for i = memoryLength(n)+1 : sequenceLength+washout
+                
+                middleSum(i) = sum(tmp_outputSequence(i-(memoryLength(n)-1):i));
+                
+                %10th order NARMA variables
+                tmp_outputSequence(i) = 0.2*tmp_outputSequence(i-1) + ...
+                    0.004*tmp_outputSequence(i-1)*middleSum(i-1) + ...
+                    1.5*inputSequence(i-(memoryLength(n)))*inputSequence(i-1)+...
+                    0.001 ;%+ noise(i+1);
+                %tmp_outputSequence(i+1) = tmp_outputSequence(i+1) ;
+                
+            end
+            
+        otherwise
+            
+            %         inputSequence = (upperDist-lowerDist)*rand(sequenceLength+memoryLength,1)+lowerDist;
+            %         tmp_outputSequence = zeros(sequenceLength+memoryLength,1);
+            
+            for i = memoryLength(n)+1 : sequenceLength+washout
+                
+                %collect delay
+                for n = 1:memoryLength(n)-1
+                    tmp_outputSequence(i+1)= tmp_outputSequence(i+1)+ tmp_outputSequence(i-n);
+                end
+                
+                tmp_outputSequence(i+1) = (tmp_outputSequence(i+1)*(0.05*tmp_outputSequence(i)));
+                tmp_outputSequence(i+1) = tmp_outputSequence(i+1)+(0.3*tmp_outputSequence(i))...
+                    + 1.5*inputSequence(i-(memoryLength(n)-1))*inputSequence(i) + 0.1;
+                                
+            end                       
+    end  
+    
+    
+    outputSequence(:,n) = tmp_outputSequence(max(memoryLength)+washout+1:end);
 end
 
-inputSequence = inputSequence(memoryLength+washout+1:end);
-outputSequence = outputSequence(memoryLength+washout+1:end);
+inputSequence = inputSequence(max(memoryLength)+washout+1:end);

@@ -85,7 +85,7 @@ switch(res_type)
         config.sparsity = 1;                          % sparsity of input weights
         
         
-    case {'RoR','RoRmin','RoRminMTS'}
+    case {'RoR','RoRmin','RoRminMTS','RoRminMTSplus'}
         
         config.noise_level = 10e-5 ;
         config.mut_rate_connecting = 0.01;
@@ -109,7 +109,7 @@ switch(res_type)
         end
         
         % for MTS reservoirs
-        config.per_node_time_scale = 0; % 
+        config.per_node_time_scale = 1; % off (0) version is not working properly yet
         config.max_update_cycle = 10;
         
     case 'ELM'
@@ -474,10 +474,10 @@ switch(config.dataset)
         config.testFcn = @poleBalance;
         config.evolve_output_weights = 1;               % must evolve outputs as its an unsupervised problem
         config.output_connectivity = 0.1;
-        config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
+        config.output_weight_scaler = 10;              % defines maximum/minimum weight value when evolving output weights
 
         config.evolve_feedback_weights = 0;
-        config.leak_on = 1;
+        config.leak_on = 0;
         config.add_input_states = 0;                    % add input to states
         config.error_to_check = 'train';
         config.bias = 1;
@@ -485,15 +485,15 @@ switch(config.dataset)
     case 'robot'
         % type of task
         config.robot_behaviour = 'explore_maze';    %select behaviour/file to simulate
-        config.time_steps = 500;                    % sim time
+        config.time_steps = 1000;                    % sim time
         %sensors
         config.sensor_range = 0.5;                 % range of lidar
-        config.evolve_sensor_range = 1;             % use leakRate parameter as proxy for sensor range (evolvable)
+        config.evolve_sensor_range = 0;             % use leakRate parameter as proxy for sensor range (evolvable)
         config.sensor_radius = 2*pi;
         % sim parameters
         config.run_sim = 0;                          % whether to run/watch sim
         config.robot_tests = 3;                     % how many tests to conduct: to provide avg fitness
-        config.show_robot_tests = 1; % how many tests to watch/check visually
+        config.show_robot_tests = 1;                % how many tests to watch/check visually
         config.sim_speed = 30;                       % speed of sim result/visualisation. e.g. if =2, 2x speed
         config.testFcn = @robot;                    % assess fcn for robot tasks
         config.evolve_output_weights = 1;             % must be on; unsupervised/reinforcement problem
