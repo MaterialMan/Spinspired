@@ -212,6 +212,10 @@ for metric_item = 1:length(config.metrics)
             dissimilarity = (norm(zeros(size(individual.W,1))-W)./20)*(individual.total_units + (config.add_input_states*config.task_num_inputs));
             
             metrics = [metrics dissimilarity];
+            
+        case 'combined_metric'
+            seed = 1;
+            metrics = combinedMetrics(individual,config,seed,MC_num_timesteps);
     end
 end
 

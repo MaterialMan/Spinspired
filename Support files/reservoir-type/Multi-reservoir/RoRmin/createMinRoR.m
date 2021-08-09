@@ -68,7 +68,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).input_scaling(:,start_pos:end_pos) = population(pop_indx).init_input_scaling(:,i);
         population(pop_indx).W_scaling(start_pos:end_pos,start_pos:end_pos) = population(pop_indx).init_W_scaling(i);
         
-        if ~config.mulit_leak_rate
+        if ~config.multi_leak_rate
             population(pop_indx).leak_rate(start_pos:end_pos) = population(pop_indx).init_leak_rate(i);
         end
         

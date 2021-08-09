@@ -42,7 +42,7 @@ for n = start_n:end_n
         
         % calculate delay states
         ind = sub2ind(size(states),n-individual.update_cycle,repmat(1:size(states,2),size(states,2),1));
-        tmp_states = sum(states(ind).*W,2)';
+        tmp_states = %sum(states(ind).*W,2)';
                                 
         if config.multi_activ
                         % calculate states with specific activation functions

@@ -1,21 +1,27 @@
 function[final_states,individual] = collectMinRoRMTSStates(individual,input_sequence,config,target_output)
 
-% %if single input entry, add previous state
-if size(input_sequence,1) == 1 % pad input
-    input_sequence = [zeros(size(input_sequence)); input_sequence];
-end
+% % %if single input entry, add previous state
+% if size(input_sequence,1) == 1 % pad input
+%     input_sequence = [zeros(size(input_sequence)); input_sequence];
+% end
 
 % start from last stae
-if size(input_sequence,1) == 2
-    input_sequence = [zeros(config.max_update_cycle,size(input_sequence,2)); input_sequence]; 
+if size(input_sequence,1) == 1
+    temp_input_sequence = zeros(size(individual.last_state,1),size(input_sequence,2)); 
+    temp_input_sequence(end,:) = input_sequence(end,:);
+    input_sequence = temp_input_sequence;
+    
     states = individual.last_state;
     %states = [states; zeros(size(input_sequence,1),sum(config.num_nodes))];
-    start_n = config.max_update_cycle;
-    end_n = config.max_update_cycle+2;
+    start_n = size(individual.last_state,1);%config.max_update_cycle;
+    end_n = size(individual.last_state,1);%config.max_update_cycle+2;
+    
+    single_input_task = 1;
 else
     states = zeros(size(input_sequence,1),sum(config.num_nodes));
     start_n = 1;
     end_n = size(input_sequence,1);
+    single_input_task = 0;
 end
 
 % preassign weights rather than calculate them iteratively
@@ -97,7 +103,8 @@ end
 
 
 %assign last state variable
-individual.last_state = states(end-config.max_update_cycle:end,:);
+individual.last_state(1,:) = []; % pop
+individual.last_state = [individual.last_state; states(end,:)];
 
 % concat input states
 if config.add_input_states == 1
@@ -112,3 +119,6 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
+if single_input_task
+    final_states = final_states(end,:);
+end

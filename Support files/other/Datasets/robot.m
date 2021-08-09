@@ -18,12 +18,15 @@ end
 if config.robot_tests <= 4 && config.run_sim == 0
     %temp_geno = genotype;
       for i = 1:num_tests
-        [~,temp_geno(i),states]= robotSim(config.robot_behaviour,config.time_steps,'max',[],individual,config);
+        [~,individual,states]= robotSim(config.robot_behaviour,config.time_steps,'max',[],individual,config);
         
         %record fitness
-        train_error(i) = temp_geno(i).train_error;
-        val_error(i) = temp_geno(i).val_error;
-        test_error(i) = temp_geno(i).test_error;       
+        train_error(i) = individual.train_error;
+        val_error(i) = individual.val_error;
+        test_error(i) = individual.test_error; 
+       % train_error(i) = temp_geno(i).train_error;
+        %val_error(i) = temp_geno(i).val_error;
+        %test_error(i) = temp_geno(i).test_error;       
       end    
 else
     for i = 1:num_tests

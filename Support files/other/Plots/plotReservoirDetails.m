@@ -161,63 +161,93 @@ switch(config.dataset)
 %         test_sequence = test_states*best_individual.output_weights;
 %         plotresponse(num2cell(config.train_output_sequence(config.wash_out+1:end,:)'),num2cell(test_sequence'))
 %         
-    case 'lorenz'
-        test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+    case {'lorenz','mackey_glass'}
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
         test_sequence = test_states*best_individual.output_weights;
         
         subplot(1,2,1)
-        plot(config.train_output_sequence(config.wash_out+1:end,:))
+        plot(config.test_output_sequence(config.wash_out+1:end,:))
         hold on
         plot(test_sequence)
         hold off
         
         subplot(1,2,2)
-        plot3(test_sequence(:,1),test_sequence(:,2),test_sequence(:,3))
+        plot(config.test_output_sequence(config.wash_out+1:end-1,:),config.test_output_sequence(config.wash_out+2:end,:))
+        hold on
+        plot(test_sequence(1:end-1),test_sequence(2:end))
+        hold off
+        %plot3(test_sequence(:,1),test_sequence(:,2),test_sequence(:,3))
         
     case 'autoencoder'
         
-        test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
-        test_sequence = test_states*best_individual.output_weights;
-        
-        rand_input = randn(size(config.train_input_sequence));
-        rand_states = config.assessFcn(best_individual,rand_input,config,config.train_output_sequence);
-        rand_sequence = rand_states*best_individual.output_weights;
-        if size(config.train_input_sequence,2) == 3072
-            for i = 1:6
-                subplot(4,6,i)
-                imshow(reshape(config.train_input_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)/3),sqrt(size(config.train_output_sequence,2)/3),3));
-                title('Actual')
+        switch(config.autoencoder_type)
+            case 'missing_data'
                 
-                subplot(4,6,6+i)
-                imshow(reshape(test_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)/3),sqrt(size(config.train_output_sequence,2)/3),3));
-                title('Recovered')
+                subplot(1,3,1)
+                plot(config.train_input_sequence)
+                title('Missing data (input)')
+                subplot(1,3,2)
+                test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+                test_sequence = test_states*best_individual.output_weights;
+                plot(test_sequence,'r')
+                hold on
+                plot(config.train_output_sequence(config.wash_out+1:end),'k')
+                hold off
+                title('Filled data (output)')
+                legend({'Y','Target'})
+                subplot(1,3,3)
+                plot(config.train_input_sequence(config.wash_out+1+500:config.wash_out+600),'b')
+                hold on
+                plot(test_sequence(500:600),'r')
+                plot(config.train_output_sequence(config.wash_out+1+500:config.wash_out+600),'k')
+                hold off
+                title('Filled data (output)')
+                legend({'Input','Y','Target'})
                 
-                subplot(4,6,12+i)
-                imshow(reshape(rand_input(i*10,:),sqrt(size(config.train_output_sequence,2)/3),sqrt(size(config.train_output_sequence,2)/3),3));
-                title('Random Input')
-                
-                subplot(4,6,18+i)
-                imshow(reshape(rand_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)/3),sqrt(size(config.train_output_sequence,2)/3),3));
-                title('Output: Random Input')
-            end
+            otherwise
+        if config.sequenced_data
+            subplot(2,2,1)
+            imshow(reshape(config.train_input_sequence,sqrt(size(config.train_input_sequence,1)),sqrt(size(config.train_input_sequence,1)),size(config.train_output_sequence,2)));
+            title('Input')
+            
+            subplot(2,2,2)
+            imshow(reshape(config.train_output_sequence,sqrt(size(config.train_output_sequence,1)),sqrt(size(config.train_output_sequence,1)),size(config.train_output_sequence,2)));
+            title('Desired output')
+            
+            test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+            test_sequence = test_states*best_individual.output_weights;
+            subplot(2,2,4)
+            imshow(reshape(test_sequence,sqrt(size(test_sequence,1)),sqrt(size(test_sequence,1)),size(test_sequence,2)));
+            title('Recovered input')
+            
+            rand_input = rand(size(config.train_input_sequence))-0.5;
+            rand_states = config.assessFcn(best_individual,rand_input,config,config.train_output_sequence);
+            rand_sequence = rand_states*best_individual.output_weights;
+            subplot(2,2,3)
+            imshow(reshape(rand_sequence,sqrt(size(rand_sequence,1)),sqrt(size(rand_sequence,1)),size(rand_sequence,2)));
+            title('Random Input')
         else
-            for i = 1:6
-                subplot(4,6,i)
-                imshow(reshape(config.train_input_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)),sqrt(size(config.train_output_sequence,2))));
-                title('Actual')
-                
-                subplot(4,6,6+i)
-                imshow(reshape(test_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)),sqrt(size(config.train_output_sequence,2))));
-                title('Recovered')
-                
-                subplot(4,6,12+i)
-                imshow(reshape(rand_input(i*10,:),sqrt(size(config.train_output_sequence,2)),sqrt(size(config.train_output_sequence,2))));
-                title('Random Input')
-                
-                subplot(4,6,18+i)
-                imshow(reshape(rand_sequence(i*10,:),sqrt(size(config.train_output_sequence,2)),sqrt(size(config.train_output_sequence,2))));
-                title('Output: Random Input')
-            end
+            subplot(2,2,1)
+            imshow(reshape(config.train_input_sequence',sqrt(size(config.train_input_sequence,2)),sqrt(size(config.train_input_sequence,2)),size(config.train_output_sequence,1)));
+            title('Input')
+            
+            subplot(2,2,2)
+            imshow(reshape(config.train_output_sequence',sqrt(size(config.train_output_sequence,2)),sqrt(size(config.train_output_sequence,2)),size(config.train_output_sequence,1)));
+            title('Desired output')
+            
+            test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+            test_sequence = test_states*best_individual.output_weights;
+            subplot(2,2,4)
+            imshow(reshape(test_sequence',sqrt(size(test_sequence,2)),sqrt(size(test_sequence,2)),size(test_sequence,1)));
+            title('Recovered input')
+            
+            rand_input = rand(size(config.train_input_sequence))-0.5;
+            rand_states = config.assessFcn(best_individual,rand_input,config,config.train_output_sequence);
+            rand_sequence = rand_states*best_individual.output_weights;
+            subplot(2,2,3)
+            imshow(reshape(rand_sequence',sqrt(size(rand_sequence,2)),sqrt(size(rand_sequence,2)),size(rand_sequence,1)));
+            title('Random Input')
+        end
         end
         
     case 'image_painting'
@@ -225,13 +255,45 @@ switch(config.dataset)
         test_states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
         test_sequence = test_states*best_individual.output_weights;
         
-        subplot(1,2,1)
-        imshow(reshape(config.train_output_sequence,sqrt(size(config.train_output_sequence,1)),sqrt(size(config.train_output_sequence,1)),3));
+        subplot(2,2,1)
+        imshow(reshape(config.train_output_sequence,sqrt(size(config.train_output_sequence,1)),sqrt(size(config.train_output_sequence,1)),size(config.train_output_sequence,2)));
         title('Actual')
         
-        subplot(1,2,2)
-        imshow(reshape(test_sequence,sqrt(size(test_sequence,1)),sqrt(size(test_sequence,1)),3));
-        title('Predicted')
+        test_sequence = [zeros(sqrt(size(config.train_input_sequence,1)),size(config.train_output_sequence,2)); test_sequence];
+        subplot(2,2,2)
+        imshow(reshape(test_sequence,sqrt(size(config.train_input_sequence,1)),sqrt(size(config.train_input_sequence,1)),size(config.train_output_sequence,2)));
+        title('Trained output')
+        
+        % Let's paint!
+        new_xy_dimsize = 200;
+        [x,y] = meshgrid(1:new_xy_dimsize);
+        x_norm = 2*(x./max(max(x))) - 1;
+        y_norm = 2*(y./max(max(y))) - 1;
+        
+        % sin 10 version - adds repitition
+        x_in = x_norm;%sin(10.*x_norm);
+        y_in = y_norm;%sin(10.*y_norm);
+        
+        distance = sqrt(x_norm.^2+y_norm.^2);
+        input_sequence = [x_in(:) y_in(:)];% distance(:)];
+        
+        config.wash_out = new_xy_dimsize;
+        test_states = config.assessFcn(best_individual,input_sequence,config,[]);
+        test_sequence = test_states*best_individual.output_weights;
+        test_sequence = [zeros(new_xy_dimsize,size(test_sequence,2)); test_sequence];
+        subplot(2,2,3)
+        imshow(reshape(test_sequence,new_xy_dimsize,new_xy_dimsize,size(test_sequence,2)));
+        title('Increase image size')
+        
+        r_x = rot90(x_in);
+        r_y = rot90(y_in);
+        input_sequence = [r_x(:) r_y(:)];
+        test_states = config.assessFcn(best_individual,input_sequence,config,[]);
+        test_sequence = test_states*best_individual.output_weights;
+        test_sequence = [zeros(new_xy_dimsize,size(test_sequence,2)); test_sequence];
+        subplot(2,2,4)
+        imshow(reshape(test_sequence,new_xy_dimsize,new_xy_dimsize,size(test_sequence,2)));
+        title('Raotate image')
         
     case 'pole_balance'
         
@@ -617,7 +679,7 @@ if ~iscell(config.res_type)
                 colorbar
                 xlabel('Update cycle')
                 
-                states = config.assessFcn(best_individual,config.test_input_sequence,config);
+                states = config.assessFcn(best_individual,config.train_input_sequence,config);
                 ax5 = subplot(num_x,num_y,6);
                 imagesc(states);
                 colormap(ax5,bluewhitered)

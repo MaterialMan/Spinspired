@@ -43,7 +43,7 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).activ_Fcn_indx = randi(length(config.activ_list),1,population(pop_indx).total_units);
     end
     
-    population(pop_indx).last_state = zeros(config.max_update_cycle,population(pop_indx).total_units);
+    population(pop_indx).last_state = zeros(50,population(pop_indx).total_units);
     
     %% weights and connectivity of all reservoirs
     % end of first subres

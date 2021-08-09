@@ -41,7 +41,7 @@ if Initialization
             Exp_status.Agent(1).Sensor(1).Range= individual.leak_rate;
        % end
     else
-        Exp_status.Agent(1).Sensor(1).Range= config.sensor_range;
+        Exp_status.Agent(1).Sensor(1).Range = config.sensor_range;
     end
       
     Exp_status.Agent(1).Sensor(1).Angle_span=config.sensor_radius;
@@ -91,6 +91,7 @@ for j=1:Exp_status.Robots
         Command(1,j)=0.1*((pi-abs(error_theta))/pi);
     end
 end
+
 end
 
 function [x] = angular_distance(a,b)

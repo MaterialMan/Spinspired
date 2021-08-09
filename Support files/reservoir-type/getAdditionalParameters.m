@@ -455,15 +455,19 @@ switch(config.dataset)
         %config.add_input_states = 0;
         
     case 'autoencoder'
-        config.leak_on = 0;                          % add leak states
-        config.add_input_states = 0;
+        config.leak_on = 1;                          % add leak states
+        config.add_input_states = 1;
         config.figure_array = [config.figure_array figure];
         config.sparse_input_weights = 1;
         %config.evolve_output_weights = 1;               % must evolve outputs as its an unsupervised problem
         %config.error_to_check = 'train&val';
-        config.preprocess = 'clip';
-        config.preprocess_shift = '';
-        
+        %config.preprocess = 'clip';
+        %config.preprocess_shift = '';
+        config.sequenced_data = 1;
+        config.autoencoder_type = 'missing_data';
+        config.preprocess = '';
+        config.preprocess_shift = [0 1]; % range for data
+
     case 'pole_balance'
         
         config.time_steps = 300;                        % length of task simulation
@@ -477,7 +481,7 @@ switch(config.dataset)
         config.output_weight_scaler = 10;              % defines maximum/minimum weight value when evolving output weights
 
         config.evolve_feedback_weights = 0;
-        config.leak_on = 0;
+        config.leak_on = 1;
         config.add_input_states = 0;                    % add input to states
         config.error_to_check = 'train';
         config.bias = 1;
@@ -485,14 +489,14 @@ switch(config.dataset)
     case 'robot'
         % type of task
         config.robot_behaviour = 'explore_maze';    %select behaviour/file to simulate
-        config.time_steps = 1000;                    % sim time
+        config.time_steps = 300;                    % sim time
         %sensors
         config.sensor_range = 0.5;                 % range of lidar
         config.evolve_sensor_range = 0;             % use leakRate parameter as proxy for sensor range (evolvable)
         config.sensor_radius = 2*pi;
         % sim parameters
         config.run_sim = 0;                          % whether to run/watch sim
-        config.robot_tests = 3;                     % how many tests to conduct: to provide avg fitness
+        config.robot_tests = 2;                     % how many tests to conduct: to provide avg fitness
         config.show_robot_tests = 1;                % how many tests to watch/check visually
         config.sim_speed = 30;                       % speed of sim result/visualisation. e.g. if =2, 2x speed
         config.testFcn = @robot;                    % assess fcn for robot tasks
@@ -537,7 +541,7 @@ switch(config.dataset)
         
         
     case {'image_painting','CPPN'}
-        %config.leak_on = 0;                          % add leak states
+        config.leak_on = 0;                          % add leak states
         config.add_input_states = 0;
         
         % dummy figure

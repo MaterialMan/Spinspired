@@ -187,7 +187,7 @@ end_pos = individual.nodes(1);
 individual.W_scaling(1:end_pos,1:end_pos) = individual.init_W_scaling(1);
 individual.input_scaling(:,1:end_pos) = individual.init_input_scaling(:,1);
 
-if config.mulit_leak_rate % assign leak rates for each node, if used
+if config.multi_leak_rate % assign leak rates for each node, if used
     individual.leak_rate = individual.init_leak_rate;
 else
     individual.leak_rate(1:end_pos) = individual.init_leak_rate(1);
@@ -199,7 +199,7 @@ for i = 2:length(individual.nodes)
     start_pos = end_pos+1;
     end_pos = start_pos + individual.nodes(i)-1;
     
-    if ~config.mulit_leak_rate
+    if ~config.multi_leak_rate
         individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
     end
     individual.W_scaling(start_pos:end_pos,start_pos:end_pos) = individual.init_W_scaling(i);

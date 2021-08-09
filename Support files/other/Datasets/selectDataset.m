@@ -7,6 +7,7 @@ temp_seed = scurr.Seed;
 
 classification_data = 0;
 wash_out = 50;
+normalise_output = 1;
 
 rng(1,'twister');
     
@@ -311,6 +312,25 @@ switch config.dataset
                 
         input_sequence = data(1:end-ahead,:);
         output_sequence = data(ahead+1:end,:);
+        
+    case 'mackey_glass'
+        err_type = 'NMSE';
+        config.train_fraction=0.1539;    config.val_fraction=0.4231;    config.test_fraction=0.4231;
+        wash_out =100;        
+        T = 1e3;
+        ahead = 6;
+        normalise_output = 1;
+        %config.preprocess = '';
+        %config.preprocess_shift = [0 1]; % range for data
+
+        data_split = [300,1000,1000] +wash_out;
+        data = createMackeyGlass(17, 0.1, 0.2, 10, T ,1300 + wash_out + ahead);
+        %[x_val] = createMackeyGlass(17, 0.1, 0.2, 10, T ,1000 + wash_out + ahead);
+        %[x_test] = createMackeyGlass(17, 0.1, 0.2, 10, T ,1000 + wash_out + ahead);
+        
+        input_sequence= [data(1:data_split(1)) data(1:data_split(2)) data(1:data_split(3))]';
+        output_sequence = [data(ahead+1:ahead+data_split(1)) data(ahead+1:ahead+data_split(2)) data(ahead+1:ahead+data_split(3))]';
+        
         
     case 'attractor' %reconstruct lorenz attractor
         err_type = 'NMSE';
@@ -828,7 +848,7 @@ switch config.dataset
     case 'binary_nbit_adder'
         
         err_type = 'hamming';
-        type = 'nbit_adder';
+        autoencoder_type = 'nbit_adder';
         bit = 3;
         datalength = 5000;
         config.train_fraction=0.5;    config.val_fraction=0.25;    config.test_fraction=0.25;
@@ -840,7 +860,7 @@ switch config.dataset
         input = [de2bi(A_in,bit) de2bi(B_in,bit)];
         output=[];
         for i = 1:datalength
-            output(i,:) = getAdderTruthTable(type,[bit,A_in(i),B_in(i)]);
+            output(i,:) = getAdderTruthTable(autoencoder_type,[bit,A_in(i),B_in(i)]);
         end
         
         in  = [bi2de(input(:,1:bit)) bi2de(input(:,bit+1:end))];
@@ -965,14 +985,12 @@ switch config.dataset
     case 'autoencoder'
         
         err_type = 'NMSE';
-        config.train_fraction=0.7;    config.val_fraction=0.15;    config.test_fraction=0.15;
+        config.train_fraction=1;    config.val_fraction=0;    config.test_fraction=0;
         wash_out = 0;
-        noise_factor = 0;
-        
-        type = 'image';
-        
+        noise_factor = 0.1;
+                    
         data_length = 2000;
-        switch(type)
+        switch(config.autoencoder_type)
             case 'digit'
                 % image
                 [XTrain, YTrain, XTest, YTest] = load_mnist('./Support files/other/Datasets/MNIST');
@@ -995,16 +1013,52 @@ switch config.dataset
                 
             case 'image'
                 
-                [XTrain, ~,XTest] = load_cifar10;
+%                 [XTrain, ~,XTest] = load_cifar10;
+%                 
+%                 input_sequence = [XTrain; XTest];
+%                 input_sequence = input_sequence(1:data_length,:,:);
+%                 output_sequence = input_sequence;
                 
-                input_sequence = [XTrain; XTest];
-                input_sequence = input_sequence(1:data_length,:,:);
-                output_sequence = input_sequence;
+                I = imread('cat_50pixel.jpg');
+                output_sequence = (reshape(double(I),size(I,1)*size(I,2),size(I,3))./255)-0.5;
+                input_sequence = output_sequence + (rand(size(output_sequence))-0.5)*noise_factor;
+
+               case 'missing_image'
+                                
+                I = imread('cat_32pixel.jpg');
                 
-                %                 I = imread('cat_50pixel.jpg');
-                %                 output_sequence =double(I(:))./255;
-                %                 input_sequence = double(I(:))./255 + randn(size(output_sequence))*noise_factor;
-                %
+                if config.sequenced_data
+                    % sequenced
+                    output_sequence = (reshape(double(I),size(I,1)*size(I,2),size(I,3))./255)-0.5;
+                    pos = round((size(I,2)/2)-(size(I,2)/8)):round((size(I,2)/2)+(size(I,2)/8));
+                    I(pos,pos,:) = 0;
+
+                    input_sequence = (reshape(double(I),size(I,1)*size(I,2),size(I,3))./255)-0.5;
+                    %rand_points = randperm(size(output_sequence,1),noise_factor*size(output_sequence,1));
+                    %input_sequence(rand_points,:) = 0;
+                    %input_sequence(25:35,25:35,:) = 0;
+                else
+                    % non-sequenced
+                    output_sequence = (reshape(double(I(:,:,1)),size(I,1)*size(I,2),1)./255)'-0.5;
+                    pos = round((size(I,2)/2)-(size(I,2)/8)):round((size(I,2)/2)+(size(I,2)/8));
+                    I(pos,pos,:) = 0;
+
+                    input_sequence = (reshape(double(I(:,:,1)),size(I,1)*size(I,2),1)./255)'-0.5;
+                end
+                
+                case 'missing_data'                    
+                    %err_type = 'NMSE';
+                    wash_out = 100;
+                    sequence_length = 5000;
+                    %config.train_fraction=0.6;    config.val_fraction=0.2;    config.test_fraction=0.2;
+                    [~,output_sequence] = generate_new_NARMA_sequence(sequence_length,10);
+                    %input_sequence = 2*input_sequence-0.5;
+                    output_sequence = 2*output_sequence-0.5;
+                    input_sequence = output_sequence;
+                    rand_points = randperm(size(input_sequence,1),noise_factor*size(input_sequence,1));
+                    input_sequence(rand_points) = 0;
+                    
+                    
         end
         
         %input_sequence= input_sequence';
@@ -1014,11 +1068,11 @@ switch config.dataset
         
         err_type = 'NMSE';
         config.train_fraction=1;    config.val_fraction=0;    config.test_fraction=0;
-        wash_out = 0;
-        data_length = 1;
+        %wash_out = 0;
+        %data_length = 1;
         
         %get image data
-        I = imread('cat.jpg');
+        I = imread('cat_32pixel.jpg');
         
         %I = imread('panda400px.jpg');
         
@@ -1027,21 +1081,42 @@ switch config.dataset
         %I = reshape(I(1:data_length,:),data_length,size(I,2)/3,3);
         
         % given input x, y coordinates
-        [x, y] = meshgrid(1:1:size(I,1));
-        input_sequence = [x(:),y(:)];
+        %[x, y] = meshgrid(1:1:size(I,1));
+        %input_sequence = [x(:),y(:)];
         %         [x, y] = meshgrid(1:1:sqrt(size(I,2)/3));
         %         input_sequence = repmat([x(:),y(:)],data_length,1);
         
+        [x,y] = meshgrid(1:size(I,1));
+        x_norm = (x./max(max(x))) - 0.5;
+        y_norm = (y./max(max(y))) - 0.5;
+        
+        % sin 10 version - adds repitition
+        x_in = x_norm;%sin(10.*x_norm);
+        y_in = y_norm;%sin(10.*y_norm);
+        
+        distance = sqrt(x_norm.^2+y_norm.^2);
+        input_sequence = [x_in(:) y_in(:)];% distance(:)];
+            
         % recreate image
         r = double(I(:,:,1))./255;
         g = double(I(:,:,2))./255;
         b = double(I(:,:,3))./255;
         
-        %         r = double(I(1:data_length,1:1024))./255;
-        %         g = double(I(1:data_length,1025:2048))./255;
-        %         b = double(I(1:data_length,2049:end))./255;
+        output_sequence = [r(:)];      %  g(:) b(:)
         
-        output_sequence = [r(:) g(:) b(:)];
+        subplot(1,4,1)
+        imagesc(x_in)
+        
+        subplot(1,4,2)
+        imagesc(y_in)
+        
+        subplot(1,4,3)
+        imagesc(distance)
+        
+        subplot(1,4,4)
+        imshow(reshape(output_sequence,size(I,1),size(I,1),size(output_sequence,2)))        
+        
+        wash_out = size(I,1);
         
         %% Metrics
         case 'MC'
@@ -1117,6 +1192,9 @@ switch(config.input_mechanism)
     otherwise
         % rescale training data
         [input_sequence] = featureNormailse(input_sequence,config);
+        if normalise_output
+            [output_sequence] = featureNormailse(output_sequence,config);
+        end
         
 end
 

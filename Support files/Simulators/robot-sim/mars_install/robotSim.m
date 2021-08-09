@@ -260,10 +260,14 @@ OUTPUT_DATA=orderfields(EXP); % sort and return output data
 % calculate final fitness w.r.t. all target points and speed to collect
 base = EXP.total_points/EXP.Stop_time;
 f1 = (EXP.total_points-fitness)/EXP.total_points;
-f2 = (base - fitness/T1)/base;
+%f2 = (base - fitness/T1)/base;
 %error = 0.8*f1 + 0.2*(1-f2);
-error = f1;
+%error = f1;
 %error = (config.num_target_points-fitness)/config.num_target_points;%-sum(dist);%1 - sum(dist)/T1;
+
+% erro based on time to collect and number of points collected
+f2 = T1/EXP.Stop_time; %speed - lower better
+error = f1*0.75 + f2*0.25;
 
 individual.train_error = error;
 individual.val_error = error;
