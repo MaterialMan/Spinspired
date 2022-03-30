@@ -1,9 +1,15 @@
-function states = getLeakStates(states,individual,input_sequence,config)
+function states = getLeakStates(states,individual,config)
 
-for i= 1:config.num_reservoirs
-    leak_states = states{i}(1,:);
-    for n = 2:size(input_sequence,1)
-        leak_states(n,:) = (1-individual.leak_rate(i))*leak_states(n-1,:)+ individual.leak_rate(i)*states{i}(n,:);
+for n = 2:size(states,1)    
+    if config.leak_delay
+        if n > max(individual.max_update_cycle)
+            ind = sub2ind(size(states),n-individual.update_cycle,1:size(states,2));
+            tmp_states = states(ind);
+            states(n,:) = (1-individual.leak_rate).*tmp_states + individual.leak_rate.*states(n,:);
+        end
+    else
+        states(n,:) = (1-individual.leak_rate).*states(n-1,:) + individual.leak_rate.*states(n,:);
     end
-    states{i} = leak_states;
 end
+
+

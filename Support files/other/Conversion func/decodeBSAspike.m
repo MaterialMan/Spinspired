@@ -1,4 +1,4 @@
-function decoded_data = decodeBSAspike(filter,encoded_data)
+function decoded_data = decodeBSAspike(filter,encoded_data,wash_out)
 
 for num_signals = 1:size(encoded_data,2)
     
@@ -13,4 +13,7 @@ for num_signals = 1:size(encoded_data,2)
     
     decoded_data(:,num_signals) = data;
 end
+
+decoded_data = decoded_data(wash_out+1:end,:);
+
 %mse=(mean((filter_data(:,:) - decodedData(:,:)).^2)); % mean square error

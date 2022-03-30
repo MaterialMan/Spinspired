@@ -7,13 +7,15 @@ temp_seed = scurr.Seed;
 % set parameters
 metrics = [];
 config.reg_param = 10e-9;
-config.wash_out = 50;
+config.wash_out = 100;
 metrics_type =  config.metrics;
-num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
+%num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
 MC_num_timesteps = 500 + config.wash_out*2;
 n_input_units = individual.n_input_units;
 
 for metric_item = 1:length(config.metrics)
+    
+    num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
     
     rng(1,'twister');
     clearvars -except metrics num_timesteps MC_num_timesteps n_input_units individual config metric_item metrics_type temp_seed
@@ -28,8 +30,8 @@ for metric_item = 1:length(config.metrics)
             
             input_sequence = repmat(ui(:,1),1,n_input_units);
             
-            % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
+            % preprocessing
+            %[input_sequence, config] = EncodeData(input_sequence,config);
             
             %kernel matrix - pick 'to' at halfway point
             M = config.assessFcn(individual,input_sequence,config);
@@ -53,16 +55,18 @@ for metric_item = 1:length(config.metrics)
             end
             
             kernel_rank = e_rank-1;
-                   
+            
             metrics = [metrics kernel_rank];
             
-            % Genralization Rank
         case 'GR'
             % define input signal
-            input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;
+            s = sin(2*pi*10*(0:0.001:1));
+            s = s(:,1:num_timesteps)';
+            input_sequence = s + 0.5*rand(size(s))-0.25;
+            %input_sequence = 0 + 0.5*rand(num_timesteps,n_input_units)-0.25;
             
-            % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
+            % preprocessing
+            %[input_sequence, config] = EncodeData(input_sequence,config);
             
             %collect states
             G = config.assessFcn(individual,input_sequence,config);
@@ -71,8 +75,98 @@ for metric_item = 1:length(config.metrics)
             G(isnan(G)) = 0;
             G(isinf(G)) = 0;
             
-            % get rank of matrix
+            %get rank of matrix
             s = svd(G);
+            
+            %claculate effective rank
+            tmp_rank_sum = 0;
+            full_rank_sum = 0;
+            e_rank = 1;
+            for i = 1:length(s)
+                full_rank_sum = full_rank_sum + s(i);
+                while (tmp_rank_sum < full_rank_sum * 0.99)
+                    tmp_rank_sum = tmp_rank_sum + s(e_rank);
+                    e_rank= e_rank+1;
+                end
+            end
+            gen_rank = e_rank-1;
+            
+            metrics = [metrics gen_rank];
+            
+        case 'KR_v2'
+             % Nodes (n) must be greater than m input streams
+            %config.wash_out = individual.total_units;
+            num_timesteps = 50 + config.wash_out;
+            num_input_streams = individual.total_units;
+            
+            %define input signal
+            %ui = 2*rand(num_timesteps,num_input_streams)-1;
+            ui = RandOrthMat(num_timesteps,1e-6);      
+            
+            X = [];
+            for m = 1:num_input_streams
+                input_sequence = repmat(ui(:,m),1,n_input_units);
+                
+                % preprocessing
+                %[input_sequence, config] = EncodeData(input_sequence,config);
+                
+                %kernel matrix - pick 'to' at halfway point
+                M = config.assessFcn(individual,input_sequence,config);
+                
+                %catch errors
+                M(isnan(M)) = 0;
+                M(isinf(M)) = 0;
+                
+                X(:,m) = M(end,1:end-config.add_input_states);
+            end
+            
+            % get rank
+            s = svd(X);
+            
+            tmp_rank_sum = 0;
+            full_rank_sum = 0;
+            e_rank = 1;
+            for i = 1:length(s)
+                full_rank_sum = full_rank_sum + s(i);
+                while (tmp_rank_sum < full_rank_sum * 0.99)
+                    tmp_rank_sum = tmp_rank_sum + s(e_rank);
+                    e_rank= e_rank+1;
+                end
+            end
+            
+            kernel_rank_v2 = e_rank-1;
+            
+            metrics = [metrics kernel_rank_v2];
+            
+            % Genralization Rank
+        case 'GR_v2'
+            % Nodes (n) must be greater than m input streams
+            %config.wash_out = individual.total_units;
+            num_timesteps = 50 + config.wash_out;
+            num_input_streams = individual.total_units;
+            
+            %define input signal
+            ui = 2*rand(num_timesteps,1)-1;
+            
+            X = [];
+            for m = 1:num_input_streams
+                input_sequence = repmat(ui,1,n_input_units) +  0.5*rand(num_timesteps,n_input_units)-0.25;
+                
+                % preprocessing
+                %[input_sequence, config] = EncodeData(input_sequence,config);
+                
+                %kernel matrix - pick 'to' at halfway point
+                G = config.assessFcn(individual,input_sequence,config);
+                
+                %catch errors
+                G(isnan(G)) = 0;
+                G(isinf(G)) = 0;
+                
+                X(:,m) = G(end,1:end-config.add_input_states);
+            end
+            
+            % get rank of matrix
+            s = svd(X);
             
             %claculate effective rank
             tmp_rank_sum = 0;
@@ -85,11 +179,13 @@ for metric_item = 1:length(config.metrics)
                     e_rank= e_rank+1;
                 end
             end
-            gen_rank = e_rank-1;
+            gen_rank_v2 = e_rank-1;
             
-            metrics = [metrics gen_rank];
+            metrics = [metrics gen_rank_v2];
             
-            % LE measure
+            
+            
+            %% LE measure
         case 'LE'
             seed = 1;
             LE = lyapunovExponent(individual,config,seed);
@@ -100,8 +196,8 @@ for metric_item = 1:length(config.metrics)
             
             data_length = num_timesteps;%individual.total_units*2 + config.wash_out;%400;
             input_sequence = ones(data_length,n_input_units);
-            [input_sequence] = featureNormailse(input_sequence,config);
-            
+            [input_sequence, config] = EncodeData(input_sequence,config);
+                
             X = config.assessFcn(individual,input_sequence,config);
             C = X'*X;
             
@@ -127,30 +223,35 @@ for metric_item = 1:length(config.metrics)
             
             metrics = [metrics MC];
             
-            % quadratic memory capacity (nonlinear) 
+            % quadratic memory capacity (nonlinear)
         case 'quadMC'
             
             quad_MC = quadraticMC(individual,config,1);
             
             metrics = [metrics quad_MC];
             
-            % cross-memory capacity (nonlinear) 
+            % cross-memory capacity (nonlinear)
         case 'crossMC'
             
             cross_MC = crossMC(individual,config,1);
             
             metrics = [metrics cross_MC];
             
-            % separation property
+            %% separation property
+        case ' k_step_input_separation' %L. Busing, B. Schrauwen, and R. Legenstein: On Computational Power and the Order-Chaos Phase Transition in Reservoir Computing & Connectivity, Dynamics, and Memory in Reservoir Computing with Binary and Analog Neurons
+            
+            
+        case 'mean_field_predictor' % L. Busing, B. Schrauwen, and R. Legenstein: On Computational Power and the Order-Chaos Phase Transition in Reservoir Computing & Connectivity, Dynamics, and Memory in Reservoir Computing with Binary and Analog Neurons
+            
         case 'separation'
             
             data_length = num_timesteps;%individual.total_units*4 + config.wash_out*2;%400;
             
             u1 = (rand(data_length,n_input_units)-1);
             u2 = (rand(data_length,n_input_units));
-            [u1] = featureNormailse(u1,config);
-            [u2] = featureNormailse(u2,config);
-            
+            [u1, config] = EncodeData(u1,config);
+            [u2, config] = EncodeData(u2,config);
+
             D= norm(u1-u2);
             
             X1 = config.assessFcn(individual,u1,config);
@@ -182,8 +283,8 @@ for metric_item = 1:length(config.metrics)
             
             input_sequence = (rand(data_length,n_input_units)-1).*config.scaler;
             
-            [input_sequence] = featureNormailse(input_sequence,config);
-            
+            [input_sequence, config] = EncodeData(input_sequence,config);
+                
             X = config.assessFcn(individual,input_sequence,config);
             
             for i = 1:size(X,1)

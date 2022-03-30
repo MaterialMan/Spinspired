@@ -24,21 +24,21 @@ end
 
 % type of network to evolve
 config.res_type = 'RoRminMTS';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [10];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.num_nodes = [repmat(49,1,1)];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                         % num of tests/runs
-config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 5000;                    % number of generations to evolve
-config.mut_rate = 0.01;                       % mutation rate
+config.pop_size = 10;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 1000;                    % number of generations to evolve
+config.mut_rate = 0.05;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'pole_balance';          % Task to evolve for
+config.dataset = 'func_fit_griewank';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:
@@ -58,7 +58,8 @@ config.multi_offspring = 0;                 % multiple tournament selection and 
 config.num_sync_offspring = 4;%config.deme;    % length of cycle/synchronisation step
 
 % type of metrics to apply; if necessary
-config.metrics = {'KR','GR','linearMC'};          % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
+config.metrics = {'combined_metric','GR'}; % list metrics to apply in cell array: see getVirtualMetrics.m for types of metrics available
+config.metrics_names = {'KR','L-MC'};         
 config.record_metrics = 0;                  % save metrics
 
 % additional pruning, if required
@@ -69,7 +70,7 @@ config.prune_iterations = 500;
 %% Run experiments
 for test = 1:config.num_tests
     
-    clearvars -except config test best best_indv store_error population
+    clearvars -except config test best best_indv store_error population store_best
     
     warning('off','all')
     fprintf('\n Test: %d  ',test);
@@ -92,14 +93,14 @@ for test = 1:config.num_tests
         parfor pop_indx = 1:config.pop_size
             warning('off','all')
             population(pop_indx) = config.testFcn(population(pop_indx),config);
-            fprintf('\n i = %d, error = %.4f\n',pop_indx,getError(config.error_to_check,population(pop_indx)));
+            fprintf('\n i = %d, error = %.4d\n',pop_indx,getError(config.error_to_check,population(pop_indx)));
             ppm.increment();
         end
     else
         for pop_indx = 1:config.pop_size
             tic
             population(pop_indx) = config.testFcn(population(pop_indx),config);
-            fprintf('\n i = %d, error = %.4f, took: %.4f',pop_indx,getError(config.error_to_check,population(pop_indx)),toc);
+            fprintf('\n i = %d, error = %.4d, took: %.4f',pop_indx,getError(config.error_to_check,population(pop_indx)),toc);
         end
     end
     
@@ -109,6 +110,7 @@ for test = 1:config.num_tests
     
     % store error that will be used as fitness in the GA
     store_error(test,1,:) = getError(config.error_to_check,population);
+    store_best(test) = population(best_indv(test,1));
     
     % plot best
     plotReservoirDetails(population,best_indv(1,:),1,best_indv(1,1),config); 
@@ -224,10 +226,11 @@ for test = 1:config.num_tests
             store_error(test,gen,:) =  store_error(test,gen-1,:);
             store_error(test,gen,loser) = getError(config.error_to_check,population(loser));%population(loser).val_error;
             [best(test,gen),best_indv(test,gen)] = min(store_error(test,gen,:));
+            store_best(test) = population(best_indv(test,gen));
             
             % print info
             if (mod(gen,config.gen_print) == 0) 
-                fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4f, Loser: %.4f, Best Error: %.4f, Best test error: %.4f \n',gen,toc/config.gen_print,getError(config.error_to_check,population(winner)),getError(config.error_to_check,population(loser)),best(test,gen),getError('test',population(best_indv(test,gen))));
+                fprintf('Gen %d, time taken: %.4f sec(s)\n  Winner: %.4d, Loser: %.4d, Best Error: %.4d, Best test error: %d \n',gen,toc/config.gen_print,getError(config.error_to_check,population(winner)),getError(config.error_to_check,population(loser)),best(test,gen),getError('test',population(best_indv(test,gen))));
                 tic;
                 if best_indv(gen) ~= last_best %&& best(test,gen) < last_best_error
                     % plot reservoir structure, task simulations etc.
@@ -245,7 +248,7 @@ for test = 1:config.num_tests
         
         % if found best, stop
         if best(test,gen) == 0
-            fprintf('Found solution. Gen %d, \n  Best indv: %d, Error: %.4f \n',gen,best_indv(test,gen),best(test,gen));
+            fprintf('Found solution. Gen %d, \n  Best indv: %d, Error: %.4d \n',gen,best_indv(test,gen),best(test,gen));
             plotReservoirDetails(population,best_indv(test,:),gen,best_indv(test,gen),config); 
             return;
         end

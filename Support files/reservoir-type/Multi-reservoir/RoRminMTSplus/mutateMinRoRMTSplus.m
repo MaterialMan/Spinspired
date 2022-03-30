@@ -63,28 +63,11 @@ if ~config.CPPN_on
     input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0; % remove small weights
     offspring.input_weights = reshape(input_weights,size(offspring.input_weights));
     
-    % mutate subres internal weights    
-    if isempty(config.weight_fcn) % only evolve if not given some rigid structure
-        W = offspring.W(:); 
-        % find all intenal units
-        indices = find(~offspring.test_mask{1});
-        
-        pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate));
-        W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
-        
-        % select weights to change
-        del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del));
-        W(indices(del_pos)) = 0; % delete weight
-        
-        W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
-        offspring.W = reshape(W,size(offspring.W));
-    end
-    
-    % mutate subres connecting weights
+    % mutate subres internal weights
     W = offspring.W(:);
     % find all intenal units
-    indices = find(offspring.test_mask{2});
-    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate_connecting));
+    indices = find(~offspring.test_mask{1});
+    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate));
     W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
     
     % select weights to change
@@ -93,6 +76,35 @@ if ~config.CPPN_on
     
     W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
     offspring.W = reshape(W,size(offspring.W));
+    
+    % mutate subres delay internal weights
+    W_delay = offspring.W_delay(:);
+    pos = randperm(length(W_delay),sum(rand(length(W_delay),1) < config.mut_rate ));
+    W_delay(pos) = mutateWeight(W_delay(pos),[-1 1],config);
+    
+    % select weights to change
+    del_pos = randperm(length(W_delay),sum(rand(length(W_delay),1) < prob_2_del));
+    W_delay(del_pos) = 0; % delete weight
+    
+    W_delay(W_delay<minimum_weight & W_delay~=0 & W_delay>-minimum_weight) = 0;
+    offspring.W_delay = reshape(W_delay,size(offspring.W_delay));
+    
+    % mutate subres connecting weights    
+    if isempty(config.weight_fcn) % only evolve if not given some rigid structure
+        W = offspring.W(:); 
+        % find all intenal units
+        indices = find(offspring.test_mask{2});
+        
+        pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate_connecting));
+        W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
+        
+        % select weights to change
+        del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del));
+        W(indices(del_pos)) = 0; % delete weight
+        
+        W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
+        offspring.W = reshape(W,size(offspring.W)); 
+    end
 end
 
 % random prune
@@ -231,4 +243,6 @@ individual.W_scaling((individual.W.*individual.test_mask{1}) ~= 0) = 1;
 % check zero connections do not have a scaling
 individual.W_scaling(logical(individual.test_mask{1}.*((individual.W.*individual.test_mask{1}) == 0))) = 0;
 
+% wipe update cycle and replace with W_delay
+individual.update_cycle = individual.W_delay;
 end

@@ -37,9 +37,9 @@ config.num_nodes = [50];                  % num of nodes in each sub-reservoir, 
 config = selectReservoirType(config);   % collect function pointers for the selected reservoir type
 
 % Network details
-config.metrics = {'combined_metric'};       % behaviours that will be used; name metrics to use and order of metrics
+config.metrics = {'combined_metric','KR_v2','GR_v2'};       % behaviours that will be used; name metrics to use and order of metrics
 if strcmp(config.metrics{1},'combined_metric')
-   config.metrics_names = {'KR','L-MC','Q-MC','C-MC'};
+   config.metrics_names = {'L-MC','KR_v2','GR_v2'};
 else
     config.metrics_names = config.metrics;
 end
@@ -57,8 +57,8 @@ config.dataset = 'blank';
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 150;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
-config.total_gens = 2000;                    % number of generations to evolve
+config.pop_size = 50;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.total_gens = 1000;                    % number of generations to evolve
 config.mut_rate = 0.01;                       % mutation rate
 config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
@@ -77,8 +77,8 @@ config.save_gen = inf;                       % save data at generation = save_ge
 config.param_indx = 1;                      % index for recording database quality; start from 1
 
 % prediction parameters
-config.get_prediction_data = 0;             % collect task performances after experiment. Variables below are applied if '1'.
-config.task_list = {'NARMA10','NARMA30','Laser','NonChanEqRodan'}; % tasks to assess
+config.get_prediction_data = 1;             % collect task performances after experiment. Variables below are applied if '1'.
+config.task_list = {'narma_10','laser'}; % tasks to assess
 %config.discrete = 0;                        % binary or continious input to system
 %config.nbits = 16;                          % set bit conversion if using binary/discrete systems
 config.preprocess = 0;                      % apply basic preprocessing, e.g. scaling and mean variance
@@ -227,14 +227,15 @@ for tests = 1:config.num_tests
         
         % safe details to disk
         if mod(gen,config.save_gen) == 0
-            saveData(database_history,database,quality,tests,config);
+            %saveData(database_history,database,quality,tests,config);
+            saveDataTable(database,tests,config.res_type,config)
         end
     end
     
     % run entire database on set tasks to get performance of behaviours
     if config.get_prediction_data
         all_behaviours = reshape([database.behaviours],length(database(1).behaviours),length(database))';
-        pred_dataset{tests} = assessDBonTasks(config,database,all_behaviours,tests);
+        pred_dataset{tests} = assessDBonTasks(config,database,all_behaviours);
     end
 end
 config.finish_time = datestr(now, 'HH:MM:SS');
@@ -295,5 +296,34 @@ function saveData(database_history,database,quality,tests,config)
 config.figure_array =[];
 save(strcat('Framework_substrate_',config.res_type,'_run',num2str(tests),'_gens',num2str(config.total_gens),'_',num2str(config.num_reservoirs),'Nres_'),...
     'database_history','database','config','quality','-v7.3');
+
+end
+
+function saveDataTable(database,tests,material,config)
+% config.figure_array =[];
+% save(strcat('Framework_substrate_',material,'_',config.res_type,'_run',num2str(tests),'_gens',num2str(config.total_gens),'_',num2str(config.num_reservoirs),'Nres_'),...
+%     'database_history','database','config','quality','-v7.3');
+
+T_database = database;
+metrics = reshape([database.behaviours],length(database(1).behaviours),length(database))';
+
+% remove unwanted fields
+fields = {'xy','input_weights','input_widths','last_state'};
+T_database = rmfield(T_database,fields);
+
+T = repmat({material},1,length(database)); %struct('material',
+T = num2cell(T);
+[T_database.material]=  T{:};
+
+% metrics
+T = num2cell(metrics(:,1));
+[T_database.KR]=  T{:};
+T = num2cell(metrics(:,3));
+[T_database.GR]=  T{:};
+T = num2cell(metrics(:,2));
+[T_database.MC]=  T{:};                                                                        % metrics
+                                                                                                                                                 
+Table = struct2table(T_database);     
+writetable(Table,strcat('charc_',material,'_run',num2str(tests),'_size',num2str(config.num_nodes{1}),'.csv'),'Delimiter',',','QuoteStrings',true);
 
 end

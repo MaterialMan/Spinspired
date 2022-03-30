@@ -59,6 +59,8 @@ for n = 1:length(memoryLength)
             %% NRMSE = 0.173 to 0.14 in Atiya's first experiment (NARMA 10)
             %% NRMSE = 0.4 eqivil to shift regesiter. Thus, lower requires non-linearity (NARMA 10)...
             %NRMSE ~0.15. Results of simulated system. Information processing using a single dynamical node as complex system
+            middleSum = [];
+            tmp_outputSequence = ones(sequenceLength+washout,1)*0;
             
             for i = memoryLength(n)+1 : sequenceLength+washout
                 
@@ -68,7 +70,7 @@ for n = 1:length(memoryLength)
                 tmp_outputSequence(i) = 0.3*tmp_outputSequence(i-1) + ...
                     0.05*tmp_outputSequence(i-1)*middleSum(i-1) + ...
                     1.5*inputSequence(i-(memoryLength(n)))*inputSequence(i-1)+...
-                    0.1 ;%+ noise(i+1);
+                    0.1;%+ noise(i+1);
                 %tmp_outputSequence(i+1) = tmp_outputSequence(i+1) ;
                 
             end

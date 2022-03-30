@@ -74,6 +74,10 @@ for pop_indx = 1:config.pop_size
     population(pop_indx).W = getInternalWeights(config.internal_weight_initialisation,...
         population(pop_indx).nodes(1),population(pop_indx).nodes(1),config.internal_sparsity,config);
     
+    % assign first internal weights
+    population(pop_indx).W_delay = getInternalWeights(config.internal_weight_initialisation,...
+        config.max_update_cycle,population(pop_indx).nodes(1),config.internal_sparsity,config);
+    
     for i = 2:length(population(pop_indx).nodes)
         
         start_pos = end_pos+1;

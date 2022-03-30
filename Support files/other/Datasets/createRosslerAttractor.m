@@ -4,7 +4,7 @@ function [x, y,z] = createRosslerAttractor(a,b,c, T, h, data_points)
 x0 = [1; 1; 1];
 
 % run 4th order Runge-Kutta
-[~,X] = rk4(@f,[0, T],x0,h);
+[~,X] = rk4(@f,[0, T],x0,[],h);
 
 % ode45 method
 eps = 0.000001;
@@ -12,6 +12,7 @@ options = odeset('RelTol',eps,'AbsTol',[eps eps eps/10]);
 sol = ode45(@f, 0:h:T, x0,options);
 t = linspace(0,T,data_points);
 X_ode = deval(sol,t)';
+
 
 % plot attractor and compare
 subplot(1,2,1)

@@ -33,6 +33,12 @@ pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
 L(pos) = W(pos);
 loser.damping_constant = reshape(L,size(loser.damping_constant));
 
+W= winner.input_delay(:);
+L = loser.input_delay(:);
+pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+L(pos) = W(pos);
+loser.input_delay = reshape(L,size(loser.input_delay));
+
 % cycle through sub-reservoirs
 for i = 1:config.num_reservoirs
     
@@ -43,11 +49,11 @@ for i = 1:config.num_reservoirs
    
     
     % input weights
-    W= winner.input_weights{i}(:);
-    L = loser.input_weights{i}(:);
+    W= winner.input_weights(:);
+    L = loser.input_weights(:);
     pos = randperm(length(L),ceil(config.rec_rate*length(L)));
     L(pos) = W(pos);
-    loser.input_weights{i} = reshape(L,size(loser.input_weights{i}));
+    loser.input_weights = reshape(L,size(loser.input_weights));
     
     % input widths
     W= winner.input_widths{i}(:);

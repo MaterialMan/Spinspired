@@ -19,7 +19,7 @@ end
 for i = 1:size(C,1)
     subplot(num_plot_x,num_plot_y,i)
 
-    scatter(all_behaviours(:,C(i,1)),all_behaviours(:,C(i,2)),20,1:length(all_behaviours),'filled')
+    scatter(all_behaviours(:,C(i,1)),all_behaviours(:,C(i,2)),20,[database.sparsity],'filled')
 
     xlabel(config.metrics(C(i,1)))
     ylabel(config.metrics(C(i,2)))

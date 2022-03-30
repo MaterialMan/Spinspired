@@ -166,17 +166,22 @@ switch(config.dataset)
         test_sequence = test_states*best_individual.output_weights;
         
         subplot(1,2,1)
-        plot(config.test_output_sequence(config.wash_out+1:end,:))
+        plot(config.test_output_sequence(config.wash_out+1:end,:),'r-')
         hold on
-        plot(test_sequence)
+        plot(config.test_input_sequence(config.wash_out+1:end,:),'b-')
+        plot(test_sequence,'k--')
         hold off
+        legend('Target','Input','Output')
+        title('Output signal')
         
         subplot(1,2,2)
-        plot(config.test_output_sequence(config.wash_out+1:end-1,:),config.test_output_sequence(config.wash_out+2:end,:))
+        plot(config.test_output_sequence(config.wash_out+1:end-1,:),config.test_output_sequence(config.wash_out+2:end,:),'r-')
         hold on
-        plot(test_sequence(1:end-1),test_sequence(2:end))
+        plot(test_sequence(1:end-1),test_sequence(2:end),'k--')
         hold off
+        legend('Target','Output')
         %plot3(test_sequence(:,1),test_sequence(:,2),test_sequence(:,3))
+        title('Attractor reconstruction')   
         
     case 'autoencoder'
         
@@ -307,14 +312,13 @@ switch(config.dataset)
         test_sequence = test_states*best_individual.output_weights;
         
         subplot(1,3,1)
-        plot(config.test_output_sequence(config.wash_out+1:end,:),'r')
+        p1 = plot(config.test_output_sequence(config.wash_out+1:end,:),'r-'); %,'DisplayName','Target(red)'
         hold on
-        plot(test_sequence,'b')
-        plot(config.test_input_sequence(config.wash_out+1:end,:),'g')
+        p2 = plot(config.test_input_sequence(config.wash_out+1:end,:),'b-'); %,'DisplayName','Input(blue)'
+        p3 = plot(test_sequence,'k--'); % ,'DisplayName','Output(black)'
         hold off
-        legend({'Target','Output','Input'})
-        title('I/O data');
-        drawnow
+        legend([p1(1) p2(1) p3(1)],{'Target(red)','Input(blue)','Output(black)'})
+        title('Output signal')
         
         subplot(1,3,2)
         X = config.test_output_sequence(config.wash_out+1:end,:);
@@ -401,7 +405,7 @@ switch(config.dataset)
         end
         
     case 'franke_fcn'
-        
+
         states = config.assessFcn(best_individual,config.test_input_sequence,config);
         output = states*best_individual.output_weights;
         
@@ -426,6 +430,34 @@ switch(config.dataset)
         
         drawnow
         
+    case 'func_fit'
+        
+        sequence_length = length(config.train_input_sequence) + length(config.val_input_sequence) + length(config.test_input_sequence);
+        [~,~,UB] = feval(config.func_type);
+        [x,y] = ndgrid(linspace(-1,1,sqrt(sequence_length)));
+        scaled_input_sequence = [x(:)*UB(1), y(:)*UB(2)];
+        output_sequence = feval(config.func_type,scaled_input_sequence);
+  
+        [input_sequence, config] = EncodeData(scaled_input_sequence,config);
+        states = config.assessFcn(best_individual,input_sequence,config);
+        pred_output = states*best_individual.output_weights;
+        
+        subplot(1,2,1)
+        x = scaled_input_sequence(:,1);
+        y = scaled_input_sequence(:,2);
+        z = output_sequence;   
+        grid_dim = sqrt(length(x));
+        surf(reshape(x,grid_dim,grid_dim), reshape(y,grid_dim,grid_dim), reshape(z,grid_dim,grid_dim));
+        title('Target function')
+        
+        subplot(1,2,2)
+        x = input_sequence(:,1);
+        y = input_sequence(:,2);
+        z = pred_output;      
+        surf(reshape(x,grid_dim,grid_dim), reshape(y,grid_dim,grid_dim), reshape(z,grid_dim,grid_dim));
+        title('Predicted function')
+        drawnow
+        
     case {'boston_housing'} % for regression problems
         
         test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
@@ -440,17 +472,21 @@ switch(config.dataset)
         [err,system_output,desired_output] = calculateError(test_sequence,config.test_output_sequence,config);
         
         title(strcat('Error: ', num2str(err)))
-        n = size(config.test_input_sequence,1)/10;
-        for i = 1:n
-            subplot(ceil(sqrt(n)),ceil(sqrt(n)),i)
+        %n = size(config.test_input_sequence,1)/10;
+        for i = 1:32
+            subplot(8,8,i)
             imshow(reshape(config.test_input_sequence(10*i,:),sqrt(size(config.test_input_sequence,2)),sqrt(size(config.test_input_sequence,2))))
             if system_output(10*i) == desired_output(10*i)
-                xlabel(strcat('Predicted: ', num2str(system_output(10*i))-1),'Color','g')
+                xlabel(strcat('Predicted: ', num2str(system_output(10*i))),'Color','g')
             else
-                xlabel(strcat('Predicted: ', num2str(system_output(10*i))-1),'Color','r')
+                xlabel(strcat('Predicted: ', num2str(system_output(10*i))),'Color','r')
             end
         end
         
+        subplot(8,8,[33:64])
+        %cm = confusionchart(desired_output,system_output,'RowSummary','row-normalized','ColumnSummary','column-normalized');
+        cm = confusionmat(desired_output,system_output);
+        plotConfMat(cm)
         drawnow
         
     case 'cifar10'
@@ -459,12 +495,10 @@ switch(config.dataset)
         [err,system_output,desired_output] = calculateError(test_sequence,config.test_output_sequence,config);
         
         title(strcat('Error: ', num2str(err)))
-        n = size(config.test_input_sequence,1)/10;
-        
         labels = load('batches.meta.mat');
         
-        for i = 1:n
-            subplot(ceil(sqrt(n)),ceil(sqrt(n)),i)
+         for i = 1:32
+            subplot(8,8,i)
             imshow(reshape(config.test_input_sequence(10*i,:),sqrt(size(config.test_input_sequence,2)/3),sqrt(size(config.test_input_sequence,2)/3),3))
             if system_output(10*i) == desired_output(10*i)
                 xlabel(strcat('Predicted: ', labels.label_names{system_output(10*i)}),'Color','g')
@@ -473,6 +507,10 @@ switch(config.dataset)
             end
         end
         
+        subplot(8,8,[33:64])
+        cm = confusionmat(desired_output,system_output);
+        plotConfMat(cm,labels)
+
         drawnow
         
     case 'signal_classification'
@@ -489,7 +527,7 @@ switch(config.dataset)
         
     case {'MSO1','MSO2','MSO3','MSO4','MSO5','MSO6','MSO7','MSO8','MSO9','MSO10','MSO11','MSO12'}
         
-        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence,'test');
         test_sequence = test_states*best_individual.output_weights;
         [err,system_output,desired_output] = calculateError(test_sequence,config.test_output_sequence,config);
         
@@ -504,11 +542,10 @@ switch(config.dataset)
         legend('Target','Output','Input')
         
         subplot(2,2,3)
-        Fs = 2000; % sample frequency
-        %test = test_states(:,sum(test_states,1)>0);
-        test = test_states;
-        L = size(test,1);
-        xdft = fft(test);
+        Fs = 1;    
+        L = length(test_states);
+        
+        xdft = fft(test_states);
         P2 = abs(xdft/L);
         P1 = P2(1:L/2+1);
         P1(2:end-1) = 2*P1(2:end-1);
@@ -517,7 +554,7 @@ switch(config.dataset)
         title('Single-Sided Amplitude Spectrum of X(t)')
         xlabel('f (Hz)')
         ylabel('|P1(f)|')
-
+                       
         subplot(2,2,4)
         %phase=angle(P1);
         phase = fftshift(xdft);
@@ -531,6 +568,7 @@ switch(config.dataset)
         grid on
         xlabel('Frequency(Hz)');
         ylabel('Phase (rad)')
+        
 %         xdft = fft(test_states);
 %         xdft = xdft(1:length(test_states)/2+1);
 %         freq = 0:Fs/length(test_states):10000/2;
@@ -540,6 +578,47 @@ switch(config.dataset)
 %         p(1).Color = [0.9290 0.6940 0.1250];
 %         p(2).Color =[0 0.4470 0.7410];
 %         p(3).Color =[0.3010 0.7450 0.9330];
+
+    case 'fft'
+        
+        test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence,'test');
+        test_sequence = test_states*best_individual.output_weights;
+       
+        subplot(1,2,1)
+        plot(config.test_input_sequence(100,:))
+        hold on
+        plot((ifft(config.test_output_sequence(100,:))))
+        hold off
+        
+        subplot(1,2,2)
+        plot(config.test_input_sequence(100,:))
+        hold on
+        plot(real(ifft(test_sequence(100,:))))
+        hold off
+        
+    otherwise
+        
+        if isempty(config.test_input_sequence)
+            input_sequence = config.train_input_sequence;
+            output_sequence = config.train_output_sequence;    
+        else
+            input_sequence = config.test_input_sequence;
+            output_sequence = config.test_output_sequence;  
+        end
+        
+        test_states = config.assessFcn(best_individual,input_sequence,config,output_sequence);
+        test_sequence = test_states*best_individual.output_weights;
+            
+        subplot(1,2,1)
+        plot(test_states)
+        title('States (x)')
+        
+        subplot(1,2,2)
+        plot(output_sequence(config.wash_out+1:end,:),'r-')
+        hold on
+        plot(test_sequence,'k--')
+        hold off
+        legend('Target','Output')
 end
 
 %draw task details
@@ -646,7 +725,7 @@ if ~iscell(config.res_type)
                 drawnow
             end
             
-        case {'RoRmin','RoRminMTS','RoRminMTSplus'}
+        case {'RoRmin','RoRminMTS','RoRminMTSplus','RoRGrid'}
             
             if contains(config.res_type,'RoRminMTS') %strcmp(config.res_type,'RoRminMTS')
                 num_x = 2;
@@ -656,35 +735,114 @@ if ~iscell(config.res_type)
                 num_y = 3;
             end
             
-            ax1 = subplot(num_x,num_y,1);
-             imagesc((best_individual.input_weights.*best_individual.input_scaling)');
-            colormap(ax1,bluewhitered)
-            colorbar
-            xlabel('Input mapping')
             ax2 = subplot(num_x,num_y,2);
             imagesc(best_individual.W.*best_individual.W_scaling);
             colormap(ax2,bluewhitered)
             colorbar
             xlabel('Internal weights')
-            ax3 = subplot(num_x,num_y,3);
-            imagesc(best_individual.output_weights);
-            colormap(ax3,bluewhitered)
-            colorbar
-            xlabel('Output mapping')
+            
+            if config.dipole_fields && rem(sqrt(sum(config.num_nodes)),1) == 0
+                node_grid_size = sqrt(sum(config.num_nodes));
+                ax1 = subplot(num_x,num_y,1);
+                inputs = (best_individual.input_weights.*best_individual.input_scaling)';
+                tmp_inputs = abs(inputs(:,1));
+                if config.bias_node
+                    tmp_inputs = tmp_inputs + -abs(inputs(:,2));
+                end
+                tmp_inputs = reshape(tmp_inputs,node_grid_size,node_grid_size);
+                imagesc(tmp_inputs);
+                colormap(ax1,bluewhitered)
+                colorbar
+                xlabel('Input mapping')
+
+                ax3 = subplot(num_x,num_y,3);
+                imagesc(reshape(best_individual.output_weights(1:sum(config.num_nodes),1),node_grid_size,node_grid_size));
+                colormap(ax3,bluewhitered)
+                colorbar
+                xlabel('Output mapping')
+            else   
+                ax1 = subplot(num_x,num_y,1);
+                imagesc((best_individual.input_weights.*best_individual.input_scaling)');
+                colormap(ax1,bluewhitered)
+                colorbar
+                xlabel('Input mapping')
+
+                ax3 = subplot(num_x,num_y,3);
+                imagesc(real(best_individual.output_weights));
+                colormap(ax3,bluewhitered)
+                colorbar
+                xlabel('Output mapping')
+            end
             
             if contains(config.res_type,'RoRminMTS')%strcmp(config.res_type,'RoRminMTS')
-                ax4 = subplot(num_x,num_y,[4:5]);
-                imagesc(best_individual.update_cycle);
-                colormap(ax4,'jet')
-                colorbar
-                xlabel('Update cycle')
                 
-                states = config.assessFcn(best_individual,config.train_input_sequence,config);
-                ax5 = subplot(num_x,num_y,6);
-                imagesc(states);
-                colormap(ax5,bluewhitered)
+                flag = [config.max_input_delay > 1, config.max_update_cycle > 1,config.max_interpolation_length > 1];
+                flag = flag.*(1:3);
+                
+                for f = 1:length(flag)
+                    switch(flag(f))
+                        case 1     
+                            ax4 = subplot(num_x,num_y,4);
+                            input_delay = zeros(1,sum(config.num_nodes));
+                            input_delay(best_individual.input_weights(1,:) ~= 0) = best_individual.input_delay(best_individual.input_weights(1,:) ~= 0);
+                            imagesc(input_delay);
+                            colormap(ax4,'jet')
+                            colorbar
+                            xlabel('Input delay')
+                        case 2
+                            ax4 = subplot(num_x,num_y,4);
+                            imagesc(best_individual.update_cycle);
+                            colormap(ax4,'jet')
+                            colorbar
+                            xlabel('Update cycle')
+                        case 3 % plot state relaxation 
+                            ax4 = subplot(num_x,num_y,4);
+                            config.interp_plot = 1;         
+                            input = zeros(config.wash_out+150,size(config.train_input_sequence,2));
+                            input(config.wash_out+50,:) = 1;
+                            config.assessFcn(best_individual,input,config,input);
+                            config.interp_plot = 0;
+                            colormap(ax4,'jet')
+                            colorbar
+                            xlabel('Input interpolation')
+                    end
+                end
+                
+                states = config.assessFcn(best_individual,config.train_input_sequence,config,config.train_output_sequence);
+                
+                ax6 = subplot(num_x,num_y,6);
+                plot(config.train_output_sequence(config.wash_out+1:end,:),'k');
+                hold on
+                plot(ax6,states,'r');
+                hold off
                 colorbar
                 xlabel('States')
+                
+                ax5 = subplot(num_x,num_y,5);
+                if config.dipole_fields && config.to_plt
+                    node_grid_size = sqrt(sum(config.num_nodes));
+                    for t = 1:2:size(states,1)
+                        set(0,'currentFigure',config.figure_array(2))
+                        set(gcf,'CurrentAxes', ax5)
+                        x = states(t,1:sum(config.num_nodes));
+                        Vq = interp2(reshape(x,node_grid_size,node_grid_size),5);
+                        imagesc(real(Vq));
+                        caxis([min(min(states)) max(max(states))])
+                        colormap(gca,bluewhitered);
+                        colorbar
+                        drawnow
+                        if CmdKeyCallback()
+                            break;
+                        end
+                    end
+                else
+                    imagesc(states);
+                    colormap(ax5,bluewhitered)
+                    colorbar
+                    xlabel('States')
+                end
+                
+                
             end
             
             
@@ -693,13 +851,13 @@ if ~iscell(config.res_type)
             
         case 'Wave'
             
-            config.wave_sim_speed = 1;
+            config.wave_sim_speed = 10;
             
             %% plot input locations
             subplot(1,2,1)
             indx=1;
             % write input values for each location
-            input = best_individual.input_scaling(indx)*(best_individual.input_weights{indx}*[config.test_input_sequence repmat(best_individual.bias_node,size(config.test_input_sequence,1),1)]')';
+            input = best_individual.input_scaling(indx)*([config.test_input_sequence repmat(best_individual.bias_node,size(config.test_input_sequence,1),1)]*best_individual.input_weights);
             
             % change input widths
             node_grid_size = sqrt(best_individual.nodes(indx));
@@ -734,7 +892,7 @@ if ~iscell(config.res_type)
             end
             
             if config.num_reservoirs
-                states = states(:,1:config.num_nodes(1)+best_individual.n_input_units);
+                states = states(:,1:config.num_nodes(1));
             end
             
             %plot

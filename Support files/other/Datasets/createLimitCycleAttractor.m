@@ -4,7 +4,9 @@ function [x, y] = createLimitCycleAttractor(mu, T, h ,data_points)
 x0 = [1; 1];
 
 % run 4th order Runge-Kutta
-[~,X] = rk4(@f,[0, T],x0,h);
+[~,X] = rk4(@f,[0, T],x0,[],h);
+
+X = X(1:data_points,:);
 
 % ode45 method
 eps = 0.000001;
@@ -22,6 +24,7 @@ axis equal;
 grid;
 title(strcat('Van der Pol oscillator: mu ',num2str(mu)));
 xlabel('X'); ylabel('Y');
+drawnow
 
 x = X(:,1);
 y = X(:,2);

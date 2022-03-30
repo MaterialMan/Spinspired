@@ -53,6 +53,13 @@ pos = randperm(length(indices),sum(rand(length(indices),1) < config.rec_rate));
 L(indices(pos)) = W(indices(pos));
 loser.W = reshape(L,size(loser.W));
 
+% delay Weights
+W = winner.W_delay(:);
+L = loser.W_delay(:);
+pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate)); 
+L(pos) = W(pos);
+loser.W_delay = reshape(L,size(loser.W_delay));
+
 % subres connecting weights
 if isempty(config.weight_fcn)
     W = winner.W(:);

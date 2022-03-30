@@ -1,4 +1,4 @@
-function[final_states,individual] = collectWaveStates(individual,input_sequence,config,target_output)
+function[final_states,individual] = collectWaveStates(individual,input_sequence,config,target_output,daatset)
 
 %if single input entry, add previous state
 if size(input_sequence,1) == 1
@@ -8,7 +8,7 @@ end
 max_input_length = 0;
 
 for i= 1:config.num_reservoirs
-        
+    
     % initialise bucket
     node_grid_size(i) = sqrt(individual.nodes(i));
     
@@ -24,13 +24,15 @@ for i= 1:config.num_reservoirs
         oldH{i}=H{i};
         newH{i}=H{i};
     end
-
+    
     % this is a square but it could be any shape
-    x_size{i} = 2:node_grid_size(i)-1; 
+    x_size{i} = 2:node_grid_size(i)-1;
     y_size{i} = x_size{i};
     
     %% preassign allocate input sequence and time multiplexing
-    input{i} = [input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]*(individual.input_weights{i}*individual.input_scaling(i))';
+    input{i} = [input_sequence repmat(individual.bias_node,size(input_sequence,1),1)]*(individual.input_weights*individual.input_scaling(i));
+    
+    
     
     % time multiplex -
     input_mul{i} = zeros(size(input_sequence,1)*individual.time_period(i),size(input{i},2));
@@ -38,7 +40,7 @@ for i= 1:config.num_reservoirs
         input_mul{i}(mod(1:size(input_mul{i},1),individual.time_period(i)) == 1,:) = input{i};
     else
         input_mul{i} = input{i};
-    end    
+    end
     
     % change input widths
     for n = 1:size(input_mul{i},1)
@@ -53,10 +55,10 @@ for i= 1:config.num_reservoirs
         end
         input_mul{i}(n,:) = input_matrix_2d(:);
     end
-
+    
     x{i} = zeros(size(input_mul{i},1),individual.nodes(i));
     states{i} = zeros(size(input_mul{i},1),individual.nodes(i));
-
+    
     if size(input_mul{i},1) > max_input_length
         max_input_length = size(input_mul{i},1);
     end
@@ -65,40 +67,46 @@ end
 %% equation: x(n) = f(Win*u(n) + S)
 for n = 2:max_input_length
     
-    for i= 1:config.num_reservoirs
+    if n > max(individual.max_input_delay)
         
-        for k= 1:config.num_reservoirs
-            if mod(n,individual.time_period(i)) == 0
-                %step = n/individual.time_period(i);
-                x{i}(n,:) = x{i}(n,:) + ((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')';
-            else
-                x{i}(n,:) = zeros(1,individual.nodes(i));
+        % reassign input with delays
+        ind = sub2ind(size(input_mul{i}),n-individual.input_delay,1:size(input_mul{i},2));
+        input = input_mul{i}(ind);
+        
+        for i= 1:config.num_reservoirs
+            
+            for k= 1:config.num_reservoirs
+                if mod(n,individual.time_period(i)) == 0
+                    %step = n/individual.time_period(i);
+                    x{i}(n,:) = x{i}(n,:) + ((individual.W{i,k}*individual.W_scaling(i,k))*states{k}(n-1,:)')';
+                else
+                    x{i}(n,:) = zeros(1,individual.nodes(i));
+                end
             end
+            
+            % Wave equation
+            newH{i} = Wave_sim(sqrt(individual.nodes(i)),x_size{i},y_size{i},individual.time_step(i)...
+                ,individual.wave_speed(i),individual.damping_constant(i),... % apply liquid parameters
+                H{i},oldH{i},... % set current and previous states
+                individual.boundary_conditions(i,1),individual.boundary_conditions(i,2),individual.boundary_conditions(i,3)); %set boundary conditions
+            
+            % store H
+            oldH{i}=H{i};
+            
+            %add input
+            in = reshape(input,node_grid_size(i),node_grid_size(i)) + reshape(x{i}(n-1,:),node_grid_size(i),node_grid_size(i));
+            
+            %update
+            %         H{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);
+            %         %oldH{i}(logical(in)) = oldH{i}(logical(in)) + nonzeros(in);
+            %         states{i}(n,:) = newH{i}(:);
+            
+            newH{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);%
+            %oldH{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);%
+            H{i}=newH{i};  %
+            states{i}(n,:) = H{i}(:);
+            %states{i}(n-1,:) = oldH{i}(:); %            
         end
-        
-        % Wave equation
-        newH{i} = Wave_sim(sqrt(individual.nodes(i)),x_size{i},y_size{i},individual.time_step(i)...
-            ,individual.wave_speed(i),individual.damping_constant(i),... % apply liquid parameters
-            H{i},oldH{i},... % set current and previous states
-            individual.boundary_conditions(i,1),individual.boundary_conditions(i,2),individual.boundary_conditions(i,3)); %set boundary conditions
-         
-        % store H
-        oldH{i}=H{i};
-          
-        %add input
-        in = reshape(input_mul{i}(n,:),node_grid_size(i),node_grid_size(i)) + reshape(x{i}(n-1,:),node_grid_size(i),node_grid_size(i));
-  
-        %update 
-%         H{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);
-%         %oldH{i}(logical(in)) = oldH{i}(logical(in)) + nonzeros(in);
-%         states{i}(n,:) = newH{i}(:);
-        
-        newH{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);%
-        %oldH{i}(logical(in)) = newH{i}(logical(in)) + nonzeros(in);%
-        H{i}=newH{i};  %           
-        states{i}(n,:) = H{i}(:);
-        %states{i}(n-1,:) = oldH{i}(:); %
-  
     end
 end
 
@@ -110,16 +118,16 @@ for i= 1:config.num_reservoirs
 end
 
 % get leak states
-if config.leak_on
-    states = getLeakStates(states,individual,input_sequence,config);
-end
+% if config.leak_on
+%     states = getLeakStates(states,individual,input_sequence,config);
+% end
 
 % concat all states for output weights
 final_states = [];
 for i= 1:config.num_reservoirs
-%     if sum(sum(isnan(states{i}))) > 1 || sum(sum(isinf(states{i}))) > 1
-%         states{i} = zeros(size(input_sequence,1),individual.nodes(i));
-%     end
+    %     if sum(sum(isnan(states{i}))) > 1 || sum(sum(isinf(states{i}))) > 1
+    %         states{i} = zeros(size(input_sequence,1),individual.nodes(i));
+    %     end
     
     final_states = [final_states states{i}];
     
@@ -141,6 +149,9 @@ else
     final_states = final_states(config.wash_out+1:end,:); % remove washout
 end
 
+if isequal(individual.boundary_conditions,[1 0 0])
+    final_states = final_states-1; % remove boundary effect
+end
 % set(0,'currentFigure',config.figure_array(1))
 % subplot(1,2,2)
 % plot(input_sequence)

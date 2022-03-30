@@ -1,4 +1,10 @@
-function [err,system_output,desired_output] = calculateError(system_output,desired_output,config)
+function [err,system_output,desired_output] = calculateError(system_output,desired_output,config,dataset)
+
+if nargin < 4
+    training_dataset =1;
+else
+    training_dataset =0;
+end
 
 if size(system_output,1) == size(desired_output,1)
     config.wash_out = 0;
@@ -6,6 +12,11 @@ elseif size(system_output,1) > size(desired_output,1)
     system_output = system_output(config.wash_out+1:end,:);
 else
     desired_output = desired_output(config.wash_out+1:end,:);
+end
+
+if config.teacher_forcing && ~training_dataset
+    system_output = system_output(config.generate_n-size(system_output,1):end,:);
+    desired_output = desired_output(config.generate_n-size(desired_output,1):end,:);    
 end
 
 % final measured error type
@@ -24,7 +35,7 @@ switch(config.err_type)
         err = 1 - r2;
         
     case 'mae'
-        err = desired_output-system_output;
+        err = system_output-desired_output;
         
         % Then take the "absolute" value of the "error".
         absolute_err = abs(err);

@@ -6,9 +6,10 @@ function [config] = getAdditionalParameters(config)
 config.mutate_type = 'gaussian';            %options: 'gaussian', 'uniform'. Type of distribution new weight is chosen from.
 config.num_reservoirs = length(config.num_nodes);% num of subreservoirs. Default ESN should be 1.
 config.leak_on = 1;                           % add leak states
+config.bias_node = 1;
 
 % define connectivities
-config.add_input_states = 1;                  %add input to states
+config.add_input_states = 0;                  %add input to states
 config.sparse_input_weights = 1;              % use sparse inputs
 config.sparsity = 0.1;                          % sparsity of input weights
 
@@ -21,6 +22,7 @@ config.evolve_output_weights = 0;             % evolve rather than train
 config.output_weight_initialisation = 'norm';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
 config.output_connectivity = 1;
 config.output_weight_scaler = 10;              % defines maximum/minimum weight value when evolving output weights
+config.identity_readout = 0;
 
 config.evolve_feedback_weights = 0;             % find suitable feedback weights
 config.feedback_weight_initialisation = 'norm';
@@ -30,20 +32,23 @@ config.feedback_scaling = 1;
 config.noise_ratio = 0;                     % noise added in feedback training
 
 % node functionality
-config.activ_list = {@tanh};     % what activations are in use
+config.activ_list = {@tanh};        %Examples: {@piecewiseLinearFcn,@tanh,@softplus,@mackeyGlassNode,@symFcn,@logistic,@gaussDist,@ReLU,@LeakyReLU,@linearNode};     % what activations are in use
+config.outputFcn = @linearNode;
 config.multi_activ = length(config.activ_list) > 1;                      % use different activation funcs
 config.training_type = 'Ridge';              % blank is psuedoinverse. Other options: Ridge, Bias,RLS
-config.undirected = 0;                       % by default all networks are directed
-config.undirected_ensemble = 0;              % by default all inter-network weights are directed
+%config.undirected = 0;                       % by default all networks are directed
+%config.undirected_ensemble = 0;              % by default all inter-network weights are directed
 
 % default reservoir input scale
 config.scaler = 1;                          % this may need to change for different reservoir systems that don't fit to the typical neuron range, e.g. [-1 1]
 config.discrete = 0;                        % select '1' for binary input for discrete systems            
-config.nbits = 16;                 % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
+config.nbits = 16;                           % only applied if config.discrete = 1; if wanting to convert data for binary/discrete systems
 
 % input mechanism to use
-config.input_mechanism = 'continuous';         % if spiking, data is converted into spike trains. Otherwise uses normal analogue signals.
-
+config.input_mechanism = 'continuous';         % if spiking ('BSA' or 'spike-rate', data is converted into spike trains. Otherwise uses normal analogue signals ('continuous').
+config.Tmin = 1;                               % if 'spike-rate' determine spike period
+config.Tmax = 20;
+        
 % default preprocessing performed on input data
 config.preprocess = 'scaling';
 config.preprocess_shift = [-1 1]; % range for data
@@ -85,35 +90,100 @@ switch(res_type)
         config.sparsity = 1;                          % sparsity of input weights
         
         
-    case {'RoR','RoRmin','RoRminMTS','RoRminMTSplus'}
+    case {'RoR','RoRmin','RoRminMTS','RoRminMTSplus','RoRGrid'}
         
-        config.noise_level = 10e-5 ;
+        config.noise_level = 10e-7;
         config.mut_rate_connecting = 0.01;
-        config.prune_rate = 0.01;
+        config.prune_rate = 0.1;
         
-        config.RoR_structure = 'forward_only';          % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
-        %config.graph_type = {'Ring'};            % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
+        % reservoir of reservoir connectivity
+        config.RoR_structure = '';               % Options: 'Graph' (implements a specific structure, 'forward_only' and  'feedback_only' (deep/pipeline networks), 'RoR ' for freely connected RoR, 'ensemble' for no connections
+        config.structure_type = {'Ring'};              % if using 'Graph' as RoR_structure, e.g. 'fullLattice' or 'Ring'
 
-        config.total_units = sum(config.num_nodes);
-        config.multi_leak_rate = 0;
+        % reservoir topology
+        %config.internal_weight_initialisation = 'graph';
         
-        % define custom weight function
-        % create graph
-        config.weight_fcn = [];%@(x,y) sin(x) + cos(y); %x.^2 + y.^2;%
-        if ~isempty(config.weight_fcn)
-            %config.internal_weight_initialisation = 'weight_fcn';
-            config.num_nodes = sqrt(config.num_nodes);
-            config.graph_type= {'fullLattice'};
-            config.self_loop = [1];
-            [config,config.num_nodes] = getShape(config);
-        end
+        config.total_units = sum(config.num_nodes);
+        config.multi_leak_rate = 0;                 % Options: whether all leak rates are homogenous or different for every neuron
+        config.leak_delay = 0;                      % To run network with a "leaky delay" instead of taken a direct tapped-delayed state
+        config.post_leak_on = 0;                    % Whether to add the leak states after the state collection process, or within. 
+        config.evolve_output_weights = 0;
+        config.identity_readout = 0;
         
         % for MTS reservoirs
-        config.per_node_time_scale = 1; % off (0) version is not working properly yet
-        config.max_update_cycle = 10;
+        config.per_node_time_scale = 0;             % Options: '1' individual nodes have there own delay, '0' all nodes use the same delay
+        config.max_update_cycle = 0;               % Max delay value to initalise the 'delay matrix', e.g. if wanting to bias initialisation to small values
+        config.max_update_mutate_max = 0;          % Maximum delay that can be evolved, typically the same as 'config.max_update_cycle' but can be changed         
+        
+        % input delay
+        config.per_input_delay = 0;
+        config.max_input_delay = 0;
+            
+        % interpolation 
+        config.max_interpolation_length = 1;
+        config.constant_signal = 1;
+        config.state_average = 0;
+        config.interp_plot = 0;
+        
+        % quantizing
+        config.quantized_state = [0 0]; % value of quatization steps (m)
+        
+        % define custom weight function
+        if strcmp(config.internal_weight_initialisation,'graph')
+            config.num_nodes = sqrt(config.num_nodes);
+            config.graph_type= {'fullLattice'};
+            config.self_loop = 1;
+            [config,config.num_nodes] = getShape(config);  
+        end
+        
+        % create graph
+        config.weight_fcn =  ''; % best so far: x-y. Examples include: @(x,y) x.^2 + y.^2; @(x,y) sin(x) + cos(y); 
+        if ~isempty(config.weight_fcn) 
+            config.internal_weight_initialisation = 'weight_fcn';
+            config.num_nodes = sqrt(config.num_nodes);
+            config.graph_type= {'fullLattice'};
+            config.self_loop = 0.21;  %0.21 default
+            config.perim_value = [0.21, 0.21 , 0.21];
+            [config,config.num_nodes] = getShape(config);    
+        end
+        
+        % if mimiking a dipole field-style (nearest0nearest-neighbour
+        % connectivity)
+        config.dipole_fields = 0;
+        
+        if config.dipole_fields
+            config.to_plt = 0;
+            config.leak_on = 1;                           % add leak states
+            config.bias_node = 1;
+            config.add_input_states = 0;                  %add input to states
+            config.internal_weight_initialisation = 'dipole_fields';
+            config.num_nodes = floor(sqrt(config.num_nodes));            
+            config.graph_type= repmat({'fullLattice'},1,length(config.num_nodes));
+            config.self_feed_back_loop = 1; 
+            if config.self_feed_back_loop >= 0
+                config.self_loop = repmat(1,1,length(config.num_nodes));
+            end
+
+            % default params
+            config.W_scaling = 0.111; % 0.2173
+            config.self_loop_scaling = -config.W_scaling;
+            config.leak_rate = 1; % 0.64
+            config.input_scaling = 1; %1
+            % perim values
+            config.corner_scale = 1/sqrt(2);
+            config.input_widths = 1;
+            % dipoles
+            config.num_dipoles = 5; %4
+            config.dipole_scale = 1; %0.2
+            % get lattice
+            [config,config.num_nodes] = getShape(config); 
+            config.evolve_output_weights = 0; % switch to 1 to mimick states
+        end
         
     case 'ELM'
         config.leak_on = 0;                           % add leak states
+        config.undirected_ensemble = 0;
+        config.undirected =0;
         
     case 'BZ'
         %config.plot_BZ =0;
@@ -211,14 +281,18 @@ switch(res_type)
         
     case 'Wave'
         
-        config.leak_on = 1;                           % add leak states
-        config.add_input_states = 1;                  %add input to states
+        config.leak_on = 0;                           % add leak states
+        config.add_input_states = 0;                  %add input to states
         config.input_widths = 0;
+        config.prune_rate = 0.1;
+        
         config.sim_speed = 1; % xfactor
         config.time_step = 0.05;
         config.bias_node = 0;
         config.max_time_period = 20;
         config.max_wave_speed = 12;
+        config.max_input_delay = 10;
+        
         % [1 0 0] = fix: All boundary points have a constant value of 1
         % [0 1 0] = cont; Eliminate the wave and bring elements to their steady state.
         % [0 0 1] = connect; Water flows across the edges and comes back from the opposite side
@@ -265,7 +339,7 @@ switch(res_type)
         config.sparse_input_weights = 1;
         config.sparsity(1) = 0.2;
         config.input_weight_initialisation = 'uniform';
-        config.leak_on = 1;
+        config.leak_on = 0;
         config.bias_node = 0;
         
         config.stride      = 100;
@@ -277,9 +351,9 @@ switch(res_type)
         config.diff_coeff  = 0.45;
         config.f           = 1.4;
         config.q           = 0.002; %0.002
-        config.speed       = 0.0005;
-        config.phi_active  = 0.054;    % normal, excitable
-        config.phi_passive = 0.0975;   % passive, excitable
+        config.speed       = 0.0005; %0.0005
+        config.phi_active  = 0.054;    % normal, excitable 0.054
+        config.phi_passive = 0.0975;   % passive, excitable 0.0975
         
         config.u_idx = 1;
         config.v_idx = 2;
@@ -290,13 +364,14 @@ switch(res_type)
         
         config.vesicle_radius = 5;
         %config.min_time_period = 100;
-        config.max_time_period = config.stride;
+        config.max_time_period = 500;
         %config.input_length = 10;
-        config.plot_states = 0;
+        config.plot_states = 1;
         
         % must be non-negative
-        config.preprocess = 'scaling';
-        config.preprocess_shift = 'zero to one';
+        config.preprocess = '';
+        config.preprocess_shift = [0 100];
+        config.input_widths = 1;
         
     case 'Heterotic'
         % reservoir params
@@ -511,29 +586,29 @@ switch(config.dataset)
         % Go to selectDataset.m to change num_sensors
         config.error_to_check = 'train';
         
-    case 'attractor'
-        
-        config.error_to_check = 'train&test';
-        config.attractor_type = 'mackey_glass';
-        config.preprocess = '';
-        config.preprocess_shift = [0 1];
-
-        config.leak_on = 0;                          % remove leak states
-        config.add_input_states = 0;                 % remove input states
-        config.sparse_input_weights = 1;
-        
-        config.teacher_forcing = 1;                 % train output using target signal then transition into "generative" mode; evolving output weights will be worse
-        config.noise_ratio = 10e-5;                     % noise added in feedback training
-
-        config.evolve_output_weights = 1;             % evolve rather than train
-        config.output_weight_initialisation = 'uniform';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
-        config.output_connectivity = 0.1;
-        config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
-        
-        config.evolve_feedback_weights = 1;             % find suitable feedback weights - currently doesn't work with teacher forcing
-        config.feedback_weight_initialisation = 'uniform';
-        config.feedback_connectivity = 0.1;
-        config.feedback_scaling = 1;
+%     case 'attractor'
+%         
+%         config.error_to_check = 'train&test';
+%         config.attractor_type = 'mackey_glass';
+%         config.preprocess = '';
+%         config.preprocess_shift = [0 1];
+% 
+%         config.leak_on = 1;                          % remove leak states
+%         config.add_input_states = 0;                 % remove input states
+%         config.sparse_input_weights = 1;
+%         
+%         config.teacher_forcing = 1;                 % train output using target signal then transition into "generative" mode; evolving output weights will be worse
+%         config.noise_ratio = 10e-5;                     % noise added in feedback training
+% 
+%         config.evolve_output_weights = 1;             % evolve rather than train
+%         config.output_weight_initialisation = 'uniform';  % e.g.,  'norm', 'uniform', 'orth', etc.  must be same length as number of subreservoirs
+%         config.output_connectivity = 0.1;
+%         config.output_weight_scaler = 1;              % defines maximum/minimum weight value when evolving output weights
+%         
+%         config.evolve_feedback_weights = 1;             % find suitable feedback weights - currently doesn't work with teacher forcing
+%         config.feedback_weight_initialisation = 'uniform';
+%         config.feedback_connectivity = 0.1;
+%         config.feedback_scaling = 1;
 
     case {'MSO1','MSO2','MSO3','MSO4','MSO5','MSO6','MSO7','MSO8','MSO9','MSO10','MSO11','MSO12'}  %MSO'
         
@@ -551,8 +626,17 @@ switch(config.dataset)
         config.preprocess = 0;
         config.preprocess_shift = [0 1];
         
+%     case{'mimic'}
+%         config.leak_on = 1;                          % add leak states
+%         config.add_input_states = 0;
+        
     otherwise
         
+end
+
+if contains(config.dataset,'mimic')
+    config.leak_on = 1;                          % add leak states
+        config.add_input_states = 0;
 end
 
 

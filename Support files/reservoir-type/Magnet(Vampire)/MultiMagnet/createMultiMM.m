@@ -247,6 +247,14 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).output_weights = 2*rand(population(pop_indx).total_units*length(config.read_mag_direction), population(pop_indx).n_output_units)-1;
     end
     
+    % readout function layer
+    if ~isempty(config.outputFcn)
+        population(pop_indx).readout_weights = getWeights(config.input_weight_initialisation,...
+                        population(pop_indx).n_input_units + 1,...
+                        population(pop_indx).layer(layer_indx).nodes(res_indx),...
+                        config.sparsity);       
+    end
+    
     population(pop_indx).behaviours = [];
     
 end

@@ -34,7 +34,7 @@ for pop_indx = 1:config.pop_size
         %addtional paramters
         population(pop_indx).time_period(i) = randi([1 config.max_time_period]);
         population(pop_indx).wave_speed(i) = randi([1 config.max_wave_speed]);
-        population(pop_indx).damping_constant(i) = rand;
+        population(pop_indx).damping_constant(i) = 10*rand;
         population(pop_indx).time_step(i) = config.time_step;
         
         % fix = 1: All boundary points have a constant value of 1
@@ -42,8 +42,7 @@ for pop_indx = 1:config.pop_size
         % connect = 1; Water flows across the edges and comes back from the opposite side
         %bc = zeros(1,3); bc(randi([1 3])) = 1; bc = [1 0 0];
         population(pop_indx).boundary_conditions(i,:) = config.boundary_conditions{randi([1 length(config.boundary_conditions)])};
-        
-        
+               
         %inputweights
         if config.sparse_input_weights
             input_weights = sprand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1, config.sparsity(i));
@@ -52,7 +51,8 @@ for pop_indx = 1:config.pop_size
         else
             input_weights = 2*rand(population(pop_indx).nodes(i),  population(pop_indx).n_input_units+1)-1;
         end
-        population(pop_indx).input_weights{i} = input_weights;
+        population(pop_indx).input_weights = input_weights';
+        %population(pop_indx).input_weights = zeros(size(input_weights'));%input_weights';
         
         if config.input_widths
             widths = ceil(abs(randn(length(input_weights),1))); %less likely to get big inputs
@@ -63,6 +63,10 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).input_widths{i} = widths; %size of the inputs; pin-point or broad
         
         population(pop_indx).last_state{i} = zeros(2,population(pop_indx).nodes(i));
+        
+        % input delay
+        population(pop_indx).input_delay = randi([1 config.max_input_delay],1,sum(config.num_nodes));%ones(1,sum(config.num_nodes));
+        population(pop_indx).max_input_delay = config.max_input_delay;
     end
     
     %track total nodes in use

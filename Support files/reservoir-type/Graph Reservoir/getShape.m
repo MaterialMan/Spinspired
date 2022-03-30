@@ -1,7 +1,7 @@
 %% called from getDataSetInfo
 % Create graph structure G to use
 
-function [config,new_num_nodes] = getShape(config)
+function [config,new_num_nodes,G] = getShape(config)
 
 
 for graph_indx = 1:length(config.num_nodes)

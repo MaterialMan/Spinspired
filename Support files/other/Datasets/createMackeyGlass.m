@@ -3,7 +3,7 @@ function x = createMackeyGlass(tau, gamma, beta, p, T, data_points)
 % MackeyGlass Function generates the Mackey-Glass attractor of the prescribed values
 % of parameters tau, gamma, beta, p
 %
-%   [x,y,z] = LORENZ(tau, gamma, beta, p, T, h)
+%       [x] = createMackeyGlass(tau, gamma, beta, p, T, h)
 %       x       - output vectors of the MG attactor trajectories
 %       tau     - delay
 %       gamma   - current state multiplier

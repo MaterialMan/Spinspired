@@ -32,6 +32,12 @@ switch(res_type)
         config.mutFcn = @mutateMinRoR;
         config.recFcn = @recombMinRoR;
         
+    case 'RoRGrid'
+        config.createFcn = @createRoRGrid;
+        config.assessFcn = @collectRoRGridStates;
+        config.mutFcn = @mutateRoRGrid;
+        config.recFcn = @recombRoRGrid;
+        
    case 'RoRminMTS'
         config.createFcn = @createMinRoRMTS;
         config.assessFcn = @collectMinRoRMTSStates;

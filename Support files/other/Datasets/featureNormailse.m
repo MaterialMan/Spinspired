@@ -57,7 +57,10 @@ switch config.preprocess
 end
 
 % shift data range
+if ~isempty(config.preprocess_shift)
 range = config.preprocess_shift;
 Y = (range(1) + (range(2)-range(1))*Y);
+end
 
 end
+

@@ -7,7 +7,15 @@
 % sample is given
 % - States are currently read as convolved summation of pixels in vesicle
 
-function[final_states,individual] = assessOregonator(individual,input_sequence,config,target_output)
+function[final_states,individual] = assessOregonator(individual,input_sequence,config,target_output,dataset)
+
+% check number of function inputs; unless specified data is seen as train
+% data
+if nargin < 5
+    training_dataset =1;
+else
+    training_dataset =0;
+end
 
 %if single input entry, add previous state
 if size(input_sequence,1) == 1

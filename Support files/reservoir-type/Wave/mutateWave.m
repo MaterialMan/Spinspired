@@ -27,21 +27,35 @@ offspring.wave_speed = reshape(wave_speed,size(offspring.wave_speed));
 
 damping_constant = offspring.damping_constant(:);
 pos =  randperm(length(damping_constant),sum(rand(length(damping_constant),1) < config.mut_rate));
-damping_constant(pos) = mutateWeight(damping_constant(pos),[0,1],config);
+damping_constant(pos) = mutateWeight(damping_constant(pos),[0,10],config);
 offspring.damping_constant = reshape(damping_constant,size(offspring.damping_constant));
+
+input_delay = offspring.input_delay(:);
+pos =  randperm(length(input_delay),sum(rand(length(input_delay),1) < config.mut_rate));
+input_delay(pos) = floor(mutateWeight(input_delay(pos),[1,config.max_input_delay],config));
+offspring.input_delay = reshape(input_delay,size(offspring.input_delay));
+
 
 % boundary_conditions
 pos = randi([1 config.num_reservoirs]);
 offspring.boundary_conditions(pos,:) = config.boundary_conditions{randi([1 length(config.boundary_conditions)])};
 
+%define minimum weight
+minimum_weight = 0.01; % anything less than this will be set to zero
+prob_2_del = config.prune_rate;
+
 % cycle through all sub-reservoirs
 for i = 1:config.num_reservoirs
 
     % input weights
-    input_weights = offspring.input_weights{i}(:);
+    input_weights = offspring.input_weights(:);
     pos =  randperm(length(input_weights),ceil(config.mut_rate*length(input_weights)));
     input_weights(pos) = mutateWeight(input_weights(pos),[-1,1],config);
-    offspring.input_weights{i} = reshape(input_weights,size(offspring.input_weights{i}));
+    indices = find(input_weights); % find outputs in use
+    del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del)); %get weights to delete
+    input_weights(indices(del_pos)) = 0; % delete weight
+    input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0; % remove small weights    
+    offspring.input_weights = reshape(input_weights,size(offspring.input_weights));
     
     if config.input_widths
         input_widths = offspring.input_widths{i}(:);
