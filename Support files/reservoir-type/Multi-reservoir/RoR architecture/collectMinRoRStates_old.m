@@ -26,7 +26,7 @@ if config.evolve_feedback_weights || config.teacher_forcing
 end
 
 %equation: x(n) = f(Win*u(n) + S)
-for n = 2:size(input_sequence,1)
+for n = 1:size(input_sequence,1)-1
 
     if config.evolve_feedback_weights || config.teacher_forcing
         y_out = states(n,:)*individual.output_weights;
@@ -60,16 +60,14 @@ for n = 2:size(input_sequence,1)
                 states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise + y_out*W_fb);
             else
                 % default state collection
-                %states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise);
-                states(n,:) = config.activ_list{1}(input(n,:) + states(n-1,:)*W + noise);
+                states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise);
             end
         end   
     end
     
     % add leak states
     if config.leak_on
-        %states(n+1,:) = (1-individual.leak_rate).*states(n,:) + individual.leak_rate.*states(n+1,:);
-        states(n,:) = (1-individual.leak_rate).*states(n-1,:) + individual.leak_rate.*states(n,:);
+        states(n+1,:) = (1-individual.leak_rate).*states(n,:) + individual.leak_rate.*states(n+1,:);
     end
 end
 
