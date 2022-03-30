@@ -18,27 +18,27 @@ rng(1,'twister');
 config.parallel = 0;                        % use parallel toolbox
 
 %start paralllel pool if empty
-if isempty(gcp) && config.parallel
-    parpool('local',4,'IdleTimeout', Inf); % create parallel pool
-end
+%if isempty(gcp) && config.parallel
+%    parpool('local',4,'IdleTimeout', Inf); % create parallel pool
+%end
 
 % type of network to evolve
-config.res_type = 'MM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = 100;                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'STO';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
+config.num_nodes = {64};                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
 config.num_tests = 1;                         % num of tests/runs
-config.pop_size = 100;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.pop_size = 10;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 config.total_gens = 1000;                    % number of generations to evolve
 config.mut_rate = 0.05;                       % mutation rate
-config.deme_percent = 0.25;                   % speciation percentage; determines interbreeding distance on a ring.
+config.deme_percent = 0.1;                   % speciation percentage; determines interbreeding distance on a ring.
 config.deme = round(config.pop_size*config.deme_percent);
 config.rec_rate = 0.5;                       % recombination rate
 config.error_to_check = 'train&val&test';
 
 %% Task parameters
-config.dataset = 'laser';          % Task to evolve for
+config.dataset = 'japanese_vowels';          % Task to evolve for
 config.figure_array = [figure figure];
 
 % get any additional params. This might include:

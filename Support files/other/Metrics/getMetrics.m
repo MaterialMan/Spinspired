@@ -7,10 +7,10 @@ temp_seed = scurr.Seed;
 % set parameters
 metrics = [];
 config.reg_param = 10e-9;
-config.wash_out = 50;
+config.wash_out = 100;
 metrics_type =  config.metrics;
 num_timesteps = round(individual.total_units*1.5) + config.wash_out; % input should be twice the size of network + wash out
-MC_num_timesteps = 1000 + config.wash_out*2;
+MC_num_timesteps = 500 + config.wash_out*2;
 n_input_units = individual.n_input_units;
 
 for metric_item = 1:length(config.metrics)
@@ -27,10 +27,10 @@ for metric_item = 1:length(config.metrics)
             ui = 2*rand(num_timesteps,n_input_units)-1;
             
             input_sequence = repmat(ui(:,1),1,n_input_units);
-            
-            % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
-            
+                        
+            % preprocessing
+            [input_sequence, config] = EncodeData(input_sequence,config);
+
             %kernel matrix - pick 'to' at halfway point
             M = config.assessFcn(individual,input_sequence,config);
             
@@ -59,10 +59,10 @@ for metric_item = 1:length(config.metrics)
             % Genralization Rank
         case 'GR'
             % define input signal
-            input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;
+            input_sequence = 0 + 0.1*rand(num_timesteps,n_input_units)-0.05;           
             
-            % rescale for each reservoir
-            [input_sequence] = featureNormailse(input_sequence,config);
+            % preprocessing
+            [input_sequence, config] = EncodeData(input_sequence,config);
             
             %collect states
             G = config.assessFcn(individual,input_sequence,config);
@@ -212,6 +212,10 @@ for metric_item = 1:length(config.metrics)
             dissimilarity = (norm(zeros(size(individual.W,1))-W)./20)*(individual.total_units + (config.add_input_states*config.task_num_inputs));
             
             metrics = [metrics dissimilarity];
+            
+        case 'combined_metric'
+            seed = 1;
+            metrics = combinedMetrics(individual,config,seed,MC_num_timesteps);
     end
 end
 

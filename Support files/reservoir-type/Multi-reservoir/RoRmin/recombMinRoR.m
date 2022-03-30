@@ -49,14 +49,12 @@ L(indices(pos)) = W(indices(pos));
 loser.W = reshape(L,size(loser.W));
 
 % subres connecting weights
-if isempty(config.weight_fcn)
-    W = winner.W(:);
-    L = loser.W(:);
-    indices = find(loser.test_mask{2});
-    pos = randperm(length(indices),sum(rand(length(indices),1) < config.rec_rate));
-    L(indices(pos)) = W(indices(pos));
-    loser.W = reshape(L,size(loser.W));
-end
+W = winner.W(:);
+L = loser.W(:);
+indices = find(loser.test_mask{2});
+pos = randperm(length(indices),sum(rand(length(indices),1) < config.rec_rate)); 
+L(indices(pos)) = W(indices(pos));
+loser.W = reshape(L,size(loser.W));
 
 % mutate activ fcns
 if config.multi_activ

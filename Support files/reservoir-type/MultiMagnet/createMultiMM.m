@@ -34,8 +34,8 @@ for pop_indx = 1:config.pop_size
         population(pop_indx).n_input_units = 1;
         population(pop_indx).n_output_units = 1;
     else
-        population(pop_indx).n_input_units = size(config.train_input_sequence,2);
-        population(pop_indx).n_output_units = size(config.train_output_sequence,2);
+        population(pop_indx).n_input_units = config.task_num_inputs;
+        population(pop_indx).n_output_units = config.task_num_outputs;
     end
     
     %track total nodes in use
@@ -83,7 +83,7 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).layer(layer_indx).system_size(res_indx,3) = system_size_z;
             
             % layer thickness
-            population(pop_indx).layer(layer_indx).thickness(res_indx) = round(rand*10)/10;
+            population(pop_indx).layer(layer_indx).thickness(res_indx) = ceil(rand*10)/10;
             population(pop_indx).layer(layer_indx).minimum_height(res_indx,:) = [0 population(pop_indx).layer(layer_indx).thickness(res_indx)];
             population(pop_indx).layer(layer_indx).maximum_height(res_indx,:) = [population(pop_indx).layer(layer_indx).thickness(res_indx) 1];
             
@@ -105,6 +105,10 @@ for pop_indx = 1:config.pop_size
             population(pop_indx).layer(layer_indx).input_scaling(res_indx)= 2*rand-1;
             population(pop_indx).layer(layer_indx).leak_rate(res_indx) = rand;
             
+% assign interpolation time 
+            population(pop_indx).layer(layer_indx).interpolation_length = randi([1 config.max_interpolation_length]);
+    
+
             %% Input params
             
             % set positions of magnetic sources. Need maxpos > minpos
@@ -117,12 +121,15 @@ for pop_indx = 1:config.pop_size
             if layer_indx == 1
                 
                 % single reservoir input example
-                if config.single_input && config.evolve_geometry
+                if config.single_input 
                     input_weights = zeros(population(pop_indx).n_input_units + 1, population(pop_indx).layer(layer_indx).nodes(res_indx));
                     
                     % make rectangle
-                    xy = createRect(population(pop_indx).layer(layer_indx).geo_height,population(pop_indx).layer(layer_indx).geo_width);
-                    
+                    if config.evolve_geometry
+                        xy = createRect(population(pop_indx).layer(layer_indx).geo_height,population(pop_indx).layer(layer_indx).geo_width);
+                    else
+                       xy = createRect(1,1);
+                    end
                     % % reset input weights
                     square_film_dimensions = sqrt(population(pop_indx).layer(layer_indx).nodes(res_indx));
                     [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
@@ -150,12 +157,12 @@ for pop_indx = 1:config.pop_size
                             config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction),...
                             population(pop_indx).layer(layer_indx).nodes(res_indx),...
                             config.connecting_sparsity);
-                    case 'pipeline_IA'
+                    case {'pipeline_IA','tree'}
                         population(pop_indx).layer(layer_indx).input_weights{res_indx} =...
                             getWeights(config.input_weight_initialisation,...
                             config.total_units_per_layer(layer_indx-1)*length(config.read_mag_direction) + population(pop_indx).n_input_units + config.bias,...
                             population(pop_indx).layer(layer_indx).nodes(res_indx),...
-                            config.connecting_sparsity);     
+                            config.connecting_sparsity); 
                 end
             end
             
@@ -174,6 +181,7 @@ for pop_indx = 1:config.pop_size
             
             %% magnet params
             for m = 1: population(pop_indx).layer(layer_indx).num_materials(res_indx)
+               
                 population(pop_indx).layer(layer_indx).damping(res_indx,m) = config.damping_parameter(1) + (config.damping_parameter(2)-config.damping_parameter(1))*rand;
                 
                 population(pop_indx).layer(layer_indx).anisotropy(res_indx,m) = config.anisotropy_parameter(1) + (config.anisotropy_parameter(2)-config.anisotropy_parameter(1))*rand;
@@ -187,7 +195,10 @@ for pop_indx = 1:config.pop_size
                 population(pop_indx).layer(layer_indx).exchange(res_indx,m) = config.exchange_parameter(1) + (config.exchange_parameter(2)-config.exchange_parameter(1))*rand;
                 
                 population(pop_indx).layer(layer_indx).magmoment(res_indx,m) = config.magmoment_parameter(1) + (config.magmoment_parameter(2)-config.magmoment_parameter(1))*rand;
+  
             end
+            
+            
             population(pop_indx).layer(layer_indx).applied_field_strength(res_indx) = config.applied_field_strength(1) + (config.applied_field_strength(2)-config.applied_field_strength(1))*rand;
             
             
@@ -202,7 +213,11 @@ for pop_indx = 1:config.pop_size
                 population(pop_indx).layer(layer_indx).shell_size(res_indx,:) = [1 rand];
                 population(pop_indx).layer(layer_indx).particle_size(res_indx) = population(pop_indx).layer(layer_indx).system_size(res_indx,1);
             end
-            
+            if config.multilayer
+                population(pop_indx).layer(layer_indx).interfacial_exchange(res_indx) = config.interfacial_exchange(1) + (config.interfacial_exchange(2)-config.interfacial_exchange(1))*rand;
+                population(pop_indx).layer(layer_indx).minimum_height(res_indx,:) = [0 population(pop_indx).layer(layer_indx).thickness(res_indx)];
+                population(pop_indx).layer(layer_indx).maximum_height(res_indx,:) = [population(pop_indx).layer(layer_indx).thickness(res_indx) 1];
+            end
             % boundary params
             population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,:) = config.periodic_boundary;%zeros(1,3);
             %population(pop_indx).layer(layer_indx).periodic_boundary(res_indx,logical(config.periodic_boundary)) = round(rand(1,sum(config.periodic_boundary)));

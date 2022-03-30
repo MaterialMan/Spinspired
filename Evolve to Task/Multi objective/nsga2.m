@@ -25,8 +25,8 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = {'RoR','Wave'};             % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [10,16];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'multiMM';             % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = {[49]};                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
@@ -54,7 +54,7 @@ config.ref_points = [];
 config.num_constraints = 0;
 
 %% Get datasets
-config.dataset_list = {'laser', 'narma_10'};       %make they have the same number of inputs and outputs
+config.dataset_list = {'laser'};       %make they have the same number of inputs and outputs
 config.num_objectives = length(config.dataset_list);
 
 for n = 1:config.num_objectives

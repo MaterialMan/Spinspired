@@ -36,7 +36,38 @@ if ~isempty(individual.batch_path)
                     previous_states = [zeros(1,size(states{layer-1},2)); states{layer-1}(1:end-1,:)]; %use previous states as input for current layer...
                     
                     if strcmp(config.architecture,'pipeline_IA')
-                        layer_input = [layer_input previous_states];
+                        %layer_input = [layer_input previous_states];
+                        layer_input = [input_sequence previous_states];
+                    else
+                        layer_input = previous_states; 
+                    end
+                else
+                    layer_input = input_sequence; 
+                end
+                    
+                % collect states of current layer
+                parfor num_res = 1:config.num_res_in_layer(layer)
+                    %individual.layer(layer).core_indx = num_res
+                    layer_states{num_res} = getStates(batch_path,individual.layer(layer),layer_input,num_res,num_res,config);
+                end
+                
+                % concat states for layer to be used for next layer
+                states{layer} = [];
+                for j = 1:config.num_res_in_layer(layer)
+                    states{layer} = [states{layer} layer_states{j}];
+                end
+                
+            end
+                  
+        case 'tree'
+            % cycle through layers of pipeline
+            for layer = 1:config.num_layers
+                if layer > 1 % use initial input for first reservoir
+                    previous_states = [zeros(1,size(states{layer-1},2)); states{layer-1}(1:end-1,:)]; %use previous states as input for current layer...
+                    
+                    if strcmp(config.architecture,'pipeline_IA')
+                        %layer_input = [layer_input previous_states];
+                        layer_input = [input_sequence previous_states];
                     else
                         layer_input = previous_states; 
                     end
@@ -156,10 +187,11 @@ function states = getStates(batch_path,individual,input_sequence,core_indx,indx,
             % rescale
             tmp_states = tmp_states .*1e20;
             
-            % separate 3 directional states
-            x_states = tmp_states(1:size(input_sequence,1),:);
-            y_states = tmp_states(size(input_sequence,1)+1:size(input_sequence,1)*2,:);
-            z_states = tmp_states(size(input_sequence,1)*2 +1:end,:);
+             % separate 3 directional states
+            x_states = tmp_states(1:individual.interpolation_length*size(input_sequence,1),:);
+            y_states = tmp_states(individual.interpolation_length*size(input_sequence,1)+1:individual.interpolation_length*size(input_sequence,1)*2,:);
+            z_states = tmp_states(individual.interpolation_length*size(input_sequence,1)*2 +1:end,:);
+            
             
             tmp_states = []; % release
             states = [];
@@ -182,6 +214,17 @@ function states = getStates(batch_path,individual,input_sequence,core_indx,indx,
                 end
             end
             
+            % interpolation
+            if individual.interpolation_length > 1
+                tmp_states = zeros(size(input_sequence,1),size(states,2));
+                for time = 1:size(input_sequence,1)
+                    slice = individual.interpolation_length*time;
+                    tmp_states(time,:) = states(slice,:);
+                end
+                states = tmp_states;
+            end
+
+
             % plot states as surface plot
             if config.plot_states
                 subplot(2,2,2)
@@ -213,23 +256,24 @@ function states = getStates(batch_path,individual,input_sequence,core_indx,indx,
                     for t = 1:size(states,1)
                         %                         subplot(2,2,4)
                         %                         %newH = reshape(states{i}(t,:),node_grid_size,node_grid_size);
-                        set(h,'UData',reshape(x_states(t,:),node_grid_size,node_grid_size));
-                        set(h,'VData',reshape(y_states(t,:),node_grid_size,node_grid_size));
-                        set(h,'WData',reshape(z_states(t,:),node_grid_size,node_grid_size));
+                        %set(h,'UData',reshape(x_states(t,:),node_grid_size,node_grid_size));
+                        %set(h,'VData',reshape(y_states(t,:),node_grid_size,node_grid_size));
+                        %set(h,'WData',reshape(z_states(t,:),node_grid_size,node_grid_size));
                         
                         %                         subplot(2,2,1)
-                        %                         Vq = interp2(reshape(z_states(t,1:end),node_grid_size,node_grid_size),5);
-                        %                         imagesc(Vq)
-                        %                         colormap(jet)
-                        %                         drawnow
+                        Vq = interp2(reshape(states(t,1:end),node_grid_size,node_grid_size),5);
+                        imagesc(Vq)
+                        caxis([min(min(states)) max(max(states))]);
+                        colormap(bluewhitered)
+                        drawnow
                     end
                 end
             end
             
         else
-            states = zeros(length(input_sequence),config.num_nodes(indx)*length(config.read_mag_direction));
+            states = zeros(length(input_sequence),individual.nodes*length(config.read_mag_direction));
             fprintf('simulation failed\n')
-            cmdout
+            %cmdout
         end    
                 
         % adding leaks between subreservoirs
@@ -237,16 +281,16 @@ function states = getStates(batch_path,individual,input_sequence,core_indx,indx,
             states = getLeakStates(states,individual,indx);
         end
         
-%         if indx ~= 0 && config.num_reservoirs == 1
-%             % clean up files
-%             rmpath(file_path);
-%             
-%             try rmdir(file_path,'s');
-%                 
-%             catch
-%                 warning('Error: Did not remove folder but contiued.\n')
-%             end
-%         end
+        if indx ~= 0 && config.num_reservoirs == 1
+            % clean up files
+            rmpath(file_path);
+            
+            try rmdir(file_path,'s');
+                
+            catch
+                warning('Error: Did not remove folder but contiued.\n')
+            end
+        end
 end
 
 %% change input signal to vampire simulator
@@ -261,9 +305,6 @@ inputspos = [inputspos' [-2;-1]]; % print xy coords
 
 s = [repelem("%3.4f",length(inputspos)-1) '%d' '\n'];
 fprintf(input_file,strjoin(s), inputspos');
-
-% write input values for each location
-timesteps = 0:size(input_sequence, 1)-1;
 
 input = config.input_scaler*(individual.input_scaling(indx)*(input_sequence*individual.input_weights{indx}));
 
@@ -281,6 +322,25 @@ for n = 1:size(input,1)
     end
     input(n,:) = input_matrix_2d(:);
 end
+
+% apply interpolation
+if individual.interpolation_length > 1
+    interp = individual.interpolation_length;
+    input_temp = zeros(interp*size(input_sequence,1),size(input,2));
+    for time = 0:size(input_sequence) -1
+        if config.constant_signal
+            for partial = 1:individual.interpolation_length
+                input_temp(time*interp+partial,:) = input(time+1,:);
+            end
+        else
+            input_temp(time*interp+1,:) = input(time+1,:);
+        end
+    end
+    input = input_temp;
+end
+
+% write input values for each location
+timesteps = 0:size(input, 1)-1;
 
 if config.plot_states
     subplot(2,2,1)
@@ -372,7 +432,7 @@ while ~feof(input_source)
         end
     end
     if contains(l,'sim:total-time-steps')
-        config.total_time_steps = individual.time_steps_increment * size(input_sequence,1) + individual.time_steps_increment;
+        config.total_time_steps = individual.time_steps_increment * size(input_sequence,1)*individual.interpolation_length + individual.time_steps_increment;
         l = sprintf('sim:total-time-steps = %d', config.total_time_steps);
     end
     % applied field
@@ -426,41 +486,72 @@ switch(individual.material_type{indx})
     % TO DO!
     case 'multilayer'
         mat_source=fopen(strcat(file_path,'default_multi_material.txt'),'r');
-        for m = 1:individual.num_materials(indx)
-            while ~feof(mat_source)
-                l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
-                if contains(l,strcat('material[',num2str(m),']:damping-constant='))
-                    l = sprintf(strcat('material[',num2str(m),']:damping-constant=%d'), individual.damping(indx,m));
+        %for m = 1:individual.num_materials(indx)
+            
+        while ~feof(mat_source)
+            
+            l=fgetl(mat_source); % get line from base file, check if needs to be rewritten
+            
+            for m = 1:individual.num_materials(indx)
+                
+                if contains(l,strcat('material[',num2str(m),']:damping-constant'))
+                    l = sprintf(strcat('material[',num2str(m),']:damping-constant= %d'), individual.damping(indx,m));
+                    break
                 end
                 
-                if contains(l,strcat('material[',num2str(m),']:exchange-matrix')) % need to apdapt this
-                    for k = 1:individual.num_materials(indx)
-                        if m == k
-                            l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.exchange(indx,m));
-                        else
-                            l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(k),']=%s'), individual.interfacial_exchange(indx));
-                        end
-                    end
+                if contains(l,strcat('material[',num2str(m),']:exchange-matrix[',num2str(m),']'))
+                    l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(m),']= %s'), individual.exchange(indx,m));
+                    break
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:exchange-matrix[',num2str(m-1),']'))
+                    l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(m-1),']= %s'), individual.interfacial_exchange(indx));
+                    break
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:exchange-matrix[',num2str(m+1),']'))
+                    l = sprintf(strcat('material[',num2str(m),']:exchange-matrix[',num2str(m+1),']= %s'), individual.interfacial_exchange(indx));
+                    break
                 end
                 
                 if contains(l,strcat('material[',num2str(m),']:atomic-spin-moment'))
-                    l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment=%d !muB'), individual.magmoment(indx,m));
+                    l = sprintf(strcat('material[',num2str(m),']:atomic-spin-moment= %d !muB'), individual.magmoment(indx,m));
+                    break
                 end
-                if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant='))
-                    l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant=%s'), individual.anisotropy(indx,m));
+                
+                if contains(l,strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant'))
+                    l = sprintf(strcat('material[',num2str(m),']:second-order-uniaxial-anisotropy-constant= %s'), individual.anisotropy(indx,m));
+                    break
                 end
-                if contains(l,strcat('material[',num2str(m),']:initial-spin-direction='))
-                    l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction=%s'), config.initial_spin_direction{indx});
+                if contains(l,strcat('material[',num2str(m),']:initial-spin-direction'))
+                    l = sprintf(strcat('material[',num2str(m),']:initial-spin-direction= %s'), config.initial_spin_direction{indx});
+                    break
                 end
                 if contains(l,strcat('material[',num2str(m),']:minimum-height'))
-                    l = sprintf(strcat('material[',num2str(m),']:minimum-height=%.1f'), individual.minimum_height(indx,m));
+                    l = sprintf(strcat('material[',num2str(m),']:minimum-height= %.1f'), individual.minimum_height(indx,m));
+                    break
                 end
                 if contains(l,strcat('material[',num2str(m),']:maximum-height'))
-                    l = sprintf(strcat('material[',num2str(m),']:maximum-height=%.1f'), individual.maximum_height(indx,m));
+                    l = sprintf(strcat('material[',num2str(m),']:maximum-height= %.1f'), individual.maximum_height(indx,m));
+                    break
                 end
-                fprintf(mat_file,'%s \n',l);  % print line to file
+                 
+                if contains(l,strcat('material[',num2str(m),']:temperature-rescaling-exponent')) && config.temperature_rescaling_exponent(2) > 0
+                    l = sprintf(strcat('material[',num2str(m),']:temperature-rescaling-exponent=%.3f'), individual.temperature_rescaling_exponent(m));
+                    break
+                end
+                
+                if contains(l,strcat('material[',num2str(m),']:temperature-rescaling-curie-temperature')) && config.temperature_rescaling_curie_temperature(2) > 0
+                    l = sprintf(strcat('material[',num2str(m),']:temperature-rescaling-curie-temperature=%d'), individual.temperature_rescaling_curie_temperature(m));
+                    break
+                end
+                
             end
+            
+            fprintf(mat_file,'%s \n',l);  % print line to file
         end
+        %end
+        
         
     case 'core_shell'
         

@@ -28,7 +28,7 @@ if config.multi_activ
     activFcn(pos) = randi([1 length(config.activ_list)],length(pos),1);
     offspring.activ_Fcn_indx = activFcn;
 end
-
+        
 % W switch
 if isfield(offspring,'W_switch')
     if ~config.RoR_structure
@@ -41,53 +41,45 @@ end
 
 %define minimum weight
 minimum_weight = 0.01; % anything less than this will be set to zero
-prob_2_del = 0.1;
+prob_2_del = 0.25;
 
 % mutate all input weights
-if ~config.CPPN_on
-    input_weights = offspring.input_weights(:);
-    
-    pos = randperm(length(input_weights),sum(rand(length(input_weights),1) < config.mut_rate)); % find new positions to change
-    input_weights(pos) = mutateWeight(input_weights(pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
-    
-    indices = find(input_weights); % find outputs in use
-    del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del)); %get weights to delete
-    input_weights(indices(del_pos)) = 0; % delete weight
-    
-    input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0; % remove small weights
-    offspring.input_weights = reshape(input_weights,size(offspring.input_weights));
-    
-    % mutate subres internal weights    
-    if isempty(config.weight_fcn) % only evolve if not given some rigid structure
-        W = offspring.W(:); 
-        % find all intenal units
-        indices = find(~offspring.test_mask{1});
-        
-        pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate));
-        W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
-        
-        % select weights to change
-        del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del));
-        W(indices(del_pos)) = 0; % delete weight
-        
-        W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
-        offspring.W = reshape(W,size(offspring.W));
-    end
-    
-    % mutate subres connecting weights
-    W = offspring.W(:);
-    % find all intenal units
-    indices = find(offspring.test_mask{2});
-    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate_connecting));
-    W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
-    
-    % select weights to change
-    del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del));
-    W(indices(del_pos)) = 0; % delete weight
-    
-    W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
-    offspring.W = reshape(W,size(offspring.W));
+input_weights = offspring.input_weights(:);
+indices = find(input_weights); % find outputs in use
+pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
+if rand < prob_2_del
+    input_weights(indices(pos)) = 0; % delete weight
 end
+new_pos = randperm(length(input_weights),length(pos)); % find new positions to change
+input_weights(new_pos) = mutateWeight(input_weights(new_pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
+input_weights(input_weights<minimum_weight & input_weights~=0 & input_weights>-minimum_weight) = 0;
+offspring.input_weights = reshape(input_weights,size(offspring.input_weights));
+
+% mutate subres internal weights
+W = offspring.W(:);
+% find all intenal units
+indices = find(~offspring.test_mask{1});
+% select weights to change
+pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate));
+if rand < prob_2_del
+    W(indices(pos)) = 0; % delete weight
+end
+W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
+W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
+offspring.W = reshape(W,size(offspring.W));
+
+% mutate subres connecting weights
+W = offspring.W(:);
+% find all intenal units
+indices = find(offspring.test_mask{2});
+% select weights to change
+pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate_connecting));
+if rand < prob_2_del
+    W(indices(pos)) = 0; % delete weight
+end
+W(indices(pos)) = mutateWeight(W(indices(pos)),[-1 1],config);
+W(W<minimum_weight & W~=0 & W>-minimum_weight) = 0;
+offspring.W = reshape(W,size(offspring.W));
 
 % random prune
 offspring = pruneParams(offspring,config);
@@ -98,36 +90,33 @@ offspring = updateParams(offspring,config);
 % mutate output weights
 if config.evolve_output_weights
     output_weights = offspring.output_weights(:);
-    
-    pos = randperm(length(output_weights),sum(rand(length(output_weights),1) < config.mut_rate)); % find new positions to change
-    output_weights(pos) = mutateWeight(output_weights(pos),[-config.output_weight_scaler config.output_weight_scaler],config); % mutate any random weights, chance to mutate existing and non-existing weight
-    
     indices = find(output_weights); % find outputs in use
-    del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del)); %get weights to delete
-    output_weights(indices(del_pos)) = 0; % delete weight
-   
+    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
+    if rand < prob_2_del
+        output_weights(indices(pos)) = 0; % delete weight
+    end
+    new_pos = randperm(length(output_weights),length(pos)); % find new positions to change
+    output_weights(new_pos) = mutateWeight(output_weights(new_pos),[-config.output_weight_scaler config.output_weight_scaler],config); % mutate any random weights, chance to mutate existing and non-existing weight
     output_weights(output_weights<minimum_weight & output_weights~=0 & output_weights>-minimum_weight) = 0;
     offspring.output_weights = reshape(output_weights,size(offspring.output_weights));
 end
 
 % mutate feedback weights
 if config.evolve_feedback_weights
-    
     % feedback scaling
-    feedback_scaling = offspring.feedback_scaling(:);    
+    feedback_scaling = offspring.feedback_scaling(:);
     pos =  randperm(length(feedback_scaling),sum(rand(length(feedback_scaling),1) < config.mut_rate));
     feedback_scaling(pos) = mutateWeight(feedback_scaling(pos),[-1 1],config);
     offspring.feedback_scaling = reshape(feedback_scaling,size(offspring.feedback_scaling));
     
-    % feedback weights
     feedback_weights = offspring.feedback_weights(:);
-    pos = randperm(length(feedback_weights),sum(rand(length(feedback_weights),1) < config.mut_rate)); %get weights to delete
-    feedback_weights(pos) = mutateWeight(feedback_weights(pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
-    
     indices = find(feedback_weights); % find outputs in use
-    del_pos = randperm(length(indices),sum(rand(length(indices),1) < prob_2_del)); %get weights to delete
-    feedback_weights(indices(del_pos)) = 0; % delete weight
-
+    pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
+    if rand < prob_2_del
+        feedback_weights(indices(pos)) = 0; % delete weight
+    end
+    new_pos = randperm(length(feedback_weights),length(pos)); % find new positions to change
+    feedback_weights(new_pos) = mutateWeight(feedback_weights(new_pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
     feedback_weights(feedback_weights<minimum_weight & feedback_weights~=0 & feedback_weights>-minimum_weight) = 0;
     offspring.feedback_weights = reshape(feedback_weights,size(offspring.feedback_weights));
 end
@@ -203,7 +192,7 @@ for i = 2:length(individual.nodes)
         individual.input_scaling(:,start_pos:end_pos) = individual.init_input_scaling(:,i);
     end
     individual.W_scaling(start_pos:end_pos,start_pos:end_pos) = individual.init_W_scaling(i);
-    individual.leak_rate(start_pos:end_pos) = individual.init_leak_rate(i);
+    individual.leak_rate(start_pos:end_pos) = individual.init_leak_rate(i);        
 end
 
 % indentify any W that are new connections and put W_scaling as identity

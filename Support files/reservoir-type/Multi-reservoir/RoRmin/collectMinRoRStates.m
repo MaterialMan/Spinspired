@@ -20,58 +20,54 @@ if config.evolve_feedback_weights
     W_fb = individual.feedback_scaling*individual.feedback_weights';
 end
 
-if (config.evolve_feedback_weights || config.teacher_forcing) && exist('target_output','var')
+if config.evolve_feedback_weights || config.teacher_forcing
     target_output = target_output + config.noise_ratio*rand(size(target_output)); % add noise to regulate weights
     force_input = ([target_output repmat(individual.bias_node,size(target_output,1),1)]*(individual.input_weights.*individual.input_scaling));
 end
 
 %equation: x(n) = f(Win*u(n) + S)
-for n = 2:size(input_sequence,1)
+for n = 1:size(input_sequence,1)-1
 
     if config.evolve_feedback_weights || config.teacher_forcing
-        y_out = states(n-1,:)*individual.output_weights;
+        y_out = states(n,:)*individual.output_weights;
     end
     
     if config.multi_activ
         % calculate states with specific activation functions
         for p = 1:length(config.activ_list)
-            prev_state = states(n-1,:)*W;
+            prev_state = states(n,:)*W;
             indx = individual.activ_Fcn_indx == p;
-            if sum(indx) > 0 
-            states(n,indx) = config.activ_list{p}(input(n,indx) + prev_state(indx) + noise(indx));
-            end
+            states(n+1,indx) = config.activ_list{p}(input(n,indx) + prev_state(indx) + noise(indx));
         end
     else
         %feeds trained output to the input (no feedback weights!)
         if config.teacher_forcing 
-            if sum(sum(input_sequence(n-1:n,:))) ~= 0 %input_sequence(n,:) ~= 0 && n <= size(input_sequence,1)/2%sum(sum(input_sequence(n-1:n,:))) ~= 0 % teacher forcing
+            if sum(sum(input_sequence(n:n+1,:))) ~= 0 %input_sequence(n,:) ~= 0 && n <= size(input_sequence,1)/2%sum(sum(input_sequence(n-1:n,:))) ~= 0 % teacher forcing
                 if config.evolve_feedback_weights
-                    states(n,:) = config.activ_list{1}(input(n,:) + states(n-1,:)*W + noise + target_output(n,:)*W_fb);
+                    states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise + target_output(n,:)*W_fb);
                 else
-                    states(n,:) = config.activ_list{1}(force_input(n,:) + states(n-1,:)*W + noise);
+                    states(n+1,:) = config.activ_list{1}(force_input(n,:) + states(n,:)*W + noise);
                 end
             else
                 if config.evolve_feedback_weights
-                   states(n,:) = config.activ_list{1}(input(n,:) + states(n-1,:)*W + noise + y_out*W_fb);
+                   states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise + y_out*W_fb);
                 else
-                    states(n,:) = config.activ_list{1}(([y_out individual.bias_node]*(individual.input_weights.*individual.input_scaling)) + states(n-1,:));
+                    states(n+1,:) = config.activ_list{1}(([y_out individual.bias_node]*(individual.input_weights.*individual.input_scaling)) + states(n,:));
                 end
             end
         else
             if config.evolve_feedback_weights %no training occurs, weights are evolved
-                states(n,:) = config.activ_list{1}(input(n,:) + states(n-1,:)*W + noise + y_out*W_fb);
+                states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise + y_out*W_fb);
             else
                 % default state collection
-                %states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise);
-                states(n,:) = config.activ_list{1}(input(n,:) + states(n-1,:)*W + noise);
+                states(n+1,:) = config.activ_list{1}(input(n,:) + states(n,:)*W + noise);
             end
         end   
     end
     
     % add leak states
     if config.leak_on
-        %states(n+1,:) = (1-individual.leak_rate).*states(n,:) + individual.leak_rate.*states(n+1,:);
-        states(n,:) = (1-individual.leak_rate).*states(n-1,:) + individual.leak_rate.*states(n,:);
+        states(n+1,:) = (1-individual.leak_rate).*states(n,:) + individual.leak_rate.*states(n+1,:);
     end
 end
 

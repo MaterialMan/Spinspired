@@ -14,6 +14,13 @@ for layer = 1:config.num_layers
     leak_rate(pos) = mutateWeight(leak_rate(pos),[0, 1],config);
     offspring.layer(layer).leak_rate = reshape(leak_rate,size(offspring.layer(layer).leak_rate));
     
+  % interpolation_length
+    interpolation_length = offspring.layer(layer).interpolation_length(:);
+    pos = randperm(length(interpolation_length),sum(rand(length(interpolation_length),1) < config.mut_rate));
+    interpolation_length(pos) = round(mutateWeight(interpolation_length(pos),[1 config.max_interpolation_length],config));
+    offspring.layer(layer).interpolation_length = reshape(interpolation_length,size(offspring.layer(layer).interpolation_length));
+
+
     % vampire params
     damping = offspring.layer(layer).damping(:);
     pos = randperm(length(damping),sum(rand(length(damping),1) < config.mut_rate));
@@ -92,14 +99,26 @@ for layer = 1:config.num_layers
         % input weights
         input_weights = offspring.layer(layer).input_weights{i};
         
+%          if config.evolve_geometry
+%              % make rectangle
+%              xy = createRect(offspring.layer(layer).geo_height,offspring.layer(layer).geo_width);
+%              % % reset input weights
+%              square_film_dimensions = sqrt(offspring.layer(layer).nodes(i));
+%              [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
+%              [in,on] = inpolygon(xq,yq,xy(:,1),xy(:,2));
+%              inputs_in_use = find(in | on);   % mask of inputs in use
+%          else
+%              inputs_in_use = find(ones(square_film_dimensions));
+%          end
+   
         for n = 1:size(input_weights,1)
+                       
             indices = find(input_weights(n,:)); % find inputs in use
             pos = randperm(length(indices),sum(rand(length(indices),1) < config.mut_rate)); %get weights to delete
             
-            if config.single_input
+            if config.evolve_geometry
                 % make rectangle
                 xy = createRect(offspring.layer(layer).geo_height,offspring.layer(layer).geo_width);
-                
                 % % reset input weights
                 square_film_dimensions = sqrt(offspring.layer(layer).nodes(i));
                 [xq,yq] = meshgrid(linspace(0,1,square_film_dimensions),linspace(0,1,square_film_dimensions));
@@ -119,13 +138,24 @@ for layer = 1:config.num_layers
                 end
                 pos = randperm(size(input_weights,2),length(pos)); % find new positions to change
             end
+            
             input_weights(n,pos) = mutateWeight(input_weights(n,pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
         
-        input_weights(n,input_weights(n,:)<minimum_weight & input_weights(n,:)~=0 & input_weights(n,:)>-minimum_weight) = 0;
+            input_weights(n,input_weights(n,:)<minimum_weight & input_weights(n,:)~=0 & input_weights(n,:)>-minimum_weight) = 0;
         
         end
         
-        
+        % messed this up
+%         if config.single_input
+%             indices = find(input_weights(1,:));
+%             input_weights(indices) = 0;
+%             pos = randperm(length(input_weights(1,:)),sum(rand(length(input_weights(1,:)),1) < config.mut_rate)); %get weights to delete
+%             input_weights(1,pos) = mutateWeight(input_weights(1,pos),[-1 1],config); % mutate any random weights, chance to mutate existing and non-existing weight
+%             input_weights(1,input_weights(n,:)<minimum_weight & input_weights(1,:)~=0 & input_weights(1,:)>-minimum_weight) = 0;
+%         end
+       
+
+
 %         if nnz(input_weights) > offspring.n_input_units + 1
 %             error('Error: More than one input.\n')
 %         end

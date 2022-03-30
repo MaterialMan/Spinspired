@@ -13,8 +13,8 @@ if isempty(gcp) && config.parallel %
 end
 
 % type of network to evolve
-config.res_type = 'MM';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
-config.num_nodes = [196];                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
+config.res_type = 'multiMM';                % state type of reservoir to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network of neurons), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more.
+config.num_nodes = {[100]};                  % num of nodes in each sub-reservoir, e.g. if config.num_nodes = {10,5,15}, there would be 3 sub-reservoirs with 10, 5 and 15 nodes each. For one reservoir, sate as a non-cell, e.g. config.num_nodes = 25
 config = selectReservoirType(config);   % collect function pointers for the selected reservoir type
 
 %% Task parameters
@@ -24,7 +24,7 @@ config.dataset = 'test_pulse';          % Task to evolve for
 config.figure_array = [figure figure];
 config.preprocess ='';
 
-config.metrics = {'linearMC'}; 
+config.metrics = {'linearMC','KR','GR'}; 
 
 % get any additional params stored in getDataSetInfo.m. This might include:
 % details on reservoir structure, extra task variables, etc.
@@ -35,65 +35,78 @@ config = selectDataset(config);
 
 %% Evolutionary parameters
 config.num_tests = 1;                        % num of tests/runs
-config.pop_size = 1;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
+config.pop_size = 2;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)
 
 %% sweep film sizes
 config.test = 1;
 
 % create population of reservoirs
 population = config.createFcn(config);
-default_pop = population(1);
-
+default_pop = population(2);
 
 %% damping effect
-damping = linspace(0.1,1,4);
+%damping = linspace(0.1,1,4);
 
-ppm = ParforProgMon('Initial population: ', length(damping));
-parfor pop_indx = 1:length(damping)
+time_scale = 0:10:200;
+time_scale(1) = 1;
+
+ppm = ParforProgMon('Initial population: ', length(time_scale));
+for pop_indx = 1:1%length(time_scale)
     warning('off','all')
 
+    tmp_config = config;
     population(pop_indx) = default_pop;
-    population(pop_indx).input_scaling = 1;
-    population(pop_indx).leak_rate = 1;
-    population(pop_indx).input_weights{1} = zeros(config.num_nodes,2);
-    population(pop_indx).input_weights{1}(config.num_nodes/2 - floor(sqrt(config.num_nodes)/2),1) = 1;
+    %population(pop_indx).layer(1).input_scaling = 1;
+    %population(pop_indx).layer(1).leak_rate = 1;
+   % population(pop_indx).input_weights{1} = zeros(tmp_config.num_nodes,2);
+   % population(pop_indx).input_weights{1}(tmp_config.num_nodes/2 - floor(sqrt(tmp_config.num_nodes)/2),1) = 1;
     
-    population(pop_indx).core_indx = pop_indx;
-    population(pop_indx).damping = damping(pop_indx);
-
+    population(pop_indx).layer(1).core_indx = pop_indx;
+    population(pop_indx).layer(1).time_steps_increment = time_scale(pop_indx);
+    
     states{pop_indx} = config.assessFcn(population(pop_indx),config.test_input_sequence,config,config.test_output_sequence);
-    %MC(pop_indx) = getMetrics(population(pop_indx),config);
+    %MC(pop_indx,:) = getMetrics(population(pop_indx),tmp_config);
+    
+    %fprintf('Pop: %d, MC %.3f \n',pop_indx,MC(pop_indx))
     
     ppm.increment();
 end
 
+config.num_nodes = 100;
 
-% figure
+figure
+%plot(time_scale,MC)
 % set(gcf,'color','w')
+for t = 1:size(states{1},1)
+   imagesc(reshape(states{1}(t,1:end),sqrt(config.num_nodes),sqrt(config.num_nodes)));
+   drawnow
+end
+
+
 d = 1;
 [X,Y] = meshgrid(1:sqrt(config.num_nodes),1:sqrt(config.num_nodes));
-% for t = 1:size(states{d},1)
-% subplot(1,2,1)
-% surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
-%     ,'FaceAlpha',0.5,'FaceColor','interp');
-% set(gca,'visible','off')
-% %view([2 2 2])
-% zlim([min(min(states{1})) max(max(states{1}))])
-% caxis([-1 1])
-% xlabel('Side view')
-% 
-% subplot(1,2,2)
-% surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
-%     ,'FaceAlpha',0.5,'FaceColor','interp');
-% view(2)
-% caxis([-1 1])
-% set(gca,'visible','off')
-% xlabel('Top down view')
-% colorbar
-% colormap(bluewhitered)
-% 
-% drawnow;
-% end
+for t = 1:size(states{d},1)
+subplot(1,2,1)
+surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+set(gca,'visible','off')
+%view([2 2 2])
+zlim([min(min(states{d})) max(max(states{d}))])
+caxis([-1 1])
+xlabel('Side view')
+
+subplot(1,2,2)
+surf(X,Y,reshape(states{d}(t,1:end-1),sqrt(config.num_nodes),sqrt(config.num_nodes))...
+    ,'FaceAlpha',0.5,'FaceColor','interp');
+view(2)
+caxis([-1 1])
+set(gca,'visible','off')
+xlabel('Top down view')
+colorbar
+colormap(bluewhitered)
+
+drawnow;
+end
 
 figure
 set(gcf,'color','w')
@@ -128,10 +141,10 @@ colormap(bluewhitered)
 end
 
 %% thickness vs time
-colors = distinguishable_colors(length(damping));
+colors = distinguishable_colors(length(time_scale));
 figure
 hold on
-for i = 4:length(damping(4:end))
+for i = 4:length(time_scale(4:end))
     p = plot(states{i}(:,201:300),'Color',colors(i,:));
     for n = 2:100
         set(get(get(p(n),'Annotation'),'LegendInformation'),'IconDisplayStyle','off');
@@ -140,14 +153,14 @@ end
 hold off
 xlabel('Time')
 ylabel('Magnitude')
-[~,hobj] = legend(string(round(damping(4:end)*100)/100));
+[~,hobj] = legend(string(round(time_scale(4:end)*100)/100));
 h1 = findobj(hobj,'type','line');
 set(h1,'LineWidth',4);
 
 figure
 bar(MC)
 xticks(1:20)
-xticklabels(round(damping*100)/100)
+xticklabels(round(time_scale*100)/100)
 xtickangle(45)
 xlabel('Damping')
 ylabel('MC')
@@ -254,9 +267,9 @@ ylabel('MC')
 
 %% test exchange and damping
 exchange = logspace(-26,-20,20);
-damping = linspace(0,1,20);
+time_scale = linspace(0,1,20);
 
-ppm = ParforProgMon('Initial population: ', length(exchange)*length(damping));
+ppm = ParforProgMon('Initial population: ', length(exchange)*length(time_scale));
 
 for indx = 1:length(exchange)
     
@@ -270,7 +283,7 @@ for indx = 1:length(exchange)
         population(pop_indx).input_weights{1}(50,1) = 1;
         
         population(pop_indx).core_indx = pop_indx;
-        population(pop_indx).damping = damping(indx);
+        population(pop_indx).damping = time_scale(indx);
         population(pop_indx).exchange = exchange(pop_indx);
         
         %states{pop_indx} = config.assessFcn(population(pop_indx),config.test_input_sequence,config,config.test_output_sequence);
@@ -286,7 +299,7 @@ imagesc(MC)
 xticks(1:20)
 yticks(1:20)
 xticklabels(exchange)
-yticklabels(round(damping*100)/100)
+yticklabels(round(time_scale*100)/100)
 xtickangle(45)
 xlabel('Exchange')
 ylabel('Damping')

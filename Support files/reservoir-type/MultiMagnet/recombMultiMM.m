@@ -3,17 +3,16 @@ function loser = recombMultiMM(winner,loser,config)
 
 for layer = 1: config.num_layers
     
-    if rand > 0.5
-        from_layer = randi([1 config.num_layers]);
-        to_layer = layer;
-    else
+    %if rand > 0.5
+     %   from_layer = randi([1 config.num_layers]);
+     %   to_layer = layer;
+    %else
         from_layer = layer;
         to_layer = layer;
-    end
+    %end
     
     W= winner.layer(from_layer).input_scaling(:);
     L = loser.layer(from_layer).input_scaling(:);
-
     pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
     L(pos) = W(pos);
     loser.layer(to_layer).input_scaling = reshape(L,size(loser.layer(to_layer).input_scaling));
@@ -24,6 +23,15 @@ for layer = 1: config.num_layers
     L(pos) = W(pos);
     loser.layer(to_layer).leak_rate = reshape(L,size(loser.layer(to_layer).leak_rate));
     
+ % interpolation_length
+    W= winner.layer(from_layer).interpolation_length(:);
+    L = loser.layer(from_layer).interpolation_length(:);
+    pos = randperm(length(L),sum(rand(length(L),1) < config.rec_rate));
+    L(pos) = W(pos);
+    loser.layer(to_layer).interpolation_length = reshape(L,size(loser.layer(to_layer).interpolation_length));
+    
+
+
 %     % params - W_scaling
 %     W= winner.layer(layer).W_scaling(:);
 %     L = loser.layer(layer).W_scaling(:);
@@ -121,26 +129,26 @@ for layer = 1: config.num_layers
         W= winner.layer(from_layer).input_weights{i}(:);
         L = loser.layer(from_layer).input_weights{i}(:);
         
-%         % temporary for single input
-%         ind_W= find(W); % find inputs in use
-%         ind_L= find(L); % find inputs in use
-%         
-%         tmp_L = L(ind_L); %reset
-%         L(ind_L) = 0;
-%         posW = randperm(length(ind_W),ceil(config.rec_rate*length(ind_W)));
-%         posL = randperm(length(ind_L),ceil(config.rec_rate*length(ind_L)));
-%         tmp_L(posL) = W(ind_W(posW));
-%         L(ind_W) = tmp_L;
-        
-        % take input
-        %L = W;
-        
-        % previous config
-        pos = randperm(length(L),ceil(config.rec_rate*length(L)));    %sum(rand(length(L),1) < config.rec_rate)
-        L(pos) = W(pos);
-        
-        loser.layer(to_layer).input_weights{i} = reshape(L,size(loser.layer(to_layer).input_weights{i}));
-        
+         % temporary for single input
+if config.single_input
+    %         ind_W= find(W); % find inputs in use
+    %         ind_L= find(L); % find inputs in use
+    %
+    %         tmp_L = L(ind_L); %reset
+    %         L(ind_L) = 0;
+    %         posW = randperm(length(ind_W),ceil(config.rec_rate*length(ind_W)));
+    %         posL = randperm(length(ind_L),ceil(config.rec_rate*length(ind_L)));
+    %         tmp_L(posL) = W(ind_W(posW));
+    %         L(ind_W) = tmp_L;
+    
+    % take input
+    L = W;
+else
+    pos = randperm(length(L),ceil(config.rec_rate*length(L)));    %sum(rand(length(L),1) < config.rec_rate)
+    L(pos) = W(pos);
+end
+loser.layer(to_layer).input_weights{i} = reshape(L,size(loser.layer(to_layer).input_weights{i}));
+
         % input widths
         if config.input_widths
             W= winner.layer(from_layer).input_widths{i}(:);
