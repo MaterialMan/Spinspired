@@ -18,8 +18,8 @@ a0=EXP.Pose(3,n_robot);
 
 %-- Check robots
 for i=1:EXP.Robots  % ciclo sui robots
-    if (i~=n_robot)   % controllo se robot è diverso da quello che sta misurando
-        if norm(EXP.Geometric_center(1:2,i)-EXP.Pose(1:2,n_robot))<=range+r  % controllo se il robot è nel range del sensore
+    if (i~=n_robot)   % controllo se robot ï¿½ diverso da quello che sta misurando
+        if norm(EXP.Geometric_center(1:2,i)-EXP.Pose(1:2,n_robot))<=range+r  % controllo se il robot ï¿½ nel range del sensore
             for j=1:Number_of_measures   % ciclo sull'angolo
                 x1=EXP.Geometric_center(1,i);
                 y1=EXP.Geometric_center(2,i);

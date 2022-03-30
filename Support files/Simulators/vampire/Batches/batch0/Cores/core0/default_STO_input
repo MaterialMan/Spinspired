@@ -5,6 +5,9 @@ dimensions:system-size-y=39 !A
 dimensions:system-size-z=39 !A
 
 sim:temperature = 0.0
+#sim:equilibration-temperature= 77
+#sim:equilibration-time-steps = 10000
+
 sim:time-step = 10 !fs
 sim:time-steps-increment = 100
 sim:total-time-steps = 3000000
@@ -12,10 +15,8 @@ sim:applied-field-strength=0.09 !T
 sim:spin-transfer-torque-polarization-unit-vector=1,0,0
 
 
-material:file = Co.mat
-material:unit-cell-file="STO-array-file.ucf"
-
-
+material:file = material.mat
+material:unit-cell-file="STO-array.ucf"
 
 #------------------------------------------
 # Program and integrator details
@@ -30,4 +31,4 @@ output:real-time
 output:material-magnetisation
 
 #screen:time-steps
-#screen:magnetisation-length
+#screen:material-magnetisation

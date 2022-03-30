@@ -38,7 +38,7 @@ if Initialization
         %if isfield(individual,'esnMinor')
          %   Exp_status.Agent(1).Sensor(1).Range= individual.esnMinor.leakRate; % use leakRate as a dummy
         %else
-            Exp_status.Agent(1).Sensor(1).Range= individual.leak_rate;
+            Exp_status.Agent(1).Sensor(1).Range= individual.leak_rate(1);
        % end
     else
         Exp_status.Agent(1).Sensor(1).Range= config.sensor_range;

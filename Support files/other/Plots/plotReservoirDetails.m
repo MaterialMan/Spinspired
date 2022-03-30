@@ -32,7 +32,11 @@ switch(config.dataset)
         
         subplot(1,3,1)
         % plot boundaries
-        boundary_states = config.assessFcn(best_individual,[x(:),y(:)],config,config.train_output_sequence);
+        input = [x(:),y(:)];
+        %t =  randperm(length(input),length(input));
+        %input = input(t,:);
+            
+        boundary_states = config.assessFcn(best_individual,input,config,config.train_output_sequence);
         boundary_sequence = boundary_states*best_individual.output_weights;
         [a,boundary_class] =max(boundary_sequence,[],2);
         
@@ -75,6 +79,7 @@ switch(config.dataset)
         hold off
         
         subplot(1,3,2)
+        if config.val_fraction > 0 
         % plot boundaries
         if best_individual.n_output_units == 2
             imagesc(outData*0.5);
@@ -85,6 +90,7 @@ switch(config.dataset)
         end
         
         % plot classes
+        
         val_states = config.assessFcn(best_individual,config.val_input_sequence,config,config.val_output_sequence);
         val_sequence = val_states*best_individual.output_weights;
         [err,system_output,desired_output] = calculateError(val_sequence,config.val_output_sequence,config);
@@ -101,6 +107,7 @@ switch(config.dataset)
         s.LineWidth = 1;
         s.MarkerEdgeColor = 'k';
         hold off
+        end
         
         subplot(1,3,3)
         % plot boundaries
@@ -369,6 +376,7 @@ switch(config.dataset)
         test_states = config.assessFcn(best_individual,config.test_input_sequence,config,config.test_output_sequence);
         test_sequence = test_states*best_individual.output_weights;
         plotregression(config.test_output_sequence,test_sequence)
+        %scatter(config.test_output_sequence,test_sequence)
         drawnow
         
         
@@ -714,13 +722,64 @@ if ~iscell(config.res_type)
                 i = i +1;
             end
             
-        case 'MM'
+        case {'MM','STO'}
             
             config.parallel = 0;
-            config.plot_states = 1;
+            %config.plot_states = 1;
+            %set(0,'currentFigure',config.figure_array(1))
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);
             states = states(:,1:end-best_individual.n_input_units);
+            %set(0,'currentFigure',config.figure_array(2))
+            %config.plot_states = 0;
             
+            num_x = 2;
+            num_y = 3;
+                
+            ax1 = subplot(num_x,num_y,1);
+            imagesc((best_individual.input_weights{1}.*best_individual.input_scaling));
+            colormap(ax1,bluewhitered)
+            colorbar
+            xlabel('Input mapping')
+            
+            ax2 = subplot(num_x,num_y,2);
+            imagesc(best_individual.W{1}.*best_individual.W_scaling);
+            colormap(ax2,bluewhitered)
+            colorbar
+            xlabel('Internal weights')            
+            
+            ax3 = subplot(num_x,num_y,3);
+            imagesc(best_individual.output_weights);
+            colormap(ax3,bluewhitered)
+            colorbar
+            xlabel('Output mapping')
+                
+%             ax4 = subplot(num_x,num_y,4);
+%             imagesc(states);
+%             colormap(ax4,bluewhitered)
+%             colorbar
+%             xlabel('States')
+            
+            ax5 = subplot(num_x,num_y,5);
+            imagesc(states);
+            colormap(ax5,bluewhitered)
+            colorbar
+            xlabel('States')
+            
+            ax6 = subplot(num_x,num_y,6);
+            %plot(config.train_output_sequence(config.wash_out+1:end,:),'k');
+            %hold on
+            plot(states);
+            %hold off
+            %colorbar
+            field = best_individual.applied_field_strength;
+            title("Applied field = "+field+"T")
+            
+            xlabel('States')
+            
+            
+            
+                
+                
         case 'Oregonator'
             config.plot_states = 1;
             states = config.assessFcn(population(best_indv(gen)),config.test_input_sequence,config);

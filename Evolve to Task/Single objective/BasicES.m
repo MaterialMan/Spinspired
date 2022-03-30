@@ -23,12 +23,12 @@ if isempty(gcp) && config.parallel
 end
 
 % type of network to evolve
-config.res_type = 'MM';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
-config.num_nodes = [25,25,25,25];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
+config.res_type = 'STO';            % state type of reservoir(s) to use. E.g. 'RoR' (Reservoir-of-reservoirs/ESNs), 'ELM' (Extreme learning machine), 'Graph' (graph network with multiple functions), 'DL' (delay line reservoir) etc. Check 'selectReservoirType.m' for more. Place reservoirs in cell ({}) for heterotic systems.
+config.num_nodes = [25];                   % num of nodes in each sub-reservoir, e.g. if config.num_nodes = [10,5,15], there would be 3 sub-reservoirs with 10, 5 and 15 nodes each.
 config = selectReservoirType(config);         % collect function pointers for the selected reservoir type
 
 %% Evolutionary parameters
-config.num_tests = 25;                         % num of tests/runs
+config.num_tests = 1;                         % num of tests/runs
 config.num_parents = 1;
 config.num_children = 3;
 config.pop_size = config.num_parents+config.num_children;                       % initail population size. Note: this will generally bias the search to elitism (small) or diversity (large)

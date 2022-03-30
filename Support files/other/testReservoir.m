@@ -24,6 +24,7 @@ switch(config.input_mechanism)
         end
         
     otherwise
+        % default evaluation of training set
         train_output_sequence =config.train_output_sequence;
         train_states = config.assessFcn(individual,config.train_input_sequence,config,config.train_output_sequence);
         if config.val_fraction > 0

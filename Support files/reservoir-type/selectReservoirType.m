@@ -30,8 +30,14 @@ switch(res_type)
         config.createFcn = @createMinRoR;
         config.assessFcn = @collectMinRoRStates;
         config.mutFcn = @mutateMinRoR;
-        config.recFcn = @recombRoR;
-        
+        config.recFcn = @recombMinRoR;
+
+     case 'RoRminMTS'
+        config.createFcn = @createMinRoRMTS;
+        config.assessFcn = @collectMinRoRMTSStates;
+        config.mutFcn = @mutateMinRoRMTS;
+        config.recFcn = @recombMinRoRMTS;
+
     case 'Pipeline'
         config.createFcn = @createPipeline;
         config.assessFcn = @collectPipelineStates;
@@ -111,12 +117,18 @@ switch(res_type)
         config.mutFcn = @mutateMM;
         config.recFcn = @recombMM;
         
+    case 'multiMM'
+        config.createFcn = @createMultiMM;
+        config.assessFcn = @collectMultiMMStates;
+        config.mutFcn = @mutateMultiMM;
+        config.recFcn = @recombMultiMM;
+        
     case 'STO'
         config.createFcn = @createSTO;
         config.assessFcn = @collectSTOStates;
         config.mutFcn = @mutateSTO;
         config.recFcn = @recombSTO;
-        
+
     case 'GOL'
         config.createFcn = @createGOL;
         config.assessFcn = @assessGOL;
@@ -152,6 +164,7 @@ end
 switch(res_type)
     case 'CNT'
         config.testFcn = @testHardwareReservoir;
-    otherwise
-        config.testFcn = @testReservoir; % default for all
+    otherwise % default for all
+        config.testFcn = @evalReservoir;
+        %config.testFcn = @testReservoir; 
 end

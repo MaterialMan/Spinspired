@@ -3,6 +3,13 @@
 
 function [config,new_num_nodes] = getShape(config)
 
+if contains(config.graph_type,'Lattice')
+    if (sqrt(config.num_nodes) ~= round(sqrt(config.num_nodes)))
+        error('\n Number of nodes needs to be a square number. \n')
+    else
+        config.num_nodes = sqrt(config.num_nodes);
+    end
+end
 
 for graph_indx = 1:length(config.num_nodes)
     
@@ -52,4 +59,7 @@ for graph_indx = 1:length(config.num_nodes)
     
     config.G{graph_indx} = G;
     new_num_nodes(graph_indx) = size(config.G{graph_indx}.Nodes,1);
+    
+    %set(0,'currentFigure',config.figure_array(2))
+    plot(config.G{graph_indx});
 end

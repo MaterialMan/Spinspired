@@ -42,6 +42,9 @@ dimensions:system-size-z = 0.1 !A
 # Macro cell settings:
 #------------------------------------------
 cells:macro-cell-size = 5 !nm
+#dipole:solver=tensor         # Choose tensor, macrocell or atomistic
+#dipole:field-update-rate=100 
+#dipole:cutoff-radius=2       # In units of cell size.
 
 #------------------------------------------
 # Material Files: user-defined structure from file
