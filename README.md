@@ -1,3 +1,3 @@
 # Spinspired
 
-This branch features tests to explore the geometry of magnetic thin films. Some of this was used in UCNC 2020 paper. 
+This branch features files related to tests conducted on the Viking cluster. This includes thin films, STO arrays, and multi-timescale reservoirs. 
