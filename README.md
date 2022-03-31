@@ -8,3 +8,4 @@ Other work includes:
 - time-delay (input and update cycles) reservoirs, 
 - neural grids (testing reflection/interference hypothesis) w/ dipole-like connectivity
 - combined metrics
+- viking cluster files
