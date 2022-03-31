@@ -1,0 +1,31 @@
+#===================================================
+# Vampire unit cell file (.ucf)
+#===================================================
+
+#---------------------------------------------------
+# Unit cell size in angstroms:
+#---------------------------------------------------
+ucx ucy ucz
+
+#---------------------------------------------------
+# Unit cell lattice vectors -- Define the shape of the unit cell to be replicated,
+# for cubic cells this is the unit matrix
+#---------------------------------------------------
+ucvxx ucvxy ucvxz
+ucvyx ucvyy ucvyz
+ucvzx ucvzy ucvzz
+
+#---------------------------------------------------
+# Atoms -- The number of atoms and number of materials in
+# the unit cell
+#---------------------------------------------------
+num_atoms_in_unit_cell number_of_materials
+atom_id cx cy cz [mat_id cat_id hcat_id]
+
+#---------------------------------------------------
+# Interactions
+#---------------------------------------------------
+num_interactions [exchange_type]
+IID i j dx dy dz | Jij
+                 | Jx Jy Jz
+                 | Jxx Jxy Jxz Jyx Jyy Jyz Jzx Jzy Jzz

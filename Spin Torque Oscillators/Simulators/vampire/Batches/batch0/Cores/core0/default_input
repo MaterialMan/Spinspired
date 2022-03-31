@@ -1,0 +1,87 @@
+#==========================================
+# Vampire input file 
+#==========================================
+
+#------------------------------------------
+# Creation attributes:
+#------------------------------------------
+create:crystal-structure = sc
+
+# Add periodic boundaries
+#------------------------------------------
+#create:periodic-boundaries-x  
+#create:periodic-boundaries-y 
+#create:periodic-boundaries-z 
+
+# Create core shell system
+#------------------------------------------
+#create:fill-core-shell-particles
+
+# Create random alloy - e.g. FeCo, NiFe and disordered ferrimagnets (such as GdFeCo)
+#------------------------------------------
+#create:alloy-random-seed 1
+
+# Create shape
+#------------------------------------------
+#create:sphere
+
+#------------------------------------------
+# System Dimensions: range is 0.1 � to 10 � m
+#------------------------------------------
+dimensions:unit-cell-size = 3.47 !A
+dimensions:system-size-x = 49 !nm
+dimensions:system-size-y = 49 !nm
+dimensions:system-size-z = 0.1 !A
+
+#------------------------------------------
+# To form and cut shapes - must be less than system size
+#------------------------------------------
+#dimensions:particle-size = 10 !nm
+
+#------------------------------------------
+# Macro cell settings:
+#------------------------------------------
+cells:macro-cell-size = 5 !nm
+#dipole:solver=tensor         # Choose tensor, macrocell or atomistic
+#dipole:field-update-rate=100 
+#dipole:cutoff-radius=2       # In units of cell size.
+
+#------------------------------------------
+# Material Files: user-defined structure from file
+#------------------------------------------
+material:file = material.mat
+#material:unit-cell-file = unit_cell_structure.ucf  
+
+#------------------------------------------
+# Simulation attributes:
+#------------------------------------------
+sim:temperature = 0
+sim:time-step= 1 !fs
+sim:time-steps-increment= 1000
+sim:total-time-steps = 301000
+sim:applied-field-strength = 0 !T
+sim:applied-field-unit-vector = 0,0,1
+sim:program = time-series
+
+#------------------------------------------
+# Program and integrator details
+#------------------------------------------
+sim:integrator=llg-heun
+micromagnetic:discretisation=micromagnetic
+micromagnetic:atomistic-steps-per-micromagnetic-step = 1
+micromagnetic:integrator=llg
+dipole:solver=tensor
+
+#------------------------------------------
+# data output
+#------------------------------------------
+output:time-steps
+#screen:time-steps
+output:temperature
+output:applied-field-strength
+output:material-magnetisation
+#screen:material-magnetisation
+
+#sim:cells-source-output = true 
+#config:macro-cells 
+#config:macro-cells-output-rate=1 

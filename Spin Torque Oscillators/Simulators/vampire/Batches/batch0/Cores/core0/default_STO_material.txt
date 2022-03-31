@@ -1,0 +1,22 @@
+#===================================================
+# Vampire material file 
+#===================================================
+
+#---------------------------------------------------
+# Number of Materials - up to 100 
+#---------------------------------------------------
+material:num-materials=1
+
+#---------------------------------------------------
+# Material Properties
+#---------------------------------------------------
+
+material[1]:damping-constant=0.01
+material[1]:exchange-matrix[1]=11.2e-26
+material[1]:atomic-spin-moment=1.72 !muB
+material[1]:second-order-uniaxial-anisotropy-constant=-1.0e-24
+material[1]:initial-spin-direction = 0.99,0.0,0.0
+
+material[1]:spin-transfer-relaxation-torque = -0.05
+material[1]:spin-transfer-precession-torque = 0.001
+material[1]:spin-transfer-torque-asymmetry=0.6
